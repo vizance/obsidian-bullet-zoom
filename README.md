@@ -5,7 +5,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 ## 目前狀態
 
 - 目前開發版本：`0.1.4`（修正實體 iPhone 頂端路徑遮擋）
-- 目前公開 BRAT 版本：`0.1.3`
+- 目前公開 BRAT 版本：`0.1.4`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版自動驗收：`0.1.4` 已加入 Bullet Zoom panel 搬離 sticky wrapper 的 DOM 回歸測試
@@ -65,7 +65,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前 GitHub Release 仍是 `0.1.3`；`0.1.4` 尚未發佈。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.4` 已發佈，BRAT 現在可以更新；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -135,7 +135,8 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `npm run lint`：通過
 - `npm run build`：通過
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.4`
-- `0.1.4` 尚未發佈到 GitHub／BRAT；實體 iPhone 仍待更新後複驗
+- standalone commit `79b2f0a` 已建立 GitHub Release `0.1.4`；Actions Release workflow 通過，遠端 `main.js`、`manifest.json`、`styles.css` 的 SHA-256 與 canonical build 逐檔一致
+- 實體 iPhone 仍待透過 BRAT 更新 `0.1.4` 後複驗
 
 ### 桌面版人工驗收
 
@@ -163,7 +164,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.2` 窄螢幕模擬：已通過
 - `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
-- `0.1.4` 本機候選版：panel DOM 搬移回歸測試已通過；待發佈 BRAT 並由使用者在實體 iPhone 複驗
+- `0.1.4` BRAT Release：已發佈且三個 asset 與 canonical build 一致；待使用者在實體 iPhone 更新後複驗
 
 #### `0.1.4` 手機頂端定位回歸紀錄
 
