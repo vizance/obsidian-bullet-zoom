@@ -8,6 +8,10 @@ import {
 import { EditorView } from '@codemirror/view';
 
 import {
+	EXIT_FOCUS_COMMAND,
+	PARENT_FOCUS_COMMAND,
+} from './command-definitions';
+import {
 	createFocusExtension,
 	focusFilePath,
 	focusLivePreview,
@@ -15,6 +19,7 @@ import {
 	resolveCodeMirrorView,
 	runExitCommand,
 	runFocusCommand,
+	runParentCommand,
 } from './focus-extension';
 
 type EditorWithCodeMirror = Editor & { cm?: unknown };
@@ -51,10 +56,16 @@ export default class BulletZoomPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'bullet-zoom-exit',
-			name: '退出 Bullet 聚焦',
+			...EXIT_FOCUS_COMMAND,
 			editorCallback: (editor) => {
 				runExitCommand(getEditorView(editor), showNotice);
+			},
+		});
+
+		this.addCommand({
+			...PARENT_FOCUS_COMMAND,
+			editorCallback: (editor) => {
+				runParentCommand(getEditorView(editor), showNotice);
 			},
 		});
 	}

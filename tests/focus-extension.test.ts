@@ -9,6 +9,7 @@ import {
 	clearFocusEffect,
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
 	exitFocus,
+	focusParent,
 	focusAtEffect,
 	focusFilePath,
 	focusLivePreview,
@@ -18,6 +19,7 @@ import {
 	resolveCodeMirrorView,
 	runExitCommand,
 	runFocusCommand,
+	runParentCommand,
 	SUPPORTED_BULLET_REQUIRED_NOTICE,
 } from '../src/focus-extension';
 
@@ -246,6 +248,75 @@ describe('exitFocus', () => {
 	});
 });
 
+describe('focusParent', () => {
+	it('returns exactly one Bullet level at a time without changing source or selection', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent\n  - Child\n    - Grandchild'),
+		});
+		const grandchild = view.state.doc.line(3);
+		view.dispatch({
+			selection: { anchor: grandchild.to },
+			effects: focusAtEffect.of(grandchild.from),
+		});
+		const source = view.state.doc.toString();
+		const selection = view.state.selection;
+
+		expect(focusParent(view)).toBe(true);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
+		expect(view.state.doc.toString()).toBe(source);
+		expect(view.state.selection.eq(selection)).toBe(true);
+
+		expect(focusParent(view)).toBe(true);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Parent');
+		expect(view.state.doc.toString()).toBe(source);
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('returns from a root Bullet to the complete note', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent\n  - Child'),
+		});
+		const root = view.state.doc.line(1);
+		view.dispatch({
+			selection: { anchor: root.to },
+			effects: focusAtEffect.of(root.from),
+		});
+		const selection = view.state.selection;
+
+		expect(focusParent(view)).toBe(true);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('does nothing when focus is already clear', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent'),
+		});
+		const source = view.state.doc.toString();
+		const selection = view.state.selection;
+
+		expect(focusParent(view)).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.doc.toString()).toBe(source);
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+});
+
 describe('bullet marker interaction', () => {
 	function createView(
 		documentText: string,
@@ -438,6 +509,31 @@ describe('plugin commands and safe failures', () => {
 	it('reports adapter failure for the exit command', () => {
 		const notices: string[] = [];
 		expect(runExitCommand(null, (message) => notices.push(message))).toBe(false);
+		expect(notices).toEqual([EDITOR_VIEW_UNAVAILABLE_NOTICE]);
+	});
+
+	it('runs parent navigation and stays quiet when focus is already clear', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+		const notices: string[] = [];
+
+		expect(runParentCommand(view, (message) => notices.push(message))).toBe(true);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(runParentCommand(view, (message) => notices.push(message))).toBe(true);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(runParentCommand(view, (message) => notices.push(message))).toBe(false);
+		expect(notices).toEqual([]);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('reports adapter failure for the parent command', () => {
+		const notices: string[] = [];
+		expect(runParentCommand(null, (message) => notices.push(message))).toBe(
+			false,
+		);
 		expect(notices).toEqual([EDITOR_VIEW_UNAVAILABLE_NOTICE]);
 	});
 });

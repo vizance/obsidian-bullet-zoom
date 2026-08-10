@@ -4,7 +4,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前版本：`0.1.2`（手機 UX 修正版）
+- 目前開發版本：`0.1.3`（新增逐層返回快捷鍵）
 - 目前公開 BRAT 版本：`0.1.2`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
@@ -40,11 +40,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 聚焦後，桌面版的上方路徑會顯示筆記名稱、所有父節點和目前節點。手機版從 `0.1.2` 起改成單列，只顯示「全文」、最近一層父節點與目前節點；點擊父節點可逐層返回，點擊「全文」或執行 `Bullet Zoom: 退出 Bullet 聚焦`，可回到完整筆記。
 
+`0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
+
 手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
 
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
-插件不會預設占用快捷鍵。桌面版可自行替命令指定快捷鍵；手機版可把命令加入 Mobile Toolbar。
+插件不預設占用快捷鍵，避免和 Outliner 的移動節點命令或其他 Vault 設定衝突。桌面版可自行替命令指定快捷鍵；手機版可把「回到上一層 Bullet」與「退出 Bullet 聚焦」加入 Mobile Toolbar，使用外接鍵盤時也會套用該 Vault 的自訂組合。
 
 ## 安裝
 
@@ -111,6 +113,17 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 聚焦窗格狀態：進入、失效、退出與 view destroy 的 class 切換測試通過，其他分割窗格不受影響
 - Obsidian Properties 核心樣式衝突已加入回歸驗證，隱藏規則只限手機的目前聚焦窗格
 - GitHub Release `0.1.2`：`main.js`、`manifest.json`、`styles.css` 三個遠端 asset 均存在，下載後的 SHA-256 與 canonical 建置逐檔一致
+
+2026-08-10 完成 `0.1.3` 開發版驗證：
+
+- `npm test`：65 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- 三層節點可透過 `bullet-zoom-focus-parent` 一次只返回一層，最外層再執行時回到全文
+- 命令顯示名稱與「不提供預設 hotkey」已由測試固定，避免和 Outliner 的上移節點快捷鍵衝突；原有 `bullet-zoom-exit` 保留
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.3`
+- 建置後的 `main.js` 已包含新命令，且未新增 Node.js 或 Electron runtime import
+- `0.1.3` 尚未提交或發佈；目前 BRAT 公開版本仍是 `0.1.2`
 
 ### 桌面版人工驗收
 
