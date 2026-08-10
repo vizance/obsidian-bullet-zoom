@@ -4,8 +4,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 開發版本：`0.1.2`（手機 UX 修正版，尚未發佈至 BRAT）
-- 目前公開 BRAT 版本：`0.1.1`
+- 目前版本：`0.1.2`（手機 UX 修正版）
+- 目前公開 BRAT 版本：`0.1.2`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版模擬驗收：`0.1.2` 已通過 Obsidian `1.13.5` 的 315 × 421 CSS px 鍵盤佔位模擬
@@ -61,7 +61,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。`0.1.2` 尚未建立 GitHub Release，因此 BRAT 目前仍會取得 `0.1.1`；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.2` 已發佈，BRAT 現在可以取得手機 UX 修正版；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -110,6 +110,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 手機 Breadcrumb DOM：保留完整可存取路徑，但視覺上只顯示「全文」、最近父層與目前節點
 - 聚焦窗格狀態：進入、失效、退出與 view destroy 的 class 切換測試通過，其他分割窗格不受影響
 - Obsidian Properties 核心樣式衝突已加入回歸驗證，隱藏規則只限手機的目前聚焦窗格
+- GitHub Release `0.1.2`：`main.js`、`manifest.json`、`styles.css` 三個遠端 asset 均存在，下載後的 SHA-256 與 canonical 建置逐檔一致
 
 ### 桌面版人工驗收
 
