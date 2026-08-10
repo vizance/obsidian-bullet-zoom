@@ -297,6 +297,41 @@ class FoldIndicatorClickPlugin implements PluginValue {
 
 const foldIndicatorClickPlugin = ViewPlugin.fromClass(FoldIndicatorClickPlugin);
 
+const FOCUSED_PANE_CLASS = 'bullet-zoom-pane-is-focused';
+
+class FocusedPanePresentationPlugin implements PluginValue {
+	private pane: HTMLElement | null = null;
+
+	constructor(view: EditorView) {
+		this.sync(view);
+	}
+
+	update(update: ViewUpdate): void {
+		this.sync(update.view);
+	}
+
+	destroy(): void {
+		this.pane?.classList.remove(FOCUSED_PANE_CLASS);
+		this.pane = null;
+	}
+
+	private sync(view: EditorView): void {
+		const nextPane = view.dom.closest<HTMLElement>('.markdown-source-view');
+		if (nextPane !== this.pane) {
+			this.pane?.classList.remove(FOCUSED_PANE_CLASS);
+			this.pane = nextPane;
+		}
+		this.pane?.classList.toggle(
+			FOCUSED_PANE_CLASS,
+			getFocusSession(view.state) !== null,
+		);
+	}
+}
+
+const focusedPanePresentationPlugin = ViewPlugin.fromClass(
+	FocusedPanePresentationPlugin,
+);
+
 function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 	container.replaceChildren();
 	const session = getFocusSession(view.state);
@@ -305,6 +340,12 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 	}
 
 	for (const [index, breadcrumb] of session.breadcrumbs.entries()) {
+		const isNote = index === 0;
+		const isCurrent = index === session.breadcrumbs.length - 1;
+		const isAncestor = !isNote && !isCurrent;
+		const isParent =
+			isAncestor && index === session.breadcrumbs.length - 2;
+
 		if (index > 0) {
 			const separator = container.ownerDocument.createElement('span');
 			separator.className = 'bullet-zoom-breadcrumb-separator';
@@ -316,11 +357,25 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 		const button = container.ownerDocument.createElement('button');
 		button.type = 'button';
 		button.className = 'bullet-zoom-breadcrumb';
-		button.textContent = breadcrumb.label;
+		if (isNote) {
+			button.classList.add('is-note');
+			button.dataset.mobileLabel = '全文';
+		}
+		if (isAncestor) {
+			button.classList.add('is-ancestor');
+		}
+		if (isParent) {
+			button.classList.add('is-parent');
+		}
+
+		const label = container.ownerDocument.createElement('span');
+		label.className = 'bullet-zoom-breadcrumb-label';
+		label.textContent = breadcrumb.label;
+		button.append(label);
 		button.title = breadcrumb.label;
 		button.setAttribute('aria-label', breadcrumb.label);
 		button.dataset.breadcrumbIndex = String(index);
-		if (index === session.breadcrumbs.length - 1) {
+		if (isCurrent) {
 			button.classList.add('is-current');
 			button.setAttribute('aria-current', 'location');
 		}
@@ -427,6 +482,7 @@ export function createFocusExtension(): Extension {
 		bulletMarkerPlugin,
 		markerClickHandler,
 		foldIndicatorClickPlugin,
+		focusedPanePresentationPlugin,
 		breadcrumbPanelExtension,
 	];
 }

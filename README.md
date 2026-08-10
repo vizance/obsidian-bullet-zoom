@@ -4,11 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 版本：`0.1.1`
+- 開發版本：`0.1.2`（手機 UX 修正版，尚未發佈至 BRAT）
+- 目前公開 BRAT 版本：`0.1.1`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
-- 手機版模擬驗收：已通過 Obsidian `1.13.5` 的 322 × 704 px 窄螢幕模擬
-- 實體手機驗收：尚未進行，不宣稱已實機驗證
+- 手機版模擬驗收：`0.1.2` 已通過 Obsidian `1.13.5` 的 315 × 421 CSS px 鍵盤佔位模擬
+- 實體手機驗收：`0.1.1` 已確認有路徑、標題與 Properties 佔用畫面的問題；`0.1.2` 尚待更新後複驗
 - 正式 Second Brain Vault：已安裝並啟用 `0.1.1`，桌面命令已確認
 
 ## 支援範圍
@@ -37,7 +38,9 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 1. 點擊或輕觸普通 Bullet 的圓點。
 2. 把游標放在普通 Bullet 內，執行命令 `Bullet Zoom: 聚焦目前的 Bullet Point`。
 
-聚焦後，上方路徑會顯示筆記名稱、所有父節點和目前節點。點擊父節點可回到較上層的分支；點擊筆記名稱，或執行 `Bullet Zoom: 退出 Bullet 聚焦`，可回到完整筆記。
+聚焦後，桌面版的上方路徑會顯示筆記名稱、所有父節點和目前節點。手機版從 `0.1.2` 起改成單列，只顯示「全文」、最近一層父節點與目前節點；點擊父節點可逐層返回，點擊「全文」或執行 `Bullet Zoom: 退出 Bullet 聚焦`，可回到完整筆記。
+
+手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
 
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
@@ -58,7 +61,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑；實體手機功能仍要完成下方五項驗收後才算正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。`0.1.2` 尚未建立 GitHub Release，因此 BRAT 目前仍會取得 `0.1.1`；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -97,6 +100,17 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 測試 Vault 內的 `main.js`、`manifest.json`、`styles.css` 與建置來源逐檔一致
 - Breadcrumb DOM：只有最右側按鈕具有 `is-current` 與 `aria-current="location"`
 
+2026-08-10 完成 `0.1.2` 開發版驗證：
+
+- `npm test`：58 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.2`
+- 測試 Vault 內的 `main.js`、`manifest.json`、`styles.css` 與建置來源逐檔一致
+- 手機 Breadcrumb DOM：保留完整可存取路徑，但視覺上只顯示「全文」、最近父層與目前節點
+- 聚焦窗格狀態：進入、失效、退出與 view destroy 的 class 切換測試通過，其他分割窗格不受影響
+- Obsidian Properties 核心樣式衝突已加入回歸驗證，隱藏規則只限手機的目前聚焦窗格
+
 ### 桌面版人工驗收
 
 環境：macOS、Obsidian `1.13.5`、專用 `.test-vault`、即時預覽模式。
@@ -120,12 +134,30 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 
 ### 手機版驗收
 
-- 窄螢幕模擬：已通過
-- 實體手機：待使用者同意正式安裝後，由使用者確認輕觸、命令、輸入、路徑與退出五項流程
+- `0.1.2` 窄螢幕模擬：已通過
+- `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
+- `0.1.2` 實體手機：待 BRAT 發佈與使用者更新後，複驗輕觸、輸入、「全文」、逐層返回、退出與畫面恢復
 
-#### 窄螢幕模擬紀錄
+#### `0.1.2` 手機 UX 修正模擬紀錄
+
+環境：macOS、Obsidian `1.13.5`、Developer Tools Responsive Mode、315 × 421 CSS px 可用 viewport（以縮短高度模擬軟體鍵盤佔位）、專用 `.test-vault`、含 inline title 與三個 Properties 的測試筆記。
+
+| 檢查項目 | 結果 | 實際觀察 |
+| --- | --- | --- |
+| 單列導覽 | 通過 | 視覺上只顯示「全文」、`Child A1` 與目前節點 `Grandchild A1a`；更深祖先 `Parent A` 保留於 DOM，但不佔畫面 |
+| 目前層級辨識 | 通過 | 只有 `Grandchild A1a` 維持強調色與 `is-current`；最近父層具有 `is-parent` |
+| 觸控尺寸 | 通過 | 「全文」寬 44 px、列高至少 44 px；父層與目前節點分配剩餘空間 |
+| 無水平捲動 | 通過 | Breadcrumb `overflow-x: hidden`，`clientWidth` 與 `scrollWidth` 均為 255 px |
+| 標題與 Properties | 通過 | 聚焦時 inline title 與 `.metadata-container` 均為 `display: none`，目標 Bullet 緊接在導覽列下方 |
+| 退出後恢復 | 通過 | 退出命令後 focused-pane class 與 Breadcrumb 移除，inline title 與 Properties 恢復為 `display: block` |
+
+這個模擬只證明桌面 Obsidian 的窄 viewport 與手機 CSS 行為。實體 iPhone 的鍵盤、觸控與安全區仍以使用者更新 `0.1.2` 後的複驗為準。
+
+#### `0.1.1` 舊窄螢幕模擬紀錄（歷史）
 
 環境：macOS、Obsidian `1.13.5`、Developer Tools Responsive Mode、322 × 704 CSS px、專用 `.test-vault`。
+
+下表是 `0.1.1` 發佈前的紀錄。後續實體手機截圖證明「可以水平滑動完整路徑」仍不足以讓鍵盤開啟時正常寫作，因此這份紀錄不再代表手機 UX 驗收通過。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |

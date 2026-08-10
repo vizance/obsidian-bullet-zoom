@@ -445,13 +445,18 @@ describe('plugin commands and safe failures', () => {
 describe('per-editor breadcrumb panel', () => {
 	function createView(documentText: string): {
 		parent: HTMLDivElement;
+		pane: HTMLDivElement;
 		view: EditorView;
 	} {
 		const parent = document.createElement('div');
+		const pane = document.createElement('div');
+		pane.className = 'markdown-source-view';
+		parent.append(pane);
 		document.body.append(parent);
 		return {
 			parent,
-			view: new EditorView({ parent, state: createState(documentText) }),
+			pane,
+			view: new EditorView({ parent: pane, state: createState(documentText) }),
 		};
 	}
 
@@ -491,6 +496,39 @@ describe('per-editor breadcrumb panel', () => {
 				button.classList.contains('is-current'),
 			),
 		).toEqual([false, false, false, true]);
+		expect(
+			breadcrumbButtons.map((button) => ({
+				isNote: button.classList.contains('is-note'),
+				isAncestor: button.classList.contains('is-ancestor'),
+				isParent: button.classList.contains('is-parent'),
+				isCurrent: button.classList.contains('is-current'),
+			})),
+		).toEqual([
+			{
+				isNote: true,
+				isAncestor: false,
+				isParent: false,
+				isCurrent: false,
+			},
+			{
+				isNote: false,
+				isAncestor: true,
+				isParent: false,
+				isCurrent: false,
+			},
+			{
+				isNote: false,
+				isAncestor: true,
+				isParent: true,
+				isCurrent: false,
+			},
+			{
+				isNote: false,
+				isAncestor: false,
+				isParent: false,
+				isCurrent: true,
+			},
+		]);
 		view.destroy();
 		parent.remove();
 	});
@@ -553,5 +591,75 @@ describe('per-editor breadcrumb panel', () => {
 		second.view.destroy();
 		first.parent.remove();
 		second.parent.remove();
+	});
+
+	it('marks only the focused pane and clears the marker after invalidation', () => {
+		const first = createView('- Parent\n  - Child');
+		const second = createView('- Parent\n  - Child');
+		const initialMarker = first.pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+
+		first.view.dispatch({
+			effects: focusAtEffect.of(first.view.state.doc.line(2).from),
+		});
+		const focusedMarker = first.pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+		const siblingMarker = second.pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+
+		const anchor = getFocusSession(first.view.state)?.anchor ?? 0;
+		first.view.dispatch({
+			changes: { from: anchor, to: anchor + 1, insert: '1.' },
+		});
+		const invalidatedMarker = first.pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+
+		first.view.destroy();
+		second.view.destroy();
+		first.parent.remove();
+		second.parent.remove();
+
+		expect(initialMarker).toBe(false);
+		expect(focusedMarker).toBe(true);
+		expect(siblingMarker).toBe(false);
+		expect(invalidatedMarker).toBe(false);
+	});
+
+	it('removes the focused-pane marker when the editor view is destroyed', () => {
+		const { parent, pane, view } = createView('- Parent\n  - Child');
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+		const markerBeforeDestroy = pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+
+		view.destroy();
+		const markerAfterDestroy = pane.classList.contains(
+			'bullet-zoom-pane-is-focused',
+		);
+		parent.remove();
+
+		expect(markerBeforeDestroy).toBe(true);
+		expect(markerAfterDestroy).toBe(false);
+	});
+
+	it('keeps focusing safe when the expected Obsidian pane wrapper is absent', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent\n  - Child'),
+		});
+
+		expect(() => {
+			view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+		}).not.toThrow();
+		expect(parent.querySelector('.bullet-zoom-breadcrumbs')).not.toBeNull();
+
+		view.destroy();
+		parent.remove();
 	});
 });
