@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.6`（尚未發佈的手機聚焦自動定位候選版）
-- 目前公開 BRAT 版本：`0.1.5`
+- 目前開發版本：`0.1.6`
+- 目前公開 BRAT 版本：`0.1.6`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版自動驗收：`0.1.6` 已確認手機進入深層節點與返回父層時，focus transaction 會把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 給 compact Breadcrumb；desktop 不新增自動定位 request
-- 實體手機驗收：`0.1.5` 的 Breadcrumb 位置已正常，但進入三層最內節點後仍需先收起鍵盤再手動往上捲動；`0.1.6` 尚未發佈，仍待實體 iPhone 複驗
+- 實體手機驗收：`0.1.5` 的 Breadcrumb 位置已正常，但進入三層最內節點後仍需先收起鍵盤再手動往上捲動；`0.1.6` 已發佈，待實體 iPhone 複驗
 - 正式 Second Brain Vault：已透過 BRAT 管理；待手機更新至 `0.1.6` 後完成實機複驗
 
 ## 支援範圍
@@ -67,7 +67,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.5`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.6`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -155,7 +155,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - standalone commit `68b8165` 已建立 GitHub Release `0.1.5`；Actions run `31369619110` 通過。下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `1fe5ef40c05edb1c19cf1e0c013980e7e0d330fdcacdeaa531ad7a8745ec0bb2`、`7f0ec6fb81223c9819280f6c184d6cbe2e0155e84f6a9c593059d265fe2ef8d7`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
 - 這些自動測試只驗證 DOM 所屬座標系與操作生命週期，沒有模擬實體 iOS 幾何；`0.1.5` 已發佈，仍待實體 iPhone 複驗
 
-2026-08-10 完成 `0.1.6` 本機候選版驗證：
+2026-08-10 完成 `0.1.6` 驗證與發佈：
 
 - 實體 iPhone 回報確認 `0.1.5` 的 Breadcrumb 位置已正常，但聚焦三層最內節點後，必須先收起鍵盤再手動往上捲動才能看到 Breadcrumb
 - 根因是 `enterFocusAt()` 只更新 selection 與 focus effect，沒有建立 CodeMirror scroll target；鍵盤縮短 viewport 時，新插入在目標 Bullet 上方的 Breadcrumb block 容易落在可視區之外
@@ -166,7 +166,8 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.6`
 - 專用 `.test-vault` 已重新載入 `0.1.6` 三檔 bundle；在 Obsidian `1.13.5` 執行深層 Bullet 聚焦、點擊父層、再點擊筆記回到全文，桌面完整 sticky Breadcrumb、inline title 與 Properties 維持原本行為，全文恢復後仍為 213 characters
 - `.test-vault` 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `623a109c6619d04493b9158fad8d26b69f7351b0f5779c396e7ab411839fd8db`、`d61b2602f732e1045d32269f4847c3d5230533d8a930b8bbe501d493da35a60c`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
-- 自動測試只驗證 CodeMirror transaction 與既有 DOM 生命週期，不代表實體 iOS 鍵盤開啟／關閉時已通過；`0.1.6` 尚未發佈，仍待實體 iPhone 複驗
+- standalone commit `5529f4f` 已建立 GitHub Release `0.1.6`；Actions run `31372187516` 通過。下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `623a109c6619d04493b9158fad8d26b69f7351b0f5779c396e7ab411839fd8db`、`d61b2602f732e1045d32269f4847c3d5230533d8a930b8bbe501d493da35a60c`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 自動測試只驗證 CodeMirror API 呼叫、transaction 與既有 DOM 生命週期，不代表實體 iOS 鍵盤開啟／關閉時已通過；`0.1.6` 已發佈，仍待實體 iPhone 複驗
 
 ### 桌面版人工驗收
 
@@ -196,7 +197,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
 - `0.1.4` 實體 iPhone：未通過；鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
 - `0.1.5` 實體 iPhone：部分通過；Breadcrumb 位置已正常，但聚焦三層最內節點後仍需收起鍵盤並手動往上捲動
-- `0.1.6` 本機候選版：手機 focus transaction 的上方定位、52 CSS px Breadcrumb 預留與桌面不跳動條件已由自動測試固定；尚未發佈，待實體 iPhone 複驗
+- `0.1.6` 已發佈：手機 focus transaction 的上方定位、52 CSS px Breadcrumb 預留與桌面不跳動條件已由自動測試固定；待實體 iPhone 複驗
 
 #### `0.1.6` 手機聚焦自動定位回歸紀錄
 
