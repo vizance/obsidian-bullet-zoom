@@ -4,13 +4,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.5`
+- 目前開發版本：`0.1.6`（尚未發佈的手機聚焦自動定位候選版）
 - 目前公開 BRAT 版本：`0.1.5`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
-- 手機版自動驗收：`0.1.5` 已確認 compact Breadcrumb 是 focused branch 前方的 CodeMirror block widget，與 Bullet 共用 `.cm-scroller`
-- 實體手機驗收：`0.1.4` 未通過；即使鍵盤關閉，路徑仍位於 Dynamic Island 與 Obsidian view header 上方。`0.1.5` 已發佈，仍待實體 iPhone 複驗
-- 正式 Vault：已透過 BRAT 管理；待手機更新至 `0.1.5` 後完成實機複驗
+- 手機版自動驗收：`0.1.6` 已確認手機進入深層節點與返回父層時，focus transaction 會把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 給 compact Breadcrumb；desktop 不新增自動定位 request
+- 實體手機驗收：`0.1.5` 的 Breadcrumb 位置已正常，但進入三層最內節點後仍需先收起鍵盤再手動往上捲動；`0.1.6` 尚未發佈，仍待實體 iPhone 複驗
+- 正式 Vault：已透過 BRAT 管理；待手機更新至 `0.1.6` 後完成實機複驗
 
 ## 支援範圍
 
@@ -45,6 +45,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
 
 `0.1.4` 曾把手機路徑移到 `EditorView.scrollDOM` 前方，但實機證明這仍然位於 Obsidian 手機的安全正文區之外。`0.1.5` 改成由 CodeMirror 把路徑建立在 focused Bullet 前方的正文 block；路徑和 Bullet 會共用 `.cm-scroller` 的 padding、捲動與 safe-area 座標系。桌面版維持原本的 sticky top panel，其他插件的 top panel 也不受影響。
+
+`0.1.5` 實機確認 Breadcrumb 已回到正確位置，但進入深層 Bullet 時不會自動把它帶進目前可視區。`0.1.6` 會在手機每次成功聚焦或返回父層時，由 CodeMirror 在 Breadcrumb block 建立後把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 容納導覽列，讓路徑與目標 Bullet 一起出現在鍵盤上方；桌面版不增加這個自動捲動。
 
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
@@ -153,6 +155,19 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - standalone commit `68b8165` 已建立 GitHub Release `0.1.5`；Actions run `31369619110` 通過。下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `1fe5ef40c05edb1c19cf1e0c013980e7e0d330fdcacdeaa531ad7a8745ec0bb2`、`7f0ec6fb81223c9819280f6c184d6cbe2e0155e84f6a9c593059d265fe2ef8d7`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
 - 這些自動測試只驗證 DOM 所屬座標系與操作生命週期，沒有模擬實體 iOS 幾何；`0.1.5` 已發佈，仍待實體 iPhone 複驗
 
+2026-08-10 完成 `0.1.6` 本機候選版驗證：
+
+- 實體 iPhone 回報確認 `0.1.5` 的 Breadcrumb 位置已正常，但聚焦三層最內節點後，必須先收起鍵盤再手動往上捲動才能看到 Breadcrumb
+- 根因是 `enterFocusAt()` 只更新 selection 與 focus effect，沒有建立 CodeMirror scroll target；鍵盤縮短 viewport 時，新插入在目標 Bullet 上方的 Breadcrumb block 容易落在可視區之外
+- 手機成功進入深層節點與透過 Breadcrumb 返回父層時，focus transaction 現在會把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 給至少 44 CSS px 高的 compact Breadcrumb；桌面相同流程不產生插件自有的自動定位 request
+- `npm test`：71 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.6`
+- 專用 `.test-vault` 已重新載入 `0.1.6` 三檔 bundle；在 Obsidian `1.13.5` 執行深層 Bullet 聚焦、點擊父層、再點擊筆記回到全文，桌面完整 sticky Breadcrumb、inline title 與 Properties 維持原本行為，全文恢復後仍為 213 characters
+- `.test-vault` 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `623a109c6619d04493b9158fad8d26b69f7351b0f5779c396e7ab411839fd8db`、`d61b2602f732e1045d32269f4847c3d5230533d8a930b8bbe501d493da35a60c`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 自動測試只驗證 CodeMirror transaction 與既有 DOM 生命週期，不代表實體 iOS 鍵盤開啟／關閉時已通過；`0.1.6` 尚未發佈，仍待實體 iPhone 複驗
+
 ### 桌面版人工驗收
 
 環境：macOS、Obsidian `1.13.5`、專用 `.test-vault`、即時預覽模式。
@@ -180,7 +195,12 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
 - `0.1.4` 實體 iPhone：未通過；鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
-- `0.1.5` 已發佈：DOM、操作生命週期與桌面 baseline 自動測試已通過；待實體 iPhone 複驗
+- `0.1.5` 實體 iPhone：部分通過；Breadcrumb 位置已正常，但聚焦三層最內節點後仍需收起鍵盤並手動往上捲動
+- `0.1.6` 本機候選版：手機 focus transaction 的上方定位、52 CSS px Breadcrumb 預留與桌面不跳動條件已由自動測試固定；尚未發佈，待實體 iPhone 複驗
+
+#### `0.1.6` 手機聚焦自動定位回歸紀錄
+
+測試以三層 `Parent`／`Child`／`Grandchild` 驗證手機進入最內節點後，會直接呼叫 CodeMirror 的 `scrollIntoView`，把新 focus anchor 設為 `y: start` 並預留 52 CSS px；再點擊最近父層時，新的 `Child` anchor 也會取得同樣 request。桌面執行相同聚焦流程不產生插件自有的自動定位 request。這能固定「路徑與目標 Bullet 一起進入可視區」所需的 post-layout 捲動意圖，但仍不模擬實體 iOS visual viewport 與鍵盤動畫。
 
 #### `0.1.5` 手機正文 block 回歸紀錄
 
