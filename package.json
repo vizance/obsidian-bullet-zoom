@@ -1,0 +1,45 @@
+{
+  "name": "obsidian-bullet-zoom",
+  "version": "0.1.1",
+  "description": "Focus and edit one Obsidian bullet branch at a time.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "keywords": [
+    "obsidian",
+    "outliner",
+    "workflowy",
+    "zoom"
+  ],
+  "author": "朱騏",
+  "license": "MIT",
+  "overrides": {
+    "@codemirror/commands": {
+      "@codemirror/state": "6.5.0",
+      "@codemirror/view": "6.38.6"
+    }
+  },
+  "devDependencies": {
+    "@codemirror/lang-markdown": "6.5.2",
+    "@codemirror/language": "6.12.4",
+    "@codemirror/commands": "6.9.0",
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6",
+    "@eslint/js": "9.39.4",
+    "@types/node": "22.15.17",
+    "esbuild": "0.25.5",
+    "eslint": "9.39.4",
+    "eslint-plugin-obsidianmd": "0.4.0",
+    "globals": "17.9.0",
+    "jsdom": "26.1.0",
+    "obsidian": "1.13.1",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.59.1",
+    "vitest": "4.1.10"
+  }
+}
