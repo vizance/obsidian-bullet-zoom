@@ -1,7 +1,7 @@
 import { markdown } from '@codemirror/lang-markdown';
 import { history, undo } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, WidgetType } from '@codemirror/view';
+import { Decoration, EditorView, showPanel, WidgetType } from '@codemirror/view';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -539,7 +539,10 @@ describe('plugin commands and safe failures', () => {
 });
 
 describe('per-editor breadcrumb panel', () => {
-	function createView(documentText: string): {
+	function createView(
+		documentText: string,
+		additionalExtensions: Extension = [],
+	): {
 		parent: HTMLDivElement;
 		pane: HTMLDivElement;
 		view: EditorView;
@@ -552,7 +555,10 @@ describe('per-editor breadcrumb panel', () => {
 		return {
 			parent,
 			pane,
-			view: new EditorView({ parent: pane, state: createState(documentText) }),
+			view: new EditorView({
+				parent: pane,
+				state: createState(documentText, 'Ideas.md', additionalExtensions),
+			}),
 		};
 	}
 
@@ -687,6 +693,92 @@ describe('per-editor breadcrumb panel', () => {
 		second.view.destroy();
 		first.parent.remove();
 		second.parent.remove();
+	});
+
+	it('moves only its phone breadcrumb out of the shared sticky panel group', () => {
+		document.body.classList.add('is-phone');
+		const otherPanel = (): { dom: HTMLElement; top: true } => {
+			const dom = document.createElement('div');
+			dom.className = 'other-top-panel';
+			return { dom, top: true };
+		};
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			showPanel.of(otherPanel),
+		);
+
+		try {
+			view.dispatch({
+				effects: focusAtEffect.of(view.state.doc.line(2).from),
+			});
+			const breadcrumbs = parent.querySelector('.bullet-zoom-breadcrumbs');
+			const other = parent.querySelector('.other-top-panel');
+
+			expect(breadcrumbs?.parentElement).toBe(view.dom);
+			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			expect(other?.parentElement?.classList).toContain('cm-panels-top');
+			expect(other?.parentElement).not.toBe(breadcrumbs?.parentElement);
+		} finally {
+			view.destroy();
+			parent.remove();
+			document.body.classList.remove('is-phone');
+		}
+	});
+
+	it('keeps its desktop breadcrumb in the CodeMirror top panel group', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+		const breadcrumbs = parent.querySelector('.bullet-zoom-breadcrumbs');
+
+		expect(breadcrumbs?.parentElement?.classList).toContain('cm-panels-top');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('keeps the phone breadcrumb outside when another top panel opens', async () => {
+		document.body.classList.add('is-phone');
+		const panelCompartment = new Compartment();
+		const otherPanel = (): { dom: HTMLElement; top: true } => {
+			const dom = document.createElement('div');
+			dom.className = 'late-top-panel';
+			return { dom, top: true };
+		};
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			panelCompartment.of([]),
+		);
+
+		try {
+			view.dispatch({
+				effects: focusAtEffect.of(view.state.doc.line(2).from),
+			});
+			view.dispatch({
+				effects: panelCompartment.reconfigure(showPanel.of(otherPanel)),
+			});
+			await new Promise<void>((resolve) => {
+				window.setTimeout(resolve, 0);
+			});
+
+			const breadcrumbs = parent.querySelector('.bullet-zoom-breadcrumbs');
+			const other = parent.querySelector('.late-top-panel');
+			expect(breadcrumbs?.parentElement).toBe(view.dom);
+			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			expect(other?.parentElement?.classList).toContain('cm-panels-top');
+
+			view.dispatch({
+				effects: panelCompartment.reconfigure([]),
+			});
+			await new Promise<void>((resolve) => {
+				window.setTimeout(resolve, 0);
+			});
+			expect(breadcrumbs?.parentElement).toBe(view.dom);
+			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			expect(parent.querySelector('.late-top-panel')).toBeNull();
+		} finally {
+			view.destroy();
+			parent.remove();
+			document.body.classList.remove('is-phone');
+		}
 	});
 
 	it('marks only the focused pane and clears the marker after invalidation', () => {
