@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前版本：`0.1.3`（新增逐層返回快捷鍵）
+- 目前開發版本：`0.1.4`（修正實體 iPhone 頂端路徑遮擋）
 - 目前公開 BRAT 版本：`0.1.3`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
-- 手機版模擬驗收：`0.1.2` 已通過 Obsidian `1.13.5` 的 315 × 421 CSS px 鍵盤佔位模擬
-- 實體手機驗收：`0.1.1` 已確認有路徑、標題與 Properties 佔用畫面的問題；`0.1.2` 尚待更新後複驗
+- 手機版自動驗收：`0.1.4` 已加入 Bullet Zoom panel 搬離 sticky wrapper 的 DOM 回歸測試
+- 實體手機驗收：`0.1.3` 未通過；鍵盤開啟時路徑仍遮住狀態列、Dynamic Island 與 Obsidian view header。`0.1.4` 發佈後待重新複驗
 - 正式 Second Brain Vault：已安裝並啟用 `0.1.1`，桌面命令已確認
 
 ## 支援範圍
@@ -44,6 +44,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
 
+`0.1.4` 起，手機會把 Bullet Zoom 自己的路徑移出 CodeMirror 的 sticky top panel，放到編輯區前方的正常排列裡。Obsidian 或其他插件的 top panel 不會被一起移動。軟體鍵盤開啟時，路徑應維持在 iOS 狀態區與 Obsidian view header 下方，不再移到 Dynamic Island 後面。
+
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
 插件不預設占用快捷鍵，避免和 Outliner 的移動節點命令或其他 Vault 設定衝突。桌面版可自行替命令指定快捷鍵；手機版可把「回到上一層 Bullet」與「退出 Bullet 聚焦」加入 Mobile Toolbar，使用外接鍵盤時也會套用該 Vault 的自訂組合。
@@ -63,7 +65,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.3` 已發佈，BRAT 現在可以取得手機 UX 修正與逐層返回命令；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前 GitHub Release 仍是 `0.1.3`；`0.1.4` 尚未發佈。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -125,6 +127,16 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 建置後的 `main.js` 已包含新命令，且未新增 Node.js 或 Electron runtime import
 - GitHub Release `0.1.3`：`main.js`、`manifest.json`、`styles.css` 三個遠端 asset 均存在，下載後的 SHA-256 與 canonical 建置逐檔一致
 
+2026-08-10 完成 `0.1.4` 本機候選版驗證：
+
+- 實體 iPhone 截圖確認 `0.1.3` 未修正頂端遮擋：CodeMirror top panel 的 sticky 定位會在軟體鍵盤改變 visual viewport 時，把路徑黏到狀態列、Dynamic Island 與 Obsidian view header 上方
+- 回歸測試先確認未修正時 Breadcrumb 仍留在共享 sticky wrapper 而失敗，再確認 `.is-phone` 只把 Bullet Zoom Breadcrumb 移到 `EditorView.scrollDOM` 前方；共存及聚焦後動態開／關的其他 top panel 留在原 wrapper，桌面 Breadcrumb 也維持 CodeMirror baseline
+- `npm test`：68 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.4`
+- `0.1.4` 尚未發佈到 GitHub／BRAT；實體 iPhone 仍待更新後複驗
+
 ### 桌面版人工驗收
 
 環境：macOS、Obsidian `1.13.5`、專用 `.test-vault`、即時預覽模式。
@@ -150,7 +162,12 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 
 - `0.1.2` 窄螢幕模擬：已通過
 - `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
-- `0.1.2` 實體手機：待 BRAT 發佈與使用者更新後，複驗輕觸、輸入、「全文」、逐層返回、退出與畫面恢復
+- `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
+- `0.1.4` 本機候選版：panel DOM 搬移回歸測試已通過；待發佈 BRAT 並由使用者在實體 iPhone 複驗
+
+#### `0.1.4` 手機頂端定位回歸紀錄
+
+測試在同一個 CodeMirror editor 同時建立 Bullet Zoom Breadcrumb 與另一個 top panel，也涵蓋先聚焦、再動態開啟與關閉其他 panel 的順序。在 `.is-phone` 下，只有 Breadcrumb 會移到 `EditorView.scrollDOM` 前方；CodeMirror 重新同步後仍會回到這個位置，另一個 panel 留在 `.cm-panels-top`，不會被 Bullet Zoom 改變定位。桌面測試另確認 Breadcrumb 仍位於 `.cm-panels-top`。這是 panel 生命週期與 DOM 位置的自動測試，沒有模擬 iOS safe area、visual viewport 或鍵盤幾何位置；最終畫面仍須由使用者在實體 iPhone 更新後確認。
 
 #### `0.1.2` 手機 UX 修正模擬紀錄
 
@@ -165,7 +182,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 | 標題與 Properties | 通過 | 聚焦時 inline title 與 `.metadata-container` 均為 `display: none`，目標 Bullet 緊接在導覽列下方 |
 | 退出後恢復 | 通過 | 退出命令後 focused-pane class 與 Breadcrumb 移除，inline title 與 Properties 恢復為 `display: block` |
 
-這個模擬只證明桌面 Obsidian 的窄 viewport 與手機 CSS 行為。實體 iPhone 的鍵盤、觸控與安全區仍以使用者更新 `0.1.2` 後的複驗為準。
+這個舊模擬只證明桌面 Obsidian 的窄 viewport 與手機 CSS 寬度行為。後續 `0.1.3` 實體 iPhone 截圖已證明它沒有涵蓋 CodeMirror sticky top panel、iOS visual viewport 與 safe area，因此不能代表手機實機通過。
 
 #### `0.1.1` 舊窄螢幕模擬紀錄（歷史）
 

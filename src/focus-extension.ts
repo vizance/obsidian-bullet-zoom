@@ -394,12 +394,34 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 class BulletZoomBreadcrumbPanel implements Panel {
 	readonly dom: HTMLElement;
 	readonly top = true;
+	private readonly view: EditorView;
+	private placementObserver: MutationObserver | null = null;
 
 	constructor(view: EditorView) {
+		this.view = view;
 		this.dom = view.dom.ownerDocument.createElement('nav');
 		this.dom.className = 'bullet-zoom-breadcrumbs';
 		this.dom.setAttribute('aria-label', 'Bullet 聚焦路徑');
 		renderBreadcrumbs(view, this.dom);
+	}
+
+	mount(): void {
+		this.ensurePhonePlacement();
+		const MutationObserverConstructor =
+			this.view.dom.ownerDocument.defaultView?.MutationObserver;
+		if (
+			!this.view.dom.ownerDocument.body.classList.contains('is-phone') ||
+			MutationObserverConstructor === undefined
+		) {
+			return;
+		}
+
+		this.placementObserver = new MutationObserverConstructor(() => {
+			this.ensurePhonePlacement();
+		});
+		this.placementObserver.observe(this.view.dom, {
+			childList: true,
+		});
 	}
 
 	update(update: ViewUpdate): void {
@@ -408,6 +430,25 @@ class BulletZoomBreadcrumbPanel implements Panel {
 			getFocusSession(update.startState) !== getFocusSession(update.state)
 		) {
 			renderBreadcrumbs(update.view, this.dom);
+		}
+		this.ensurePhonePlacement();
+	}
+
+	destroy(): void {
+		this.placementObserver?.disconnect();
+		this.placementObserver = null;
+		this.dom.remove();
+	}
+
+	private ensurePhonePlacement(): void {
+		if (!this.view.dom.ownerDocument.body.classList.contains('is-phone')) {
+			return;
+		}
+		if (
+			this.dom.parentElement !== this.view.dom ||
+			this.dom.nextElementSibling !== this.view.scrollDOM
+		) {
+			this.view.scrollDOM.before(this.dom);
 		}
 	}
 }
