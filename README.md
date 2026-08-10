@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.4`（修正實體 iPhone 頂端路徑遮擋）
+- 目前開發版本：`0.1.5`（尚未發佈的 iPhone 正文內路徑候選版）
 - 目前公開 BRAT 版本：`0.1.4`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
-- 手機版自動驗收：`0.1.4` 已加入 Bullet Zoom panel 搬離 sticky wrapper 的 DOM 回歸測試
-- 實體手機驗收：`0.1.3` 未通過；鍵盤開啟時路徑仍遮住狀態列、Dynamic Island 與 Obsidian view header。`0.1.4` 發佈後待重新複驗
+- 手機版自動驗收：`0.1.5` 已確認 compact Breadcrumb 是 focused branch 前方的 CodeMirror block widget，與 Bullet 共用 `.cm-scroller`
+- 實體手機驗收：`0.1.4` 未通過；即使鍵盤關閉，路徑仍位於 Dynamic Island 與 Obsidian view header 上方。`0.1.5` 尚未發佈，仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已安裝並啟用 `0.1.1`，桌面命令已確認
 
 ## 支援範圍
@@ -44,7 +44,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
 
-`0.1.4` 起，手機會把 Bullet Zoom 自己的路徑移出 CodeMirror 的 sticky top panel，放到編輯區前方的正常排列裡。Obsidian 或其他插件的 top panel 不會被一起移動。軟體鍵盤開啟時，路徑應維持在 iOS 狀態區與 Obsidian view header 下方，不再移到 Dynamic Island 後面。
+`0.1.4` 曾把手機路徑移到 `EditorView.scrollDOM` 前方，但實機證明這仍然位於 Obsidian 手機的安全正文區之外。`0.1.5` 改成由 CodeMirror 把路徑建立在 focused Bullet 前方的正文 block；路徑和 Bullet 會共用 `.cm-scroller` 的 padding、捲動與 safe-area 座標系。桌面版維持原本的 sticky top panel，其他插件的 top panel 也不受影響。
 
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
@@ -65,7 +65,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.4` 已發佈，BRAT 現在可以更新；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前 GitHub Release 仍是已知實機失敗的 `0.1.4`；`0.1.5` 候選版尚未 commit、push 或發佈，取得使用者確認後才會提供 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -136,7 +136,21 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `npm run build`：通過
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.4`
 - standalone commit `79b2f0a` 已建立 GitHub Release `0.1.4`；Actions Release workflow 通過，遠端 `main.js`、`manifest.json`、`styles.css` 的 SHA-256 與 canonical build 逐檔一致
-- 實體 iPhone 仍待透過 BRAT 更新 `0.1.4` 後複驗
+- 後續實體 iPhone 截圖確認 `0.1.4` 複驗未通過：鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
+
+2026-08-10 完成 `0.1.5` 本機候選版驗證：
+
+- 失敗回歸測試先固定 `0.1.4` 的錯誤：`scrollDOM.before(...)` 產生的路徑不在 `.cm-scroller` 內，無法共用 Obsidian 加在正文捲動區的安全位置補償
+- 手機 compact Breadcrumb 改為 focused branch 第一行前的 CodeMirror block widget；不建立 Bullet Zoom top panel，也不再使用 `MutationObserver` 搬移 DOM
+- 手機／桌面分流改用 Obsidian 公開的 `Platform.isPhone` 與必填的 `{ isPhone }` 參數，測試直接注入手機或桌面模式，不依賴 `body.is-phone` class 的載入時序，也不會因漏傳參數靜默走回 desktop panel
+- 手機路徑的 `全文`／父層操作、聚焦失效與 view destroy 清理、其他 top panel 共存，以及桌面 sticky top panel baseline 均有回歸測試
+- `npm test`：70 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.5`
+- 專用 `.test-vault` 已重新載入 `0.1.5` 三檔 bundle；在 Obsidian `1.13.5` 實際執行命令聚焦深層 Bullet、點擊父層、再點擊筆記回到全文，桌面完整 sticky Breadcrumb 正常，Obsidian 狀態列回到全文後仍顯示 213 characters
+- `.test-vault` 的 `main.js`、`manifest.json`、`styles.css` SHA-256 與 canonical build 逐檔一致
+- 這些自動測試只驗證 DOM 所屬座標系與操作生命週期，沒有模擬實體 iOS 幾何；`0.1.5` 尚未發佈，仍待實體 iPhone 複驗
 
 ### 桌面版人工驗收
 
@@ -164,11 +178,16 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.2` 窄螢幕模擬：已通過
 - `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
-- `0.1.4` BRAT Release：已發佈且三個 asset 與 canonical build 一致；待使用者在實體 iPhone 更新後複驗
+- `0.1.4` 實體 iPhone：未通過；鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
+- `0.1.5` 本機候選版：DOM、操作生命週期與桌面 baseline 自動測試已通過；尚未發佈，待實體 iPhone 複驗
+
+#### `0.1.5` 手機正文 block 回歸紀錄
+
+`.is-phone` 測試把 header／safe-area 補償放在 `.cm-scroller`，確認 compact Breadcrumb 位於同一個 scroller 內，且在 focused branch 第一行之前。手機不建立 Bullet Zoom `.cm-panels-top` 子項，也不在 `EditorView.scrollDOM` 前方插入 sibling；動態開關其他 top panel 時，Breadcrumb 仍留在正文捲動內容，其他 panel 維持 CodeMirror 原本位置。另有測試確認 `全文`、父層、聚焦失效與 view destroy 正常建立、更新與清除 block。桌面版仍使用原本的 top panel。這仍是 DOM 結構測試，不代表實體 iPhone 幾何已通過。
 
 #### `0.1.4` 手機頂端定位回歸紀錄
 
-測試在同一個 CodeMirror editor 同時建立 Bullet Zoom Breadcrumb 與另一個 top panel，也涵蓋先聚焦、再動態開啟與關閉其他 panel 的順序。在 `.is-phone` 下，只有 Breadcrumb 會移到 `EditorView.scrollDOM` 前方；CodeMirror 重新同步後仍會回到這個位置，另一個 panel 留在 `.cm-panels-top`，不會被 Bullet Zoom 改變定位。桌面測試另確認 Breadcrumb 仍位於 `.cm-panels-top`。這是 panel 生命週期與 DOM 位置的自動測試，沒有模擬 iOS safe area、visual viewport 或鍵盤幾何位置；最終畫面仍須由使用者在實體 iPhone 更新後確認。
+測試在同一個 CodeMirror editor 同時建立 Bullet Zoom Breadcrumb 與另一個 top panel，也涵蓋先聚焦、再動態開啟與關閉其他 panel 的順序。在 `.is-phone` 下，只有 Breadcrumb 會移到 `EditorView.scrollDOM` 前方；另一個 panel 留在 `.cm-panels-top`。後續實體 iPhone 證明這項測試固定了錯誤的成功條件：`scrollDOM` sibling 雖不再 sticky，仍繞過 `.cm-scroller` 的正文 padding 與手機安全位置補償。因此 `0.1.4` 回歸紀錄只保留為失敗歷史，不代表手機定位正確。
 
 #### `0.1.2` 手機 UX 修正模擬紀錄
 
