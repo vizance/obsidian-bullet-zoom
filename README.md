@@ -9,7 +9,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版模擬驗收：已通過 Obsidian `1.13.5` 的 322 × 704 px 窄螢幕模擬
 - 實體手機驗收：尚未進行，不宣稱已實機驗證
-- 正式 Vault：尚未安裝
+- 正式 Vault：已安裝並啟用 `0.1.1`，桌面命令已確認
 
 ## 支援範圍
 
@@ -45,15 +45,26 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 安裝
 
-建置完成後，把下列三個檔案放進 Vault 的 `.obsidian/plugins/bullet-zoom/`：
+### 使用 BRAT 安裝（建議）
+
+1. 在 Obsidian 安裝並啟用 BRAT。
+2. 開啟命令面板，執行 `BRAT: Plugins: Add a beta plugin for testing (with or without version)`。
+3. 輸入 `vizance/obsidian-bullet-zoom`，選擇安裝最新版本。
+4. 安裝完成後，到「設定 → 第三方插件」重新載入插件清單並啟用 Bullet Zoom。
+
+BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT 的更新命令取得新版：
 
 - `main.js`
 - `manifest.json`
 - `styles.css`
 
-接著在 Obsidian 的「設定 → 第三方插件」啟用 Bullet Zoom。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑；實體手機功能仍要完成下方五項驗收後才算正式通過。
 
-目前只安裝在專用測試 Vault。正式 Vault 必須等使用者明確同意後才會安裝。
+### 手動安裝（備用）
+
+從最新的 GitHub Release 下載 `main.js`、`manifest.json`、`styles.css`，放進 Vault 的 `.obsidian/plugins/bullet-zoom/`，再到「設定 → 第三方插件」啟用 Bullet Zoom。
+
+正式 Vault 已在 2026-08-10 以三檔安裝包完成初次安裝與桌面啟用；後續版本改由 BRAT 管理即可。
 
 ## 安全訊息
 
@@ -145,6 +156,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 開發
 
+Canonical source 位於私人工作區的 `obsidian-bullet-zoom/`。公開 GitHub repo 是由這個子資料夾產生的發佈鏡像，不是另一份獨立維護的程式碼。
+
 ```bash
 npm install
 npm test
@@ -152,4 +165,4 @@ npm run lint
 npm run build
 ```
 
-正式安裝只需要建置後的 `main.js`、`manifest.json` 和 `styles.css`。
+正式安裝只需要建置後的 `main.js`、`manifest.json` 和 `styles.css`。建立與 `manifest.json` 同版本的 Git tag 後，GitHub Actions 會建立或更新同名 Release，並附上這三個檔案。
