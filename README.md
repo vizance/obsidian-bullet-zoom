@@ -4,13 +4,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.5`（尚未發佈的 iPhone 正文內路徑候選版）
-- 目前公開 BRAT 版本：`0.1.4`
+- 目前開發版本：`0.1.5`
+- 目前公開 BRAT 版本：`0.1.5`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版自動驗收：`0.1.5` 已確認 compact Breadcrumb 是 focused branch 前方的 CodeMirror block widget，與 Bullet 共用 `.cm-scroller`
-- 實體手機驗收：`0.1.4` 未通過；即使鍵盤關閉，路徑仍位於 Dynamic Island 與 Obsidian view header 上方。`0.1.5` 尚未發佈，仍待實體 iPhone 複驗
-- 正式 Vault：已安裝並啟用 `0.1.1`，桌面命令已確認
+- 實體手機驗收：`0.1.4` 未通過；即使鍵盤關閉，路徑仍位於 Dynamic Island 與 Obsidian view header 上方。`0.1.5` 已發佈，仍待實體 iPhone 複驗
+- 正式 Vault：已透過 BRAT 管理；待手機更新至 `0.1.5` 後完成實機複驗
 
 ## 支援範圍
 
@@ -65,7 +65,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前 GitHub Release 仍是已知實機失敗的 `0.1.4`；`0.1.5` 候選版尚未 commit、push 或發佈，取得使用者確認後才會提供 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.5`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -138,7 +138,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - standalone commit `79b2f0a` 已建立 GitHub Release `0.1.4`；Actions Release workflow 通過，遠端 `main.js`、`manifest.json`、`styles.css` 的 SHA-256 與 canonical build 逐檔一致
 - 後續實體 iPhone 截圖確認 `0.1.4` 複驗未通過：鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
 
-2026-08-10 完成 `0.1.5` 本機候選版驗證：
+2026-08-10 完成 `0.1.5` 驗證與發佈：
 
 - 失敗回歸測試先固定 `0.1.4` 的錯誤：`scrollDOM.before(...)` 產生的路徑不在 `.cm-scroller` 內，無法共用 Obsidian 加在正文捲動區的安全位置補償
 - 手機 compact Breadcrumb 改為 focused branch 第一行前的 CodeMirror block widget；不建立 Bullet Zoom top panel，也不再使用 `MutationObserver` 搬移 DOM
@@ -150,7 +150,8 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.5`
 - 專用 `.test-vault` 已重新載入 `0.1.5` 三檔 bundle；在 Obsidian `1.13.5` 實際執行命令聚焦深層 Bullet、點擊父層、再點擊筆記回到全文，桌面完整 sticky Breadcrumb 正常，Obsidian 狀態列回到全文後仍顯示 213 characters
 - `.test-vault` 的 `main.js`、`manifest.json`、`styles.css` SHA-256 與 canonical build 逐檔一致
-- 這些自動測試只驗證 DOM 所屬座標系與操作生命週期，沒有模擬實體 iOS 幾何；`0.1.5` 尚未發佈，仍待實體 iPhone 複驗
+- standalone commit `68b8165` 已建立 GitHub Release `0.1.5`；Actions run `31369619110` 通過。下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `1fe5ef40c05edb1c19cf1e0c013980e7e0d330fdcacdeaa531ad7a8745ec0bb2`、`7f0ec6fb81223c9819280f6c184d6cbe2e0155e84f6a9c593059d265fe2ef8d7`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 這些自動測試只驗證 DOM 所屬座標系與操作生命週期，沒有模擬實體 iOS 幾何；`0.1.5` 已發佈，仍待實體 iPhone 複驗
 
 ### 桌面版人工驗收
 
@@ -179,7 +180,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.1` 實體手機：未通過；完整橫向路徑、inline title 與 Properties 會占用上方畫面
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
 - `0.1.4` 實體 iPhone：未通過；鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
-- `0.1.5` 本機候選版：DOM、操作生命週期與桌面 baseline 自動測試已通過；尚未發佈，待實體 iPhone 複驗
+- `0.1.5` 已發佈：DOM、操作生命週期與桌面 baseline 自動測試已通過；待實體 iPhone 複驗
 
 #### `0.1.5` 手機正文 block 回歸紀錄
 
