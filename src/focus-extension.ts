@@ -437,6 +437,22 @@ export function exitFocus(view: EditorView): boolean {
 	return true;
 }
 
+export function focusParent(view: EditorView): boolean {
+	const session = getFocusSession(view.state);
+	if (session === null) {
+		return false;
+	}
+
+	const parent = session.breadcrumbs.at(-2);
+	if (parent === undefined) {
+		return false;
+	}
+
+	return parent.anchor === null
+		? exitFocus(view)
+		: enterFocusAt(view, parent.anchor);
+}
+
 export function resolveCodeMirrorView(candidate: unknown): EditorView | null {
 	return candidate instanceof EditorView ? candidate : null;
 }
@@ -473,6 +489,18 @@ export function runExitCommand(
 	}
 
 	return exitFocus(view);
+}
+
+export function runParentCommand(
+	view: EditorView | null,
+	notify: NoticeHandler,
+): boolean {
+	if (view === null) {
+		notify(EDITOR_VIEW_UNAVAILABLE_NOTICE);
+		return false;
+	}
+
+	return focusParent(view);
 }
 
 export function createFocusExtension(): Extension {
