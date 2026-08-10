@@ -33,6 +33,8 @@ export const SUPPORTED_BULLET_REQUIRED_NOTICE =
 export const EDITOR_VIEW_UNAVAILABLE_NOTICE =
 	'無法取得目前的 Obsidian 編輯畫面。';
 
+const MOBILE_BREADCRUMB_SCROLL_MARGIN = 52;
+
 export type NoticeHandler = (message: string) => void;
 
 export type FocusSession = Readonly<{
@@ -223,7 +225,17 @@ export function enterFocusAt(
 		selection: moveSelectionToLineEnd
 			? EditorSelection.cursor(bullet.lineTo)
 			: view.state.selection,
-		effects: focusAtEffect.of(bullet.markerFrom),
+		effects: [
+			focusAtEffect.of(bullet.markerFrom),
+			...(view.state.facet(focusPhoneMode)
+				? [
+						EditorView.scrollIntoView(bullet.markerFrom, {
+							y: 'start',
+							yMargin: MOBILE_BREADCRUMB_SCROLL_MARGIN,
+						}),
+					]
+				: []),
+		],
 	});
 	return true;
 }

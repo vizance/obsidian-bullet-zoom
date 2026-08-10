@@ -27,7 +27,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.5');
+		expect(manifest.version).toBe('0.1.6');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -43,14 +43,15 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.5');
-		expect(packageLock.version).toBe('0.1.5');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.5');
+		expect(packageManifest.version).toBe('0.1.6');
+		expect(packageLock.version).toBe('0.1.6');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.6');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
 		expect(versions['0.1.4']).toBe('1.11.7');
 		expect(versions['0.1.5']).toBe('1.11.7');
+		expect(versions['0.1.6']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {

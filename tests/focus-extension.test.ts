@@ -2,12 +2,13 @@ import { markdown } from '@codemirror/lang-markdown';
 import { history, undo } from '@codemirror/commands';
 import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, showPanel, WidgetType } from '@codemirror/view';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	createFocusExtension,
 	clearFocusEffect,
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
+	enterFocusAt,
 	exitFocus,
 	focusParent,
 	focusAtEffect,
@@ -748,6 +749,53 @@ describe('per-editor breadcrumb panel', () => {
 			parent.remove();
 			safeAreaStyle.remove();
 			document.body.classList.remove('is-phone');
+		}
+	});
+
+	it('keeps a phone breadcrumb-height margin above each focused bullet', () => {
+		const scrollSpy = vi.spyOn(EditorView, 'scrollIntoView');
+		const phone = createView('- Parent\n  - Child\n    - Grandchild', [], true);
+
+		try {
+			const grandchild = phone.view.state.doc.line(3);
+			expect(enterFocusAt(phone.view, grandchild.from, true)).toBe(true);
+			expect(scrollSpy).toHaveBeenCalledOnce();
+			expect(scrollSpy).toHaveBeenLastCalledWith(
+				getFocusSession(phone.view.state)?.anchor,
+				{ y: 'start', yMargin: 52 },
+			);
+
+			scrollSpy.mockClear();
+			phone.parent
+				.querySelector<HTMLButtonElement>(
+					'.bullet-zoom-breadcrumb.is-parent',
+				)
+				?.click();
+			expect(getFocusSession(phone.view.state)?.breadcrumbs.at(-1)?.label).toBe(
+				'Child',
+			);
+			expect(scrollSpy).toHaveBeenCalledOnce();
+			expect(scrollSpy).toHaveBeenLastCalledWith(
+				getFocusSession(phone.view.state)?.anchor,
+				{ y: 'start', yMargin: 52 },
+			);
+		} finally {
+			phone.view.destroy();
+			phone.parent.remove();
+		}
+
+		scrollSpy.mockClear();
+		const desktop = createView('- Parent\n  - Child\n    - Grandchild');
+
+		try {
+				expect(
+					enterFocusAt(desktop.view, desktop.view.state.doc.line(3).from, true),
+				).toBe(true);
+			expect(scrollSpy).not.toHaveBeenCalled();
+		} finally {
+			desktop.view.destroy();
+			desktop.parent.remove();
+			scrollSpy.mockRestore();
 		}
 	});
 
