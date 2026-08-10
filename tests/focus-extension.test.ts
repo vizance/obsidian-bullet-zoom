@@ -27,6 +27,7 @@ function createState(
 	document: string,
 	filePath = 'Ideas.md',
 	additionalExtensions: Extension = [],
+	isPhone = false,
 ): EditorState {
 	return EditorState.create({
 		doc: document,
@@ -35,7 +36,7 @@ function createState(
 			focusFilePath.of(filePath),
 			focusNoteTitle.of(filePath.replace(/\.md$/, '')),
 			focusLivePreview.of(true),
-			createFocusExtension(),
+			createFocusExtension({ isPhone }),
 			additionalExtensions,
 		],
 	});
@@ -95,7 +96,7 @@ describe('per-editor focus state', () => {
 				fileCompartment.of(focusFilePath.of('Ideas.md')),
 				focusNoteTitle.of('Ideas'),
 				focusLivePreview.of(true),
-				createFocusExtension(),
+				createFocusExtension({ isPhone: false }),
 			],
 		});
 		const focused = focus(state, state.doc.line(2).from);
@@ -436,7 +437,7 @@ describe('plugin commands and safe failures', () => {
 				focusFilePath.of('Ideas.md'),
 				focusNoteTitle.of('Ideas'),
 				focusLivePreview.of(livePreview),
-				createFocusExtension(),
+					createFocusExtension({ isPhone: false }),
 			],
 		});
 		return { parent, view: new EditorView({ parent, state }) };
@@ -542,6 +543,7 @@ describe('per-editor breadcrumb panel', () => {
 	function createView(
 		documentText: string,
 		additionalExtensions: Extension = [],
+		isPhone = false,
 	): {
 		parent: HTMLDivElement;
 		pane: HTMLDivElement;
@@ -557,7 +559,12 @@ describe('per-editor breadcrumb panel', () => {
 			pane,
 			view: new EditorView({
 				parent: pane,
-				state: createState(documentText, 'Ideas.md', additionalExtensions),
+				state: createState(
+					documentText,
+					'Ideas.md',
+					additionalExtensions,
+					isPhone,
+				),
 			}),
 		};
 	}
@@ -695,7 +702,7 @@ describe('per-editor breadcrumb panel', () => {
 		second.parent.remove();
 	});
 
-	it('moves only its phone breadcrumb out of the shared sticky panel group', () => {
+	it('renders the phone breadcrumb inside the padded CodeMirror scroll content', () => {
 		document.body.classList.add('is-phone');
 		const otherPanel = (): { dom: HTMLElement; top: true } => {
 			const dom = document.createElement('div');
@@ -705,22 +712,41 @@ describe('per-editor breadcrumb panel', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child',
 			showPanel.of(otherPanel),
+			true,
 		);
+		const safeAreaStyle = document.createElement('style');
+		safeAreaStyle.textContent =
+			'.bullet-zoom-test-safe-scroller { padding-top: 72px; }';
+		document.head.append(safeAreaStyle);
 
 		try {
+			view.scrollDOM.classList.add('bullet-zoom-test-safe-scroller');
 			view.dispatch({
 				effects: focusAtEffect.of(view.state.doc.line(2).from),
 			});
-			const breadcrumbs = parent.querySelector('.bullet-zoom-breadcrumbs');
+			const breadcrumbs = parent.querySelector(
+				'.bullet-zoom-breadcrumbs-mobile-block',
+			);
 			const other = parent.querySelector('.other-top-panel');
+			const focusedLine = view
+				.domAtPos(view.state.doc.line(2).from)
+				.node.parentElement?.closest('.cm-line');
 
-			expect(breadcrumbs?.parentElement).toBe(view.dom);
-			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			expect(view.scrollDOM.contains(breadcrumbs)).toBe(true);
+			expect(breadcrumbs?.closest('.cm-scroller')).toBe(view.scrollDOM);
+			expect(breadcrumbs?.parentElement).not.toBe(view.dom);
+			expect(focusedLine).not.toBeNull();
+			expect(
+				breadcrumbs?.compareDocumentPosition(focusedLine as Node) ?? 0,
+			).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+			expect(
+				parent.querySelector('.cm-panels-top .bullet-zoom-breadcrumbs'),
+			).toBeNull();
 			expect(other?.parentElement?.classList).toContain('cm-panels-top');
-			expect(other?.parentElement).not.toBe(breadcrumbs?.parentElement);
 		} finally {
 			view.destroy();
 			parent.remove();
+			safeAreaStyle.remove();
 			document.body.classList.remove('is-phone');
 		}
 	});
@@ -735,7 +761,7 @@ describe('per-editor breadcrumb panel', () => {
 		parent.remove();
 	});
 
-	it('keeps the phone breadcrumb outside when another top panel opens', async () => {
+	it('keeps the phone breadcrumb in scroll content when another top panel opens', () => {
 		document.body.classList.add('is-phone');
 		const panelCompartment = new Compartment();
 		const otherPanel = (): { dom: HTMLElement; top: true } => {
@@ -746,6 +772,7 @@ describe('per-editor breadcrumb panel', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child',
 			panelCompartment.of([]),
+			true,
 		);
 
 		try {
@@ -755,27 +782,114 @@ describe('per-editor breadcrumb panel', () => {
 			view.dispatch({
 				effects: panelCompartment.reconfigure(showPanel.of(otherPanel)),
 			});
-			await new Promise<void>((resolve) => {
-				window.setTimeout(resolve, 0);
-			});
 
-			const breadcrumbs = parent.querySelector('.bullet-zoom-breadcrumbs');
+			const breadcrumbs = parent.querySelector(
+				'.bullet-zoom-breadcrumbs-mobile-block',
+			);
 			const other = parent.querySelector('.late-top-panel');
-			expect(breadcrumbs?.parentElement).toBe(view.dom);
-			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			expect(view.scrollDOM.contains(breadcrumbs)).toBe(true);
+			expect(breadcrumbs?.closest('.cm-scroller')).toBe(view.scrollDOM);
 			expect(other?.parentElement?.classList).toContain('cm-panels-top');
+			expect(
+				parent.querySelector('.cm-panels-top .bullet-zoom-breadcrumbs'),
+			).toBeNull();
 
 			view.dispatch({
 				effects: panelCompartment.reconfigure([]),
 			});
-			await new Promise<void>((resolve) => {
-				window.setTimeout(resolve, 0);
-			});
-			expect(breadcrumbs?.parentElement).toBe(view.dom);
-			expect(breadcrumbs?.nextElementSibling).toBe(view.scrollDOM);
+			const breadcrumbsAfterClose = parent.querySelector(
+				'.bullet-zoom-breadcrumbs-mobile-block',
+			);
+			expect(view.scrollDOM.contains(breadcrumbsAfterClose)).toBe(true);
+			expect(breadcrumbsAfterClose?.closest('.cm-scroller')).toBe(
+				view.scrollDOM,
+			);
 			expect(parent.querySelector('.late-top-panel')).toBeNull();
 		} finally {
 			view.destroy();
+			parent.remove();
+			document.body.classList.remove('is-phone');
+		}
+	});
+
+	it('navigates through phone parent and note buttons inside the block widget', () => {
+		document.body.classList.add('is-phone', 'is-mobile');
+		const { parent, view } = createView(
+			'- Parent\n  - Child\n    - Grandchild',
+			[],
+			true,
+		);
+
+		try {
+			view.dispatch({
+				effects: focusAtEffect.of(view.state.doc.line(3).from),
+			});
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).not.toBeNull();
+
+			buttons(parent)[2]?.click();
+			expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+				'Child',
+			);
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).not.toBeNull();
+
+			buttons(parent)[0]?.click();
+			expect(getFocusSession(view.state)).toBeNull();
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).toBeNull();
+		} finally {
+			view.destroy();
+			parent.remove();
+			document.body.classList.remove('is-phone', 'is-mobile');
+		}
+	});
+
+	it('removes the phone block widget after focus invalidation and destroy', () => {
+		document.body.classList.add('is-phone');
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			[],
+			true,
+		);
+		let destroyed = false;
+
+		try {
+			view.dispatch({
+				effects: focusAtEffect.of(view.state.doc.line(2).from),
+			});
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).not.toBeNull();
+
+			const anchor = getFocusSession(view.state)?.anchor ?? 0;
+			view.dispatch({
+				changes: { from: anchor, to: anchor + 1, insert: '1.' },
+			});
+			expect(getFocusSession(view.state)).toBeNull();
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).toBeNull();
+
+			view.dispatch({
+				changes: { from: anchor, to: anchor + 2, insert: '-' },
+				effects: focusAtEffect.of(anchor),
+			});
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).not.toBeNull();
+			view.destroy();
+			destroyed = true;
+			expect(
+				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
+			).toBeNull();
+		} finally {
+			if (!destroyed) {
+				view.destroy();
+			}
 			parent.remove();
 			document.body.classList.remove('is-phone');
 		}

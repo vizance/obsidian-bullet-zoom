@@ -3,6 +3,7 @@ import {
 	editorInfoField,
 	editorLivePreviewField,
 	Notice,
+	Platform,
 	Plugin,
 } from 'obsidian';
 import { EditorView } from '@codemirror/view';
@@ -44,7 +45,7 @@ export default class BulletZoomPlugin extends Plugin {
 			focusLivePreview.compute([editorLivePreviewField], (state) =>
 				state.field(editorLivePreviewField, false) ?? false,
 			),
-			createFocusExtension(),
+			createFocusExtension({ isPhone: Platform.isPhone }),
 		]);
 
 		this.addCommand({

@@ -15,6 +15,7 @@ import {
 	showPanel,
 	ViewPlugin,
 	type ViewUpdate,
+	WidgetType,
 } from '@codemirror/view';
 
 import {
@@ -50,6 +51,10 @@ export const focusNoteTitle = Facet.define<string, string>({
 });
 
 export const focusLivePreview = Facet.define<boolean, boolean>({
+	combine: (values) => values[values.length - 1] ?? false,
+});
+
+const focusPhoneMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
@@ -391,37 +396,53 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 	}
 }
 
+function createBreadcrumbContainer(
+	view: EditorView,
+	additionalClass?: string,
+): HTMLElement {
+	const container = view.dom.ownerDocument.createElement('nav');
+	container.className = 'bullet-zoom-breadcrumbs';
+	if (additionalClass !== undefined) {
+		container.classList.add(additionalClass);
+	}
+	container.setAttribute('aria-label', 'Bullet 聚焦路徑');
+	renderBreadcrumbs(view, container);
+	return container;
+}
+
+class MobileBreadcrumbWidget extends WidgetType {
+	toDOM(view: EditorView): HTMLElement {
+		return createBreadcrumbContainer(
+			view,
+			'bullet-zoom-breadcrumbs-mobile-block',
+		);
+	}
+}
+
+const mobileBreadcrumbDecorations = EditorView.decorations.compute(
+	[focusStateField, focusPhoneMode],
+	(state) => {
+		const session = state.field(focusStateField);
+		if (session === null || !state.facet(focusPhoneMode)) {
+			return Decoration.none;
+		}
+
+		return Decoration.set([
+			Decoration.widget({
+				widget: new MobileBreadcrumbWidget(),
+				block: true,
+				side: -1,
+			}).range(session.branch.from),
+		]);
+	},
+);
+
 class BulletZoomBreadcrumbPanel implements Panel {
 	readonly dom: HTMLElement;
 	readonly top = true;
-	private readonly view: EditorView;
-	private placementObserver: MutationObserver | null = null;
 
 	constructor(view: EditorView) {
-		this.view = view;
-		this.dom = view.dom.ownerDocument.createElement('nav');
-		this.dom.className = 'bullet-zoom-breadcrumbs';
-		this.dom.setAttribute('aria-label', 'Bullet 聚焦路徑');
-		renderBreadcrumbs(view, this.dom);
-	}
-
-	mount(): void {
-		this.ensurePhonePlacement();
-		const MutationObserverConstructor =
-			this.view.dom.ownerDocument.defaultView?.MutationObserver;
-		if (
-			!this.view.dom.ownerDocument.body.classList.contains('is-phone') ||
-			MutationObserverConstructor === undefined
-		) {
-			return;
-		}
-
-		this.placementObserver = new MutationObserverConstructor(() => {
-			this.ensurePhonePlacement();
-		});
-		this.placementObserver.observe(this.view.dom, {
-			childList: true,
-		});
+		this.dom = createBreadcrumbContainer(view);
 	}
 
 	update(update: ViewUpdate): void {
@@ -431,33 +452,22 @@ class BulletZoomBreadcrumbPanel implements Panel {
 		) {
 			renderBreadcrumbs(update.view, this.dom);
 		}
-		this.ensurePhonePlacement();
 	}
 
 	destroy(): void {
-		this.placementObserver?.disconnect();
-		this.placementObserver = null;
 		this.dom.remove();
-	}
-
-	private ensurePhonePlacement(): void {
-		if (!this.view.dom.ownerDocument.body.classList.contains('is-phone')) {
-			return;
-		}
-		if (
-			this.dom.parentElement !== this.view.dom ||
-			this.dom.nextElementSibling !== this.view.scrollDOM
-		) {
-			this.view.scrollDOM.before(this.dom);
-		}
 	}
 }
 
 const breadcrumbPanel = (view: EditorView): Panel =>
 	new BulletZoomBreadcrumbPanel(view);
 
-const breadcrumbPanelExtension = showPanel.compute([focusStateField], (state) =>
-	state.field(focusStateField) === null ? null : breadcrumbPanel,
+const breadcrumbPanelExtension = showPanel.compute(
+	[focusStateField, focusPhoneMode],
+	(state) =>
+		state.field(focusStateField) === null || state.facet(focusPhoneMode)
+			? null
+			: breadcrumbPanel,
 );
 
 export function getFocusSession(state: EditorState): FocusSession | null {
@@ -544,10 +554,14 @@ export function runParentCommand(
 	return focusParent(view);
 }
 
-export function createFocusExtension(): Extension {
+export function createFocusExtension({
+	isPhone,
+}: Readonly<{ isPhone: boolean }>): Extension {
 	return [
+		focusPhoneMode.of(isPhone),
 		focusStateField,
 		focusDecorations,
+		mobileBreadcrumbDecorations,
 		bulletMarkerPlugin,
 		markerClickHandler,
 		foldIndicatorClickPlugin,
