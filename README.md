@@ -4,8 +4,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.3`（新增逐層返回快捷鍵）
-- 目前公開 BRAT 版本：`0.1.2`
+- 目前版本：`0.1.3`（新增逐層返回快捷鍵）
+- 目前公開 BRAT 版本：`0.1.3`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：已通過 Obsidian `1.13.5`
 - 手機版模擬驗收：`0.1.2` 已通過 Obsidian `1.13.5` 的 315 × 421 CSS px 鍵盤佔位模擬
@@ -63,7 +63,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.2` 已發佈，BRAT 現在可以取得手機 UX 修正版；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。GitHub Release `0.1.3` 已發佈，BRAT 現在可以取得手機 UX 修正與逐層返回命令；實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -114,7 +114,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Obsidian Properties 核心樣式衝突已加入回歸驗證，隱藏規則只限手機的目前聚焦窗格
 - GitHub Release `0.1.2`：`main.js`、`manifest.json`、`styles.css` 三個遠端 asset 均存在，下載後的 SHA-256 與 canonical 建置逐檔一致
 
-2026-08-10 完成 `0.1.3` 開發版驗證：
+2026-08-10 完成 `0.1.3` 驗證與發佈：
 
 - `npm test`：65 項測試通過
 - `npm run lint`：通過
@@ -123,7 +123,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 命令顯示名稱與「不提供預設 hotkey」已由測試固定，避免和 Outliner 的上移節點快捷鍵衝突；原有 `bullet-zoom-exit` 保留
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.3`
 - 建置後的 `main.js` 已包含新命令，且未新增 Node.js 或 Electron runtime import
-- `0.1.3` 尚未提交或發佈；目前 BRAT 公開版本仍是 `0.1.2`
+- GitHub Release `0.1.3`：`main.js`、`manifest.json`、`styles.css` 三個遠端 asset 均存在，下載後的 SHA-256 與 canonical 建置逐檔一致
 
 ### 桌面版人工驗收
 
