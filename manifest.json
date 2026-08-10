@@ -1,0 +1,10 @@
+{
+  "id": "bullet-zoom",
+  "name": "Bullet Zoom",
+  "version": "0.1.1",
+  "minAppVersion": "1.11.7",
+  "description": "Focus and edit one bullet branch at a time in Live Preview.",
+  "author": "朱騏",
+  "authorUrl": "https://chichu.co",
+  "isDesktopOnly": false
+}
