@@ -4,13 +4,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.6`
+- 目前開發版本：`0.1.8`（尚未發佈的收合／Zoom 事件分流候選版）
 - 目前公開 BRAT 版本：`0.1.6`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：已通過 Obsidian `1.13.5`
-- 手機版自動驗收：`0.1.6` 已確認手機進入深層節點與返回父層時，focus transaction 會把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 給 compact Breadcrumb；desktop 不新增自動定位 request
-- 實體手機驗收：`0.1.5` 的 Breadcrumb 位置已正常，但進入三層最內節點後仍需先收起鍵盤再手動往上捲動；`0.1.6` 已發佈，待實體 iPhone 複驗
-- 正式 Second Brain Vault：已透過 BRAT 管理；待手機更新至 `0.1.6` 後完成實機複驗
+- 桌面版人工驗收：`0.1.8` 已於 2026-08-11 在 Obsidian `1.13.5` 專用 `.test-vault` 通過收合／展開、聚焦中收合不切換 focus，以及命令 Zoom
+- 手機版自動驗收：`0.1.7` 已確認手機 focus／退出 request 由插件私有的 post-layout measure 只更新目前 `.cm-scroller.scrollTop`；`0.1.8` 另以手機 click fixture 固定收合控制不會觸發 Zoom 或阻止原生事件
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.7` 與 `0.1.8` 尚未發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
+- 正式 Second Brain Vault：已透過 BRAT 管理；待 `0.1.8` 發佈後再由使用者決定是否更新與完成實機複驗
 
 ## 支援範圍
 
@@ -38,6 +38,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 1. 點擊或輕觸普通 Bullet 的圓點。
 2. 把游標放在普通 Bullet 內，執行命令 `Bullet Zoom: 聚焦目前的 Bullet Point`。
 
+`0.1.8` 起，Obsidian 的收合箭頭只負責收合或展開該 Bullet thread，Bullet Zoom 不會再攔截這個操作。Bullet 圓點仍負責 Zoom。若目前主題用收合箭頭覆蓋父 Bullet 的圓點，可先把游標放在該行，再從命令面板、快捷鍵或 Mobile Toolbar 執行 `Bullet Zoom: 聚焦目前的 Bullet Point`。
+
 聚焦後，桌面版的上方路徑會顯示筆記名稱、所有父節點和目前節點。手機版從 `0.1.2` 起改成單列，只顯示「全文」、最近一層父節點與目前節點；點擊父節點可逐層返回，點擊「全文」或執行 `Bullet Zoom: 退出 Bullet 聚焦`，可回到完整筆記。
 
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
@@ -47,6 +49,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 `0.1.4` 曾把手機路徑移到 `EditorView.scrollDOM` 前方，但實機證明這仍然位於 Obsidian 手機的安全正文區之外。`0.1.5` 改成由 CodeMirror 把路徑建立在 focused Bullet 前方的正文 block；路徑和 Bullet 會共用 `.cm-scroller` 的 padding、捲動與 safe-area 座標系。桌面版維持原本的 sticky top panel，其他插件的 top panel 也不受影響。
 
 `0.1.5` 實機確認 Breadcrumb 已回到正確位置，但進入深層 Bullet 時不會自動把它帶進目前可視區。`0.1.6` 會在手機每次成功聚焦或返回父層時，由 CodeMirror 在 Breadcrumb block 建立後把新聚焦 Bullet 定位到可視區上方，並預留 52 CSS px 容納導覽列，讓路徑與目標 Bullet 一起出現在鍵盤上方；桌面版不增加這個自動捲動。
+
+`0.1.6` 實機顯示 CodeMirror 的預設定位會連外層 Obsidian 容器一起捲動，把游標和目標 Bullet 推到狀態列、Dynamic Island 與 view header 下方。`0.1.7` 保留同樣的 52 CSS px Breadcrumb 預留，但只改變目前 editor 的 `.cm-scroller.scrollTop`，並阻止預設流程再推動外層畫面。
 
 路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
 
@@ -167,7 +171,38 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 專用 `.test-vault` 已重新載入 `0.1.6` 三檔 bundle；在 Obsidian `1.13.5` 執行深層 Bullet 聚焦、點擊父層、再點擊筆記回到全文，桌面完整 sticky Breadcrumb、inline title 與 Properties 維持原本行為，全文恢復後仍為 213 characters
 - `.test-vault` 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `623a109c6619d04493b9158fad8d26b69f7351b0f5779c396e7ab411839fd8db`、`d61b2602f732e1045d32269f4847c3d5230533d8a930b8bbe501d493da35a60c`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
 - standalone commit `5529f4f` 已建立 GitHub Release `0.1.6`；Actions run `31372187516` 通過。下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `623a109c6619d04493b9158fad8d26b69f7351b0f5779c396e7ab411839fd8db`、`d61b2602f732e1045d32269f4847c3d5230533d8a930b8bbe501d493da35a60c`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
-- 自動測試只驗證 CodeMirror API 呼叫、transaction 與既有 DOM 生命週期，不代表實體 iOS 鍵盤開啟／關閉時已通過；`0.1.6` 已發佈，仍待實體 iPhone 複驗
+- 自動測試只驗證 CodeMirror API 呼叫、transaction 與既有 DOM 生命週期；後續實體 iPhone 證明 `0.1.6` 未通過，因為 CodeMirror 的預設捲動還會推動 Obsidian 外層容器，把目標 Bullet 移到狀態列與 view header 下方
+
+2026-08-10 完成 `0.1.7` 本機候選版自動驗證：
+
+- 實體 iPhone 截圖固定 `0.1.6` 的失敗條件：聚焦三層 Bullet 且鍵盤開啟時，目標 Bullet、游標與 Breadcrumb 會一起被推到 Dynamic Island 與 Obsidian view header 下方，必須手動往上捲動才能繼續編輯
+- 根因是 CodeMirror 預設 `scrollIntoView` 會沿著可捲動祖先往外處理，不只更新目前 editor 的 `.cm-scroller`
+- 手機版改用插件私有的 scroll effect 與 post-layout measure；只有成功聚焦／返回父層／回到全文的 transaction 能建立 request，measure 只設定目前 `.cm-scroller.scrollTop`，完全不呼叫會沿祖先捲動的 CodeMirror 預設流程。桌面版不註冊這個手機 ViewPlugin
+- 回歸測試確認進入深層 Bullet、逐層返回與最外層返回全文都只改變 editor scroller，外層 fixture 的 `scrollTop` 保持不變；返回全文會保留並定位完整多行 selection，過期 request 在 focus、selection 或文件已切換時不會寫入，且手機與桌面都沒有共享 `scrollHandler`
+- `npm test`：73 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.7`
+- 專用 `.test-vault` 已換入 `0.1.7` 三檔 bundle；`main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `b77afa8784478e1feb5b32344ddf81ba791b2e7e89f3e03501a5544037035225`、`0f4ba87c3bf5554aaee8cb93e41794e4abf41e6d4678ea256f4a0a0be5825944`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 自動測試與桌面 DOM 不模擬實體 iOS visual viewport、鍵盤動畫與 Dynamic Island；`0.1.7` 發佈後仍須由實體 iPhone 複驗
+
+2026-08-11 完成 `0.1.8` 本機候選版自動驗證：
+
+- 根因是插件用 capture click listener 攔截 Obsidian 的 `.collapse-indicator`，把收合箭頭當成 Zoom 入口，並阻止 Obsidian 繼續處理原生收合事件
+- 已移除 fold indicator capture listener；marker click handler 也會明確排除 `.collapse-indicator`。收合箭頭交回 Obsidian，Bullet 圓點與 `Bullet Zoom: 聚焦目前的 Bullet Point` 命令維持 Zoom
+- 回歸測試確認桌面 click、手機 tap、聚焦中的收合箭頭，以及收合控制巢狀在 marker DOM 內時，事件都不會被取消，focus session 與 selection 也不會被插件改變
+- `npm test`：76 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `spectra analyze bullet-zoom-0-1-8`：Critical／Warning 為零，只有 4 個既有情境缺少具體範例的 Suggestion
+- `spectra validate bullet-zoom-0-1-8 --strict`：通過
+- `spectra-verify`：實作、測試、版本與 artifacts 對應一致；保留桌面／iPhone 人工驗收及另行授權發布兩個 gate
+- `spectra-audit`：Scoundrel、Lazy Developer、Confused Deputy 三種檢查均為 clean，Critical／High／Medium／Low finding 皆為零
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.8`
+- 專用 `.test-vault` 已換入 `0.1.8` 三檔 bundle；`main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `b28bb02b677c94ddbd5ea0ba7cb347ee57415e3b0a031d8c948f7890baf95b38`、`222a45f0608800c7395900d71dabda62a8def483d19942c38f6b35bcde3b8c4a`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 2026-08-11 在 macOS Obsidian `1.13.5` 實際操作 `0.1.8`：點擊 `Parent A` 收合箭頭會隱藏完整子 thread，再點一次會展開，過程不出現 Breadcrumb；用命令聚焦 `Parent A` 後，點擊 `Child A1` 收合箭頭只收合／展開該子 thread，Breadcrumb 仍維持 `Bullet Zoom Manual Test › Parent A`；`聚焦目前的 Bullet Point` 命令仍可正常 Zoom
+- 同日唯讀檢查確認正式 Second Brain Vault 實際仍載入 `0.1.6`，三檔 SHA-256 也與 `0.1.6` Release 一致；因 standalone GitHub 最新 tag／Release 仍是 `0.1.6`，BRAT 尚無法取得 `0.1.8`
+- 桌面 `0.1.8` 已通過人工驗收；實體 iPhone 仍須在正式 Release 後透過 BRAT 更新再測，完成前不得宣稱手機實機 UX 通過
 
 ### 桌面版人工驗收
 
@@ -197,11 +232,16 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `0.1.3` 實體 iPhone：未通過；鍵盤開啟時 Breadcrumb top panel 遮住狀態列、Dynamic Island 與 Obsidian view header
 - `0.1.4` 實體 iPhone：未通過；鍵盤關閉時 compact Breadcrumb 仍位於 Dynamic Island 與 Obsidian view header 上方
 - `0.1.5` 實體 iPhone：部分通過；Breadcrumb 位置已正常，但聚焦三層最內節點後仍需收起鍵盤並手動往上捲動
-- `0.1.6` 已發佈：手機 focus transaction 的上方定位、52 CSS px Breadcrumb 預留與桌面不跳動條件已由自動測試固定；待實體 iPhone 複驗
+- `0.1.6` 實體 iPhone：未通過；focus request 會連 Obsidian 外層容器一起捲動，把目標 Bullet 推到手機頂端介面下方
+- `0.1.7` 本機候選版：focus／退出的 editor-only 捲動、外層位置不變與桌面不註冊手機 ViewPlugin 已由自動測試固定；待發佈與實體 iPhone 複驗
+
+#### `0.1.7` 手機 editor-only 捲動回歸紀錄
+
+測試以三層 `Parent`／`Child`／`Grandchild` 驗證手機進入最內節點後，插件私有的 scroll effect 會在 CodeMirror 更新 DOM 後提出 measure request，把 `.cm-scroller.scrollTop` 設為目標行頂端減去 52 CSS px Breadcrumb 預留，外層容器維持原本的 `scrollTop`。最外層 Bullet 返回全文時也由相同私有流程把保留的單一游標或多行 selection 置中於 editor；若 measure 前 focus、selection 或文件已更新，舊 request 會失效。手機與桌面都不註冊共享 `scrollHandler`，其他 CodeMirror 功能不會被攔截。這能固定「不再推動 Obsidian 外層畫面」的程式條件，但仍不模擬實體 iOS visual viewport、鍵盤動畫與 Dynamic Island。
 
 #### `0.1.6` 手機聚焦自動定位回歸紀錄
 
-測試以三層 `Parent`／`Child`／`Grandchild` 驗證手機進入最內節點後，會直接呼叫 CodeMirror 的 `scrollIntoView`，把新 focus anchor 設為 `y: start` 並預留 52 CSS px；再點擊最近父層時，新的 `Child` anchor 也會取得同樣 request。桌面執行相同聚焦流程不產生插件自有的自動定位 request。這能固定「路徑與目標 Bullet 一起進入可視區」所需的 post-layout 捲動意圖，但仍不模擬實體 iOS visual viewport 與鍵盤動畫。
+測試以三層 `Parent`／`Child`／`Grandchild` 驗證手機進入最內節點後，會直接呼叫 CodeMirror 的 `scrollIntoView`，把新 focus anchor 設為 `y: start` 並預留 52 CSS px；再點擊最近父層時，新的 `Child` anchor 也會取得同樣 request。桌面執行相同聚焦流程不產生插件自有的自動定位 request。後續實體 iPhone 證明這只固定了捲動意圖，沒有約束 CodeMirror 不得繼續捲動外層祖先，因此保留為失敗歷史，不代表手機定位正確。
 
 #### `0.1.5` 手機正文 block 回歸紀錄
 
@@ -262,6 +302,13 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 ## 開發
 
 Canonical source 位於私人工作區的 `000_Agent/tools/obsidian-bullet-zoom/`。公開 GitHub repo 是由這個子資料夾產生的發佈鏡像，不是另一份獨立維護的程式碼。
+
+### Spectra 版本規則
+
+- `0.1.0`～`0.1.6` 的既有歷史統一封存在 `2026-08-10-add-obsidian-bullet-zoom-plugin`，不回溯拆成多個 change。
+- 從 `0.1.7` 開始，每個預計發佈的版本必須先建立唯一對應的 Spectra change，命名固定為 `bullet-zoom-X-Y-Z`，例如 `0.1.7` 對應 `bullet-zoom-0-1-7`。
+- 同一個 change 不得再加入下一個版本。若某版本發佈後實機驗收失敗，先在該 change 記錄失敗並完成／封存，再為修正版建立下一個版本 change。
+- 版本號、程式碼、測試、README、GitHub tag／Release 與實機驗收都由同一個版本 change 追蹤；未完成的版本 change 保持 active。
 
 ```bash
 npm install

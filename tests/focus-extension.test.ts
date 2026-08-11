@@ -1,6 +1,10 @@
 import { markdown } from '@codemirror/lang-markdown';
 import { history, undo } from '@codemirror/commands';
-import { Compartment, EditorState, type Extension } from '@codemirror/state';
+import {
+	Compartment,
+	EditorState,
+	type Extension,
+} from '@codemirror/state';
 import { Decoration, EditorView, showPanel, WidgetType } from '@codemirror/view';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -320,9 +324,29 @@ describe('focusParent', () => {
 });
 
 describe('bullet marker interaction', () => {
+	class ObsidianFoldWidget extends WidgetType {
+		toDOM(view: EditorView): HTMLElement {
+			const foldIndicator = view.dom.ownerDocument.createElement('span');
+			foldIndicator.className = 'cm-fold-indicator';
+			const collapseIndicator = view.dom.ownerDocument.createElement('div');
+			collapseIndicator.className = 'collapse-indicator collapse-icon';
+			foldIndicator.append(collapseIndicator);
+			return foldIndicator;
+		}
+	}
+
+	function foldIndicatorExtension(position = 0): Extension {
+		const foldDecoration = Decoration.widget({
+			widget: new ObsidianFoldWidget(),
+			side: -1,
+		}).range(position);
+		return EditorView.decorations.of(Decoration.set([foldDecoration]));
+	}
+
 	function createView(
 		documentText: string,
 		additionalExtensions: Extension = [],
+		isPhone = false,
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -334,6 +358,7 @@ describe('bullet marker interaction', () => {
 					documentText,
 					'Ideas.md',
 					additionalExtensions,
+					isPhone,
 				),
 			}),
 		};
@@ -351,34 +376,107 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it('focuses through the fold indicator Obsidian renders over a parent bullet', () => {
-		class ObsidianFoldWidget extends WidgetType {
-			toDOM(view: EditorView): HTMLElement {
-				const foldIndicator = view.dom.ownerDocument.createElement('span');
-				foldIndicator.className = 'cm-fold-indicator';
-				const collapseIndicator = view.dom.ownerDocument.createElement('div');
-				collapseIndicator.className = 'collapse-indicator collapse-icon';
-				foldIndicator.append(collapseIndicator);
-				return foldIndicator;
-			}
-		}
-		const foldDecoration = Decoration.widget({
-			widget: new ObsidianFoldWidget(),
-			side: -1,
-		}).range(0);
+	it('passes desktop collapse indicator clicks through', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child',
-			EditorView.decorations.of(Decoration.set([foldDecoration])),
+			foldIndicatorExtension(),
 		);
 		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
 			'.collapse-indicator',
 		);
+		const nativeClickHandler = vi.fn();
+		collapseIndicator?.addEventListener('click', nativeClickHandler);
+		const selection = view.state.selection;
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
 
-		collapseIndicator?.click();
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
-			'Parent',
+		expect(collapseIndicator?.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('passes phone collapse indicator taps through', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			foldIndicatorExtension(),
+			true,
 		);
-		expect(view.state.selection.main.head).toBe(view.state.doc.line(1).to);
+		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
+			'.collapse-indicator',
+		);
+		const nativeClickHandler = vi.fn();
+		collapseIndicator?.addEventListener('click', nativeClickHandler);
+		const selection = view.state.selection;
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(collapseIndicator?.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('preserves active focus when a visible collapse indicator is clicked', () => {
+		const documentText = '- Parent\n  - Child';
+		const childMarker = documentText.indexOf('-', 1);
+		const { parent, view } = createView(
+			documentText,
+			foldIndicatorExtension(childMarker),
+		);
+		expect(enterFocusAt(view, 0)).toBe(true);
+		const session = getFocusSession(view.state);
+		const selection = view.state.selection;
+		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
+			'.collapse-indicator',
+		);
+		const nativeClickHandler = vi.fn();
+		collapseIndicator?.addEventListener('click', nativeClickHandler);
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(collapseIndicator?.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)?.anchor).toBe(session?.anchor);
+		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('passes a collapse indicator nested inside a marker through', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		const marker = view.contentDOM.querySelector<HTMLElement>(
+			'.bullet-zoom-marker',
+		);
+		const collapseIndicator = document.createElement('span');
+		collapseIndicator.className = 'collapse-indicator collapse-icon';
+		marker?.append(collapseIndicator);
+		const nativeClickHandler = vi.fn();
+		collapseIndicator.addEventListener('click', nativeClickHandler);
+		const selection = view.state.selection;
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(collapseIndicator.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.selection.eq(selection)).toBe(true);
 		view.destroy();
 		parent.remove();
 	});
@@ -397,7 +495,11 @@ describe('bullet marker interaction', () => {
 	});
 
 	it('uses the same synthesized click path for mobile tap and nested refocus', () => {
-		const { parent, view } = createView('- Parent\n  - Child\n    - Grandchild');
+		const { parent, view } = createView(
+			'- Parent\n  - Child\n    - Grandchild',
+			[],
+			true,
+		);
 		view.dom
 			.querySelector<HTMLElement>('.bullet-zoom-marker')
 			?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -753,19 +855,19 @@ describe('per-editor breadcrumb panel', () => {
 	});
 
 	it('keeps a phone breadcrumb-height margin above each focused bullet', () => {
-		const scrollSpy = vi.spyOn(EditorView, 'scrollIntoView');
 		const phone = createView('- Parent\n  - Child\n    - Grandchild', [], true);
+		const requestMeasureSpy = vi
+			.spyOn(phone.view, 'requestMeasure')
+			.mockImplementation(() => {});
 
 		try {
 			const grandchild = phone.view.state.doc.line(3);
 			expect(enterFocusAt(phone.view, grandchild.from, true)).toBe(true);
-			expect(scrollSpy).toHaveBeenCalledOnce();
-			expect(scrollSpy).toHaveBeenLastCalledWith(
-				getFocusSession(phone.view.state)?.anchor,
-				{ y: 'start', yMargin: 52 },
-			);
+			expect(
+				requestMeasureSpy.mock.calls.filter(([request]) => request !== undefined),
+			).toHaveLength(1);
 
-			scrollSpy.mockClear();
+			requestMeasureSpy.mockClear();
 			phone.parent
 				.querySelector<HTMLButtonElement>(
 					'.bullet-zoom-breadcrumb.is-parent',
@@ -774,28 +876,174 @@ describe('per-editor breadcrumb panel', () => {
 			expect(getFocusSession(phone.view.state)?.breadcrumbs.at(-1)?.label).toBe(
 				'Child',
 			);
-			expect(scrollSpy).toHaveBeenCalledOnce();
-			expect(scrollSpy).toHaveBeenLastCalledWith(
-				getFocusSession(phone.view.state)?.anchor,
-				{ y: 'start', yMargin: 52 },
-			);
+			expect(
+				requestMeasureSpy.mock.calls.filter(([request]) => request !== undefined),
+			).toHaveLength(1);
 		} finally {
 			phone.view.destroy();
 			phone.parent.remove();
 		}
 
-		scrollSpy.mockClear();
 		const desktop = createView('- Parent\n  - Child\n    - Grandchild');
+		const desktopMeasureSpy = vi.spyOn(desktop.view, 'requestMeasure');
 
 		try {
-				expect(
-					enterFocusAt(desktop.view, desktop.view.state.doc.line(3).from, true),
-				).toBe(true);
-			expect(scrollSpy).not.toHaveBeenCalled();
+			expect(
+				enterFocusAt(desktop.view, desktop.view.state.doc.line(3).from, true),
+			).toBe(true);
+			expect(
+				desktopMeasureSpy.mock.calls.filter(([request]) => request !== undefined),
+			).toHaveLength(0);
 		} finally {
 			desktop.view.destroy();
 			desktop.parent.remove();
-			scrollSpy.mockRestore();
+		}
+	});
+
+	it('confines phone focus scrolling to the current editor scroller', () => {
+		const phone = createView('- Parent\n  - Child\n    - Grandchild', [], true);
+		const desktop = createView('- Parent\n  - Child\n    - Grandchild');
+		const requestMeasureSpy = vi
+			.spyOn(phone.view, 'requestMeasure')
+			.mockImplementation(() => {});
+
+		try {
+			const grandchild = phone.view.state.doc.line(3);
+			expect(enterFocusAt(phone.view, grandchild.from, true)).toBe(true);
+			const anchor = getFocusSession(phone.view.state)?.anchor;
+			expect(anchor).toBeTypeOf('number');
+
+			const measureRequest = requestMeasureSpy.mock.calls.find(
+				([request]) => request !== undefined,
+			)?.[0];
+			if (measureRequest === undefined || anchor === undefined) {
+				throw new Error('Expected one phone focus measure request and anchor.');
+			}
+
+			const stateAtRequest = phone.view.state;
+			phone.view.dispatch({});
+			expect(phone.view.state).not.toBe(stateAtRequest);
+			const lineTop = phone.view.lineBlockAt(anchor).top;
+			phone.parent.scrollTop = 37;
+			phone.view.scrollDOM.scrollTop = 5;
+			const measuredScrollTop = measureRequest.read(phone.view);
+			measureRequest.write?.(measuredScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(
+				Math.max(0, lineTop - 52),
+			);
+			expect(phone.parent.scrollTop).toBe(37);
+
+			phone.view.scrollDOM.scrollTop = 13;
+			expect(
+				enterFocusAt(phone.view, phone.view.state.doc.line(2).from, true),
+			).toBe(true);
+			const staleScrollTop = measureRequest.read(phone.view);
+			expect(staleScrollTop).toBeNull();
+			measureRequest.write?.(staleScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(13);
+			expect(phone.parent.scrollTop).toBe(37);
+			expect(phone.view.state.facet(EditorView.scrollHandler)).toEqual([]);
+			expect(desktop.view.state.facet(EditorView.scrollHandler)).toEqual([]);
+		} finally {
+			phone.view.destroy();
+			phone.parent.remove();
+			desktop.view.destroy();
+			desktop.parent.remove();
+		}
+	});
+
+	it('keeps phone root-to-note scrolling inside the current editor', () => {
+		const phone = createView('- Parent\n  - Child', [], true);
+		const requestMeasureSpy = vi
+			.spyOn(phone.view, 'requestMeasure')
+			.mockImplementation(() => {});
+
+		try {
+			const root = phone.view.state.doc.line(1);
+			const child = phone.view.state.doc.line(2);
+			phone.view.dispatch({
+				selection: { anchor: root.to, head: child.to },
+				effects: focusAtEffect.of(root.from),
+			});
+			requestMeasureSpy.mockClear();
+
+			phone.parent.scrollTop = 29;
+			phone.view.scrollDOM.scrollTop = 7;
+			Object.defineProperty(phone.view.scrollDOM, 'clientHeight', {
+				configurable: true,
+				value: 160,
+			});
+
+			expect(focusParent(phone.view)).toBe(true);
+			expect(getFocusSession(phone.view.state)).toBeNull();
+			expect(phone.view.state.selection.main.empty).toBe(false);
+			const measureRequest = requestMeasureSpy.mock.calls.find(
+				([request]) => request !== undefined,
+			)?.[0];
+			if (measureRequest === undefined) {
+				throw new Error('Expected a phone root-to-note measure request.');
+			}
+
+			const selection = phone.view.state.selection.main;
+			const firstSelectionLine = phone.view.lineBlockAt(selection.from);
+			const lastSelectionLine = phone.view.lineBlockAt(selection.to);
+			const selectionHeight =
+				lastSelectionLine.bottom - firstSelectionLine.top;
+			const measuredScrollTop = measureRequest.read(phone.view);
+			measureRequest.write?.(measuredScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(
+				Math.max(0, firstSelectionLine.top - (160 - selectionHeight) / 2),
+			);
+			expect(phone.parent.scrollTop).toBe(29);
+			expect(phone.view.state.facet(EditorView.scrollHandler)).toEqual([]);
+
+			expect(selectionHeight).toBeGreaterThan(10);
+			Object.defineProperty(phone.view.scrollDOM, 'clientHeight', {
+				configurable: true,
+				value: 10,
+			});
+			const activeHeadScrollTop = measureRequest.read(phone.view);
+			measureRequest.write?.(activeHeadScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(
+				Math.max(0, lastSelectionLine.bottom - 10),
+			);
+			expect(phone.parent.scrollTop).toBe(29);
+
+			phone.view.dispatch({
+				selection: { anchor: child.to, head: root.to },
+				effects: focusAtEffect.of(root.from),
+			});
+			requestMeasureSpy.mockClear();
+			expect(focusParent(phone.view)).toBe(true);
+			const backwardMeasureRequest = requestMeasureSpy.mock.calls.find(
+				([request]) => request !== undefined,
+			)?.[0];
+			if (backwardMeasureRequest === undefined) {
+				throw new Error('Expected a backward-selection measure request.');
+			}
+			const backwardScrollTop = backwardMeasureRequest.read(phone.view);
+			backwardMeasureRequest.write?.(backwardScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(
+				Math.max(0, firstSelectionLine.top),
+			);
+			expect(phone.parent.scrollTop).toBe(29);
+
+			phone.view.dispatch({
+				changes: {
+					from: 0,
+					to: phone.view.state.doc.length,
+					insert: '- Other note',
+				},
+			});
+			phone.view.scrollDOM.scrollTop = 17;
+			const staleScrollTop = backwardMeasureRequest.read(phone.view);
+			expect(staleScrollTop).toBeNull();
+			backwardMeasureRequest.write?.(staleScrollTop, phone.view);
+			expect(phone.view.scrollDOM.scrollTop).toBe(17);
+			expect(phone.parent.scrollTop).toBe(29);
+		} finally {
+			phone.view.destroy();
+			phone.parent.remove();
 		}
 	});
 
