@@ -62,6 +62,38 @@ const focusPhoneMode = Facet.define<boolean, boolean>({
 
 export const focusAtEffect = StateEffect.define<number>();
 export const clearFocusEffect = StateEffect.define<void>();
+type MobileEditorScrollRequest = Readonly<{
+	from: number;
+	to: number;
+	expectedFocusAnchor: number | null;
+	expectedSelection: Readonly<{ anchor: number; head: number }> | null;
+	placement: 'start' | 'center';
+}>;
+const mobileEditorScrollEffect = StateEffect.define<MobileEditorScrollRequest>();
+
+function matchesMobileEditorScrollRequest(
+	state: EditorState,
+	request: MobileEditorScrollRequest,
+): boolean {
+	if (
+		request.from < 0 ||
+		request.to < request.from ||
+		request.to > state.doc.length ||
+		(getFocusSession(state)?.anchor ?? null) !== request.expectedFocusAnchor
+	) {
+		return false;
+	}
+
+	if (request.expectedSelection === null) {
+		return true;
+	}
+
+	const selection = state.selection.main;
+	return (
+		selection.anchor === request.expectedSelection.anchor &&
+		selection.head === request.expectedSelection.head
+	);
+}
 
 function createFocusSession(
 	state: EditorState,
@@ -229,9 +261,12 @@ export function enterFocusAt(
 			focusAtEffect.of(bullet.markerFrom),
 			...(view.state.facet(focusPhoneMode)
 				? [
-						EditorView.scrollIntoView(bullet.markerFrom, {
-							y: 'start',
-							yMargin: MOBILE_BREADCRUMB_SCROLL_MARGIN,
+						mobileEditorScrollEffect.of({
+							from: bullet.markerFrom,
+							to: bullet.markerFrom,
+							expectedFocusAnchor: bullet.markerFrom,
+							expectedSelection: null,
+							placement: 'start',
 						}),
 					]
 				: []),
@@ -247,6 +282,9 @@ const markerClickHandler = EditorView.domEventHandlers({
 			elementConstructor === undefined ||
 			!(event.target instanceof elementConstructor)
 		) {
+			return false;
+		}
+		if (event.target.closest('.collapse-indicator') !== null) {
 			return false;
 		}
 
@@ -266,53 +304,6 @@ const markerClickHandler = EditorView.domEventHandlers({
 		return true;
 	},
 });
-
-class FoldIndicatorClickPlugin implements PluginValue {
-	private readonly view: EditorView;
-	private readonly clickHandler: (event: MouseEvent) => void;
-
-	constructor(view: EditorView) {
-		this.view = view;
-		this.clickHandler = (event) => this.handleClick(event);
-		view.dom.addEventListener('click', this.clickHandler, true);
-	}
-
-	destroy(): void {
-		this.view.dom.removeEventListener('click', this.clickHandler, true);
-	}
-
-	private handleClick(event: MouseEvent): void {
-		const elementConstructor =
-			this.view.dom.ownerDocument.defaultView?.Element;
-		if (
-			elementConstructor === undefined ||
-			!(event.target instanceof elementConstructor)
-		) {
-			return;
-		}
-
-		const collapseIndicator = event.target.closest('.collapse-indicator');
-		const line = collapseIndicator?.closest('.cm-line');
-		if (
-			line === null ||
-			line === undefined ||
-			!this.view.contentDOM.contains(line)
-		) {
-			return;
-		}
-
-		const position = this.view.posAtDOM(line);
-		if (!enterFocusAt(this.view, position, true)) {
-			return;
-		}
-
-		event.preventDefault();
-		event.stopImmediatePropagation();
-		this.view.focus();
-	}
-}
-
-const foldIndicatorClickPlugin = ViewPlugin.fromClass(FoldIndicatorClickPlugin);
 
 const FOCUSED_PANE_CLASS = 'bullet-zoom-pane-is-focused';
 
@@ -486,15 +477,109 @@ export function getFocusSession(state: EditorState): FocusSession | null {
 	return state.field(focusStateField, false) ?? null;
 }
 
+class MobileFocusScrollPlugin implements PluginValue {
+	private readonly measureKey = {};
+
+	update(update: ViewUpdate): void {
+		let request: MobileEditorScrollRequest | null = null;
+		for (const transaction of update.transactions) {
+			for (const effect of transaction.effects) {
+				if (effect.is(mobileEditorScrollEffect)) {
+					request = effect.value;
+				}
+			}
+		}
+
+		if (
+			request === null ||
+			!update.state.facet(focusPhoneMode) ||
+			!matchesMobileEditorScrollRequest(update.state, request)
+		) {
+			return;
+		}
+
+		const requestedScroll = request;
+		const requestedDoc = update.state.doc;
+		const requestedFilePath = update.state.facet(focusFilePath);
+		update.view.requestMeasure({
+			key: this.measureKey,
+			read: (view) => {
+				if (
+					view.state.doc !== requestedDoc ||
+					view.state.facet(focusFilePath) !== requestedFilePath ||
+					!view.state.facet(focusPhoneMode) ||
+					!matchesMobileEditorScrollRequest(view.state, requestedScroll)
+				) {
+					return null;
+				}
+
+				const firstLine = view.lineBlockAt(requestedScroll.from);
+				const lastLine = view.lineBlockAt(requestedScroll.to);
+				const rangeHeight = lastLine.bottom - firstLine.top;
+				if (requestedScroll.placement === 'start') {
+					return Math.max(
+						0,
+						firstLine.top - MOBILE_BREADCRUMB_SCROLL_MARGIN,
+					);
+				}
+
+				if (rangeHeight <= view.scrollDOM.clientHeight) {
+					return Math.max(
+						0,
+						firstLine.top -
+							(view.scrollDOM.clientHeight - rangeHeight) / 2,
+					);
+				}
+
+				return requestedScroll.expectedSelection?.head === requestedScroll.to
+					? Math.max(0, lastLine.bottom - view.scrollDOM.clientHeight)
+					: Math.max(0, firstLine.top);
+			},
+			write: (scrollTop, view) => {
+				if (
+					scrollTop !== null &&
+					view.state.doc === requestedDoc &&
+					view.state.facet(focusFilePath) === requestedFilePath &&
+					view.state.facet(focusPhoneMode) &&
+					matchesMobileEditorScrollRequest(view.state, requestedScroll)
+				) {
+					view.scrollDOM.scrollTop = scrollTop;
+				}
+			},
+		});
+	}
+}
+
+const mobileFocusScrollPlugin = ViewPlugin.fromClass(MobileFocusScrollPlugin);
+
 export function exitFocus(view: EditorView): boolean {
 	if (getFocusSession(view.state) === null) {
 		return false;
 	}
 
+	const selection = view.state.selection.main;
+	const isPhone = view.state.facet(focusPhoneMode);
 	view.dispatch({
 		effects: [
 			clearFocusEffect.of(),
-			EditorView.scrollIntoView(view.state.selection.main, { y: 'center' }),
+			...(isPhone
+				? [
+						mobileEditorScrollEffect.of({
+							from: selection.from,
+							to: selection.to,
+							expectedFocusAnchor: null,
+							expectedSelection: {
+								anchor: selection.anchor,
+								head: selection.head,
+							},
+							placement: 'center',
+						}),
+					]
+				: [
+						EditorView.scrollIntoView(view.state.selection.main, {
+							y: 'center',
+						}),
+					]),
 		],
 	});
 	return true;
@@ -572,11 +657,11 @@ export function createFocusExtension({
 	return [
 		focusPhoneMode.of(isPhone),
 		focusStateField,
+		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
 		mobileBreadcrumbDecorations,
 		bulletMarkerPlugin,
 		markerClickHandler,
-		foldIndicatorClickPlugin,
 		focusedPanePresentationPlugin,
 		breadcrumbPanelExtension,
 	];
