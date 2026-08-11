@@ -4,13 +4,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.8`（尚未發佈的收合／Zoom 事件分流候選版）
-- 目前公開 BRAT 版本：`0.1.6`
+- 目前開發版本：`0.1.8`
+- 目前公開 BRAT 版本：`0.1.8`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.8` 已於 2026-08-11 在 Obsidian `1.13.5` 專用 `.test-vault` 通過收合／展開、聚焦中收合不切換 focus，以及命令 Zoom
+- 桌面版人工驗收：`0.1.8` 已於 2026-08-11 在 Obsidian `1.13.5` 專用 `.test-vault` 與正式 Vault 通過收合／展開、聚焦中收合不切換 focus，以及命令 Zoom
 - 手機版自動驗收：`0.1.7` 已確認手機 focus／退出 request 由插件私有的 post-layout measure 只更新目前 `.cm-scroller.scrollTop`；`0.1.8` 另以手機 click fixture 固定收合控制不會觸發 Zoom 或阻止原生事件
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.7` 與 `0.1.8` 尚未發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
-- 正式 Vault：已透過 BRAT 管理；待 `0.1.8` 發佈後再由使用者決定是否更新與完成實機複驗
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.8` 已發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
+- 正式 Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
 
@@ -71,7 +71,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.6`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.8`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -186,7 +186,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 專用 `.test-vault` 已換入 `0.1.7` 三檔 bundle；`main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `b77afa8784478e1feb5b32344ddf81ba791b2e7e89f3e03501a5544037035225`、`0f4ba87c3bf5554aaee8cb93e41794e4abf41e6d4678ea256f4a0a0be5825944`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
 - 自動測試與桌面 DOM 不模擬實體 iOS visual viewport、鍵盤動畫與 Dynamic Island；`0.1.7` 發佈後仍須由實體 iPhone 複驗
 
-2026-08-11 完成 `0.1.8` 本機候選版自動驗證：
+2026-08-11 完成 `0.1.8` 驗證與發佈：
 
 - 根因是插件用 capture click listener 攔截 Obsidian 的 `.collapse-indicator`，把收合箭頭當成 Zoom 入口，並阻止 Obsidian 繼續處理原生收合事件
 - 已移除 fold indicator capture listener；marker click handler 也會明確排除 `.collapse-indicator`。收合箭頭交回 Obsidian，Bullet 圓點與 `Bullet Zoom: 聚焦目前的 Bullet Point` 命令維持 Zoom
@@ -196,13 +196,16 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `npm run build`：通過
 - `spectra analyze bullet-zoom-0-1-8`：Critical／Warning 為零，只有 4 個既有情境缺少具體範例的 Suggestion
 - `spectra validate bullet-zoom-0-1-8 --strict`：通過
-- `spectra-verify`：實作、測試、版本與 artifacts 對應一致；保留桌面／iPhone 人工驗收及另行授權發布兩個 gate
+- `spectra-verify`：實作、測試、版本與 artifacts 對應一致；實體 iPhone 人工驗收 gate 保持未完成
 - `spectra-audit`：Scoundrel、Lazy Developer、Confused Deputy 三種檢查均為 clean，Critical／High／Medium／Low finding 皆為零
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.8`
 - 專用 `.test-vault` 已換入 `0.1.8` 三檔 bundle；`main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `b28bb02b677c94ddbd5ea0ba7cb347ee57415e3b0a031d8c948f7890baf95b38`、`222a45f0608800c7395900d71dabda62a8def483d19942c38f6b35bcde3b8c4a`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
 - 2026-08-11 在 macOS Obsidian `1.13.5` 實際操作 `0.1.8`：點擊 `Parent A` 收合箭頭會隱藏完整子 thread，再點一次會展開，過程不出現 Breadcrumb；用命令聚焦 `Parent A` 後，點擊 `Child A1` 收合箭頭只收合／展開該子 thread，Breadcrumb 仍維持 `Bullet Zoom Manual Test › Parent A`；`聚焦目前的 Bullet Point` 命令仍可正常 Zoom
-- 同日唯讀檢查確認正式 Vault 實際仍載入 `0.1.6`，三檔 SHA-256 也與 `0.1.6` Release 一致；因 standalone GitHub 最新 tag／Release 仍是 `0.1.6`，BRAT 尚無法取得 `0.1.8`
-- 桌面 `0.1.8` 已通過人工驗收；實體 iPhone 仍須在正式 Release 後透過 BRAT 更新再測，完成前不得宣稱手機實機 UX 通過
+- standalone commit `cd8d1cc` 已建立 [GitHub Release `0.1.8`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.8)；Actions run [`31501073765`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31501073765) 通過
+- 從 Release 下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `b28bb02b677c94ddbd5ea0ba7cb347ee57415e3b0a031d8c948f7890baf95b38`、`222a45f0608800c7395900d71dabda62a8def483d19942c38f6b35bcde3b8c4a`、`e589b0d7f383f16402e1c2ba2d227bb765d7c4e24262eb4ebc7446450fb75c24`，與 canonical build 逐檔一致
+- 正式 Vault 已透過 BRAT 更新至 `0.1.8`；安裝後的 `main.js`、`styles.css` 與 Release 逐 byte 一致，`manifest.json` 欄位內容一致但由 BRAT 壓成單行
+- 同日在正式 Vault 的 daily note 實測：`LINE` 的收合箭頭只收合／展開子項目，不出現 Breadcrumb；以命令聚焦 `LINE` 後，再點收合箭頭只切換子 thread，Breadcrumb 與 focus 保持不變；退出 Zoom 後已恢復展開狀態
+- 桌面 `0.1.8` 已在測試 Vault 與正式 Vault 通過人工驗收；實體 iPhone 仍須透過 BRAT 更新再測，完成前不得宣稱手機實機 UX 通過
 
 ### 桌面版人工驗收
 
