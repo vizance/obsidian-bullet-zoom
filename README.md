@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.13`
+- 目前開發版本：`0.1.14`
 - 目前公開 BRAT 版本：`0.1.13`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.13` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證常駐淡灰箭頭、`↘` 進入、`↖` 退出、原生收合、淺／深色與 Markdown 字數不變；production CSS 自動測試另固定計算樣式契約；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
-- 手機版自動驗收：`0.1.13` 以真實 `↘` widget、production CSS 與淺／深色 theme token 測試固定所有箭頭常駐、透明互動狀態，以及有箭頭／無箭頭的計算行高相同；這不代表實體 iPhone 已通過
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.13` 已發佈，editor-only 捲動、收合／Zoom 分流、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
+- 桌面版人工驗收：`0.1.14` 已於 2026-08-13 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證 folded-target Zoom 會先展開再聚焦、隱藏子孫不投影控制、子節點正常往下排列、原生收合獨立與 Markdown 字數不變；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
+- 手機版自動驗收：`0.1.14` 的真實 CodeMirror fold-state 測試固定「收合節點只留一個 `↘`、Zoom 時先展開 target、子孫 fold 保留」，並延續真實 `↘` widget、production CSS、淺／深色 theme token、透明互動狀態與計算行高測試；這不代表實體 iPhone 已通過
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.14` 的 folded-target Zoom、editor-only 捲動、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
@@ -50,6 +50,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 `0.1.13` 起，所有支援 Bullet 的 `↘` 與目前聚焦根節點的 `↖` 會在桌面、手機和平板常駐，不需要 hover、文字游標或 active line 才出現。箭頭使用 Obsidian 的 `--text-faint`，會隨淺色／深色主題切換灰度；normal、hover、focus 與 active 都維持透明背景、無陰影、繼承正文 font size，並把 glyph box 限制在 `1em`，避免手機點擊後出現拉高該行的灰色按鈕區塊。鍵盤操作時只加上 `--text-muted` 外框，且不改變版面幾何。
 
+`0.1.14` 起，已收合的 Bullet thread 只保留父節點自己的 `↘`，被 fold 蓋住的子節點不再把額外箭頭投影到 `…` 旁邊。從行尾箭頭、Bullet 圓點、命令或 breadcrumb 進入已收合節點時，插件會在同一筆 editor transition 先展開該節點自己的 fold；若游標目標原本被祖先 fold 蓋住，也會一併解除覆蓋目標的 fold 再 Zoom。進入後只顯示根節點的 `↖`，可見子節點向下正常排列。更深層原本獨立收合的 thread 仍保持收合，Markdown 原文不會改變；退出 Zoom 後，剛才的目標節點維持展開。
+
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
 
 桌面與手機聚焦時都會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。其他分割窗格不受影響；退出聚焦後，標題與 Properties 會立即恢復。
@@ -79,7 +81,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.12`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新公開 GitHub Release 是 `0.1.13`，可直接透過 BRAT 更新；`0.1.14` 完成發布後會由同一個 repo 提供。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -295,9 +297,21 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `354b0a9995c4ba66c5423cd9703c8e9c03dad3004bc1f00c623a2e012a6f1fca`、`a918900cdb244f23ec0657b58f0ec58c4009ac27a61dedc771c21537891c6f94`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，下載後與 canonical build 逐檔 byte-identical
 - 實體 iPhone 的點擊後行高、灰底、鍵盤 viewport 與捲動仍是獨立待驗 gate；公開 BRAT 已更新為 `0.1.13`，但不以自動測試或桌面驗收代替手機實機結果
 
+2026-08-13 完成 `0.1.14` 自動驗證與候選套件：
+
+- 真實 CodeMirror fold-state 回歸先重現 `0.1.13` 的錯誤：folded parent 仍保留 placeholder，而且被 fold 蓋住的 `Child B` 控制會投影到 `…` 旁邊；Zoom 後 target fold 也沒有解除
+- folded descendant 不再建立 marker 或行尾控制；fold state 改變時會重建 decorations，所以收合狀態只保留 parent 自己的 `↘`
+- `enterFocusAt()` 會在同一筆 transaction 解除 target 第一行擁有的 fold，以及任何覆蓋 target marker 的祖先 fold，再套用 selection、focus 與手機捲動 intent；更深層獨立 fold 保留，退出後 target 維持展開，Markdown 不變
+- 桌面 row control、手機 marker、命令、breadcrumb、巢狀 fold 與無 fold 路徑均使用同一 transition；原生 `.collapse-indicator` 的桌面、手機、聚焦中與巢狀事件仍完全交回 Obsidian
+- `npm test`：97 項測試通過；其中包含「保留游標位置的 breadcrumb／上一層切換不會誤解開游標所在的更深 fold」，以及「游標位於祖先 fold 蓋住的子 Bullet 時，命令會先解除覆蓋 fold 再聚焦」回歸；`npm run lint`、`npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.14`
+- 專用 `.test-vault` 已換入 `0.1.14` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `6820896682677c443234101ffab73b5c917f25f2692f26d4f3b22c6047536125`、`0639e3fd82a4ef12ca79270cb801e6dee5b72dfe4d3761b48395fa23448ee94b`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，逐檔 byte-identical
+- macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：以原生 Fold more 收合 `Child A1` 時，只保留該列自己的 `↘`，被收合的孫節點沒有把額外控制投影到 `…` 旁；點擊 `↘` 後會先解除 target fold 再建立 `Bullet Zoom Manual Test > Parent A > Child A1` breadcrumb，畫面只有一個 `↖`、兩個孫節點維持向下排列，沒有 placeholder 或直排文字；退出後全文恢復且 target 維持展開；原生收合命令沒有進入 Zoom，驗收前後皆為 36 words、214 characters
+- GitHub Release 與實體 iPhone 複驗仍待後續步驟；桌面人工驗收與自動測試不代替手機實機狀態
+
 ### 桌面版人工驗收
 
-基準環境：macOS、Obsidian `1.13.5`；`0.1.10`～`0.1.13` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
+基準環境：macOS、Obsidian `1.13.5`；`0.1.10`～`0.1.14` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |
