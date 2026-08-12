@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildBreadcrumbs,
-	buildBulletNavigationTree,
 	computeBranchRange,
 	findSupportedBullet,
 	isSupportedBulletSyntaxNode,
@@ -212,78 +211,5 @@ describe('buildBreadcrumbs', () => {
 	it('uses a fallback for an empty note title', () => {
 		const state = createState('- Root');
 		expect(buildBreadcrumbs(state, 0, '')?.[0]?.label).toBe('未命名筆記');
-	});
-});
-
-describe('buildBulletNavigationTree', () => {
-	it('builds immutable supported children in document order from a synthetic note root', () => {
-		const state = createState(
-			[
-				'- Parent A',
-				'  - Child A1',
-				'      - Grandchild A1',
-				'  - [ ] Ignored task',
-				'  1. Ignored ordered item',
-				'  - Child A2',
-				'- Parent B',
-				'- ',
-			].join('\n'),
-		);
-
-		const tree = buildBulletNavigationTree(state, 'Ideas');
-
-		expect(tree).toMatchObject({ label: 'Ideas', anchor: null });
-		expect(tree.children.map(({ label }) => label)).toEqual([
-			'Parent A',
-			'Parent B',
-			'（空白節點）',
-		]);
-		expect(tree.children[0]?.children.map(({ label }) => label)).toEqual([
-			'Child A1',
-			'Child A2',
-		]);
-		expect(tree.children[0]?.children[0]?.children).toEqual([
-			{
-				label: 'Grandchild A1',
-				anchor: state.doc.line(3).from,
-				children: [],
-			},
-		]);
-		expect(Object.isFrozen(tree)).toBe(true);
-		expect(Object.isFrozen(tree.children)).toBe(true);
-		expect(Object.isFrozen(tree.children[0])).toBe(true);
-	});
-
-	it('uses editor columns so indentation gaps and tabs form the same hierarchy as breadcrumbs', () => {
-		const state = createState(
-			'- Parent\n\t- Tab child\n        - Deep child\n  - Space sibling\n- Other',
-		);
-
-		const tree = buildBulletNavigationTree(state, 'Ideas');
-
-		expect(tree.children.map(({ label }) => label)).toEqual([
-			'Parent',
-			'Other',
-		]);
-		expect(tree.children[0]?.children.map(({ label }) => label)).toEqual([
-			'Tab child',
-			'Space sibling',
-		]);
-		expect(tree.children[0]?.children[0]?.children.map(({ label }) => label)).toEqual([
-			'Deep child',
-		]);
-	});
-
-	it('uses the note-title fallback and returns an empty immutable child list when no Bullet is supported', () => {
-		const state = createState('Paragraph\n1. Ordered\n- [ ] Task');
-
-		const tree = buildBulletNavigationTree(state, '');
-
-		expect(tree).toEqual({
-			label: '未命名筆記',
-			anchor: null,
-			children: [],
-		});
-		expect(Object.isFrozen(tree.children)).toBe(true);
 	});
 });
