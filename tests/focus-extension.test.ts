@@ -423,21 +423,57 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it('omits the current root inline Zoom control and retains descendant controls', () => {
+	it('renders a reverse exit control for the current root and enter controls for descendants', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild\n- Sibling',
 		);
 		expect(enterFocusAt(view, 0)).toBe(true);
 
-		const labels = Array.from(
+		const enterLabels = Array.from(
 			view.dom.querySelectorAll<HTMLButtonElement>(
 				'button.bullet-zoom-enter-control',
 			),
 		).map((control) => control.getAttribute('aria-label'));
-		expect(labels).not.toContain('聚焦「Parent」');
-		expect(labels).toContain('聚焦「Child」');
-		expect(labels).toContain('聚焦「Grandchild」');
-		expect(labels).not.toContain('聚焦「Sibling」');
+		const exitControl = view.dom.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-exit-control',
+		);
+		expect(exitControl?.getAttribute('aria-label')).toBe(
+			'退出聚焦「Parent」，回到全文',
+		);
+		expect(exitControl?.textContent).toBe('↖');
+		expect(enterLabels).not.toContain('聚焦「Parent」');
+		expect(enterLabels).toContain('聚焦「Child」');
+		expect(enterLabels).toContain('聚焦「Grandchild」');
+		expect(enterLabels).not.toContain('聚焦「Sibling」');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('exits through the focus-root control without changing selection, Markdown, or collapse state', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			foldIndicatorExtension(),
+		);
+		const source = view.state.doc.toString();
+		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
+			'.collapse-indicator',
+		);
+		collapseIndicator?.classList.add('is-collapsed');
+		collapseIndicator?.setAttribute('aria-expanded', 'false');
+		expect(enterFocusAt(view, 0, true)).toBe(true);
+		const selection = view.state.selection;
+
+		const exitControl = view.contentDOM.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-exit-control[aria-label="退出聚焦「Parent」，回到全文"]',
+		);
+		expect(exitControl).not.toBeNull();
+		exitControl?.click();
+
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.selection.eq(selection)).toBe(true);
+		expect(view.state.doc.toString()).toBe(source);
+		expect(collapseIndicator?.classList.contains('is-collapsed')).toBe(true);
+		expect(collapseIndicator?.getAttribute('aria-expanded')).toBe('false');
 		view.destroy();
 		parent.remove();
 	});
@@ -530,9 +566,11 @@ describe('bullet marker interaction', () => {
 
 	it('ignores a same-class inline control not owned by the plugin widget', () => {
 		const { parent, view } = createView('- Parent\n  - Child');
+		expect(enterFocusAt(view, 0)).toBe(true);
 		const source = view.state.doc.toString();
 		const foreignControl = document.createElement('button');
-		foreignControl.className = 'bullet-zoom-enter-control';
+		foreignControl.className =
+			'bullet-zoom-row-control bullet-zoom-exit-control';
 		view.contentDOM.querySelector('.cm-line')?.append(foreignControl);
 		const click = new MouseEvent('click', {
 			bubbles: true,
@@ -541,7 +579,9 @@ describe('bullet marker interaction', () => {
 
 		expect(foreignControl.dispatchEvent(click)).toBe(true);
 		expect(click.defaultPrevented).toBe(false);
-		expect(getFocusSession(view.state)).toBeNull();
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
 		expect(view.state.doc.toString()).toBe(source);
 		view.destroy();
 		parent.remove();
@@ -884,7 +924,6 @@ describe('per-editor breadcrumb panel', () => {
 		);
 
 		expect(navigationItems.map((item) => item.textContent)).toEqual([
-			'‹',
 			'Ideas',
 			'Parent',
 			'Child',
@@ -894,18 +933,15 @@ describe('per-editor breadcrumb panel', () => {
 			'BUTTON',
 			'BUTTON',
 			'BUTTON',
-			'BUTTON',
 			'SPAN',
 		]);
 		expect(navigationItems.map((item) => item.getAttribute('aria-label'))).toEqual([
-			'回到上一層',
 			'Ideas',
 			'Parent',
 			'Child',
 			'Grandchild',
 		]);
 		expect(navigationItems.map((item) => item.title)).toEqual([
-			'回到上一層 Bullet',
 			'Ideas',
 			'Parent',
 			'Child',
@@ -915,24 +951,26 @@ describe('per-editor breadcrumb panel', () => {
 			null,
 			null,
 			null,
-			null,
 			'location',
 		]);
+		expect(parent.querySelector('.bullet-zoom-back')).toBeNull();
 		expect(
 			parent.querySelector('button.bullet-zoom-breadcrumb.is-current'),
 		).toBeNull();
+		expect(
+			parent.querySelector('.bullet-zoom-breadcrumbs')?.textContent,
+		).toBe('Ideas›Parent›Child›Grandchild');
 		view.destroy();
 		parent.remove();
 	});
 
-	it('uses Bike-inspired navigation actions for previous level, ancestor, and note transitions', () => {
+	it('keeps direct ancestor and note breadcrumb transitions without a visible previous-level action', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild',
 		);
 		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
 
-		parent.querySelector<HTMLButtonElement>('.bullet-zoom-back')?.click();
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
+		expect(parent.querySelector('.bullet-zoom-back')).toBeNull();
 
 		parent
 			.querySelector<HTMLButtonElement>('.bullet-zoom-breadcrumb.is-ancestor')
@@ -961,6 +999,216 @@ describe('per-editor breadcrumb panel', () => {
 		expect(emptyCurrent?.title).toBe('（空白節點）');
 		view.destroy();
 		parent.remove();
+	});
+
+	it('opens supported breadcrumb children in document order and separates drill-down from navigation', () => {
+		const { parent, view } = createView(
+			[
+				'- Parent A',
+				'  - Child A1',
+				'    - Grandchild A1',
+				'  - Child A2',
+				'- Parent B',
+			].join('\n'),
+		);
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
+		const originalFocus = getFocusSession(view.state)?.anchor;
+		const noteTrigger = parent.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-menu-trigger[aria-label="展開「Ideas」的下層"]',
+		);
+
+		expect(noteTrigger?.getAttribute('aria-haspopup')).toBe('menu');
+		expect(noteTrigger?.getAttribute('aria-expanded')).toBe('false');
+		expect(
+			parent.querySelector(
+				'.bullet-zoom-breadcrumb.is-current + .bullet-zoom-menu-trigger',
+			),
+		).toBeNull();
+		noteTrigger?.click();
+
+		const menu = document.body.querySelector<HTMLElement>(
+			'.bullet-zoom-hierarchy-menu',
+		);
+		expect(noteTrigger?.getAttribute('aria-expanded')).toBe('true');
+		expect(
+			Array.from(
+				menu?.querySelectorAll<HTMLButtonElement>(
+					'.bullet-zoom-hierarchy-column:first-child .bullet-zoom-hierarchy-label',
+				) ?? [],
+			).map((button) => button.textContent),
+		).toEqual(['Parent A', 'Parent B']);
+
+		menu
+			?.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-hierarchy-child-trigger[aria-label="展開「Parent A」的下層"]',
+			)
+			?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(originalFocus);
+		expect(menu?.querySelectorAll('.bullet-zoom-hierarchy-column')).toHaveLength(
+			2,
+		);
+		expect(
+			Array.from(
+				menu?.querySelectorAll<HTMLButtonElement>(
+					'.bullet-zoom-hierarchy-column:last-child .bullet-zoom-hierarchy-label',
+				) ?? [],
+			).map((button) => button.textContent),
+		).toEqual(['Child A1', 'Child A2']);
+
+		menu
+			?.querySelectorAll<HTMLButtonElement>(
+				'.bullet-zoom-hierarchy-column:last-child .bullet-zoom-hierarchy-label',
+			)[1]
+			?.click();
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Child A2',
+		);
+		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('navigates a desktop cascade with arrows and restores its trigger on Escape', () => {
+		const { parent, view } = createView(
+			'- Parent A\n  - Child A1\n  - Child A2\n- Parent B',
+		);
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+		const noteTrigger = parent.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-menu-trigger[aria-label="展開「Ideas」的下層"]',
+		);
+		noteTrigger?.click();
+		const menu = document.body.querySelector<HTMLElement>(
+			'.bullet-zoom-hierarchy-menu',
+		);
+		const firstRoot = menu?.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-hierarchy-label',
+		);
+		firstRoot?.focus();
+		firstRoot?.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
+		);
+		expect(menu?.querySelectorAll('.bullet-zoom-hierarchy-column')).toHaveLength(
+			2,
+		);
+		expect((document.activeElement as HTMLElement | null)?.textContent).toBe(
+			'Child A1',
+		);
+
+		document.activeElement?.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+		);
+		expect((document.activeElement as HTMLElement | null)?.textContent).toBe(
+			'Child A2',
+		);
+		document.activeElement?.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
+		);
+		expect(menu?.querySelectorAll('.bullet-zoom-hierarchy-column')).toHaveLength(
+			1,
+		);
+		expect((document.activeElement as HTMLElement | null)?.textContent).toBe(
+			'Parent A',
+		);
+
+		document.activeElement?.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).toBeNull();
+		expect(document.activeElement).toBe(noteTrigger);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('uses one drill-down column with a level-back action on phones', () => {
+		document.body.classList.add('is-phone', 'is-mobile');
+		const { parent, view } = createView(
+			'- Parent A\n  - Child A1\n  - Child A2\n- Parent B',
+			[],
+			true,
+		);
+
+		try {
+			view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
+			parent
+				.querySelector<HTMLButtonElement>(
+					'.bullet-zoom-menu-trigger[aria-label="展開「Ideas」的下層"]',
+				)
+				?.click();
+			const menu = document.body.querySelector<HTMLElement>(
+				'.bullet-zoom-hierarchy-menu.is-mobile',
+			);
+			expect(menu?.querySelectorAll('.bullet-zoom-hierarchy-column')).toHaveLength(
+				1,
+			);
+			menu
+				?.querySelector<HTMLButtonElement>(
+					'.bullet-zoom-hierarchy-child-trigger[aria-label="展開「Parent A」的下層"]',
+				)
+				?.click();
+			expect(menu?.querySelectorAll('.bullet-zoom-hierarchy-column')).toHaveLength(
+				1,
+			);
+			expect(
+				Array.from(
+					menu?.querySelectorAll<HTMLButtonElement>(
+						'.bullet-zoom-hierarchy-label',
+					) ?? [],
+				).map((button) => button.textContent),
+			).toEqual(['Child A1', 'Child A2']);
+			const back = menu?.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-hierarchy-back',
+			);
+			expect(back?.getAttribute('aria-label')).toBe('回到 Ideas 的下層');
+			back?.click();
+			expect(
+				Array.from(
+					menu?.querySelectorAll<HTMLButtonElement>(
+						'.bullet-zoom-hierarchy-label',
+					) ?? [],
+				).map((button) => button.textContent),
+			).toEqual(['Parent A', 'Parent B']);
+		} finally {
+			view.destroy();
+			parent.remove();
+			document.body.classList.remove('is-phone', 'is-mobile');
+		}
+	});
+
+	it('closes outside and stale menus without crossing editor panes', () => {
+		const first = createView('- Parent A\n  - Child A1\n- Parent B');
+		const second = createView('- Parent A\n  - Child A1\n- Parent B');
+		first.view.dispatch({ effects: focusAtEffect.of(first.view.state.doc.line(2).from) });
+		second.view.dispatch({ effects: focusAtEffect.of(second.view.state.doc.line(2).from) });
+		const firstTrigger = first.parent.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-menu-trigger[aria-label="展開「Ideas」的下層"]',
+		);
+		firstTrigger?.click();
+		expect(document.body.querySelectorAll('.bullet-zoom-hierarchy-menu')).toHaveLength(
+			1,
+		);
+		expect(second.parent.querySelector('[aria-expanded="true"]')).toBeNull();
+
+		const outside = document.createElement('button');
+		document.body.append(outside);
+		outside.focus();
+		outside.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).toBeNull();
+		expect(document.activeElement).toBe(outside);
+
+		firstTrigger?.click();
+		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).not.toBeNull();
+		first.view.dispatch({
+			changes: { from: first.view.state.doc.length, insert: '\n' },
+		});
+		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).toBeNull();
+		expect(getFocusSession(second.view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Child A1',
+		);
+		first.view.destroy();
+		second.view.destroy();
+		first.parent.remove();
+		second.parent.remove();
+		outside.remove();
 	});
 
 	it('keeps panels scoped to their own editor pane', () => {
@@ -1312,20 +1560,12 @@ describe('per-editor breadcrumb panel', () => {
 					tag: item.tagName,
 				})),
 			).toEqual([
-				{ label: '回到上一層', tag: 'BUTTON' },
 				{ label: 'Ideas', tag: 'BUTTON' },
 				{ label: 'Parent', tag: 'BUTTON' },
 				{ label: 'Child', tag: 'BUTTON' },
 				{ label: 'Grandchild', tag: 'SPAN' },
 			]);
-
-			parent.querySelector<HTMLButtonElement>('.bullet-zoom-back')?.click();
-			expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
-				'Child',
-			);
-			expect(
-				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
-			).not.toBeNull();
+			expect(mobileNavigation?.querySelector('.bullet-zoom-back')).toBeNull();
 
 			parent
 				.querySelector<HTMLButtonElement>('.bullet-zoom-breadcrumb.is-note')
