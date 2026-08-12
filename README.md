@@ -5,11 +5,11 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 ## 目前狀態
 
 - 目前開發版本：`0.1.13`
-- 目前公開 BRAT 版本：`0.1.12`
+- 目前公開 BRAT 版本：`0.1.13`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：`0.1.13` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證常駐淡灰箭頭、`↘` 進入、`↖` 退出、原生收合、淺／深色與 Markdown 字數不變；production CSS 自動測試另固定計算樣式契約；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
 - 手機版自動驗收：`0.1.13` 以真實 `↘` widget、production CSS 與淺／深色 theme token 測試固定所有箭頭常駐、透明互動狀態，以及有箭頭／無箭頭的計算行高相同；這不代表實體 iPhone 已通過
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.13` 本機候選版的 editor-only 捲動、收合／Zoom 分流、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.13` 已發佈，editor-only 捲動、收合／Zoom 分流、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
@@ -283,7 +283,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`，與 canonical build 逐檔一致
 - 實體 iPhone 的列高、touch hit area、鍵盤 viewport 與捲動仍是獨立待驗 gate；目前公開 BRAT 版本已更新為 `0.1.12`，但不以自動測試或桌面驗收代替手機實機結果
 
-2026-08-12 完成 `0.1.13` 本機候選版驗證：
+2026-08-12 完成 `0.1.13` 驗證與發佈：
 
 - 所有 `↘`／`↖` 改為常駐；runtime 已移除 `.is-mobile-active` 與依 selection 重建 mobile widget 的狀態，桌面、手機與平板都直接渲染每個可見支援 Bullet 的控制
 - `button.bullet-zoom-row-control` 在 normal、hover、focus、focus-visible 與 active 狀態統一使用 `var(--text-faint)`、透明背景、無背景圖片、無陰影、0 padding、0 minimum size 與 1em 高；沒有透明放大 hit surface
@@ -291,7 +291,9 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.13`
 - 專用 `.test-vault` 已換入 `0.1.13` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `354b0a9995c4ba66c5423cd9703c8e9c03dad3004bc1f00c623a2e012a6f1fca`、`a918900cdb244f23ec0657b58f0ec58c4009ac27a61dedc771c21537891c6f94`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：全文狀態同時存在所有支援 Bullet 的常駐按鈕；`Parent A` 與 `Child A1` 的 `↘` 可逐層進入，聚焦根節點的 `↖` 可回到全文；Fold more／Fold less 只收合與展開原生 thread，沒有進入 Zoom；Light／Dark 都維持淡灰無填色控制；驗收後仍為 36 words、214 characters，測試筆記 SHA-256 維持 `d53d74283c75f72f50ce00dd233629277cbeef60aa3f043b539d085c31f1c0a8`
-- 實體 iPhone 的點擊後行高、灰底、鍵盤 viewport 與捲動仍是獨立待驗 gate；GitHub Release 與公開 BRAT 目前仍為 `0.1.12`
+- [GitHub Release `0.1.13`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.13) 已發佈並標記為 Latest；Actions run [`31608117380`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31608117380) 通過，tag 指向已驗證的公開 main commit `fdedf5c`
+- Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `354b0a9995c4ba66c5423cd9703c8e9c03dad3004bc1f00c623a2e012a6f1fca`、`a918900cdb244f23ec0657b58f0ec58c4009ac27a61dedc771c21537891c6f94`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，下載後與 canonical build 逐檔 byte-identical
+- 實體 iPhone 的點擊後行高、灰底、鍵盤 viewport 與捲動仍是獨立待驗 gate；公開 BRAT 已更新為 `0.1.13`，但不以自動測試或桌面驗收代替手機實機結果
 
 ### 桌面版人工驗收
 
