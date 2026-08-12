@@ -27,7 +27,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.10');
+		expect(manifest.version).toBe('0.1.11');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -43,9 +43,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.10');
-		expect(packageLock.version).toBe('0.1.10');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.10');
+		expect(packageManifest.version).toBe('0.1.11');
+		expect(packageLock.version).toBe('0.1.11');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.11');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -55,6 +55,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.7']).toBe('1.11.7');
 		expect(versions['0.1.9']).toBe('1.11.7');
 		expect(versions['0.1.10']).toBe('1.11.7');
+		expect(versions['0.1.11']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -78,12 +79,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const panel = document.createElement('nav');
 		panel.className =
 			'bullet-zoom-breadcrumbs bullet-zoom-test-mobile-width';
-		const back = document.createElement('button');
-		back.className = 'bullet-zoom-back';
-		back.setAttribute('aria-label', '回到上一層');
-		back.textContent = '‹';
-		panel.append(back);
-
 		const addBreadcrumb = (
 			label: string,
 			...roles: readonly string[]
@@ -101,6 +96,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		};
 
 		const note = addBreadcrumb('2026-08-10 daily note', 'is-note');
+		const noteMenu = document.createElement('button');
+		noteMenu.className = 'bullet-zoom-menu-trigger is-note';
+		noteMenu.setAttribute('aria-label', '展開「2026-08-10 daily note」的下層');
+		panel.append(noteMenu);
 		const hiddenAncestor = addBreadcrumb(
 			'10:06 ～ 10:41 寫免費文章',
 			'is-ancestor',
@@ -113,8 +112,8 @@ describe('mobile-compatible plugin bundle contract', () => {
 		document.body.append(panel);
 
 		const panelStyle = getComputedStyle(panel);
-		const backStyle = getComputedStyle(back);
 		const noteStyle = getComputedStyle(note);
+		const noteMenuStyle = getComputedStyle(noteMenu);
 		const hiddenAncestorStyle = getComputedStyle(hiddenAncestor);
 		const parentStyle = getComputedStyle(parent);
 		const currentStyle = getComputedStyle(current);
@@ -126,10 +125,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(panelStyle.overflowX).toBe('hidden');
 		expect(panelStyle.overflowY).toBe('hidden');
 		expect(panelStyle.whiteSpace).toBe('nowrap');
-		expect(backStyle.display).toBe('inline-flex');
-		expect(backStyle.minWidth).toBe('44px');
-		expect(backStyle.minHeight).toBe('44px');
 		expect(noteStyle.display).toBe('inline-flex');
+		expect(noteMenuStyle.display).toBe('inline-flex');
+		expect(noteMenuStyle.minWidth).toBe('44px');
+		expect(noteMenuStyle.minHeight).toBe('44px');
 		expect(hiddenAncestorStyle.display).toBe('none');
 		expect(parentStyle.display).toBe('inline-flex');
 		expect(currentStyle.display).toBe('inline-flex');
@@ -142,6 +141,38 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(Number.parseFloat(currentStyle.minWidth)).toBe(0);
 		expect(currentLabelStyle.overflow).toBe('hidden');
 		expect(currentLabelStyle.textOverflow).toBe('ellipsis');
+	});
+
+	it('keeps every phone hierarchy-menu action touch-safe inside a single scrollable column', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		document.body.classList.add('is-mobile', 'is-phone');
+		const menu = document.createElement('div');
+		menu.className = 'bullet-zoom-hierarchy-menu is-mobile';
+		const column = document.createElement('div');
+		column.className = 'bullet-zoom-hierarchy-column';
+		const back = document.createElement('button');
+		back.className = 'bullet-zoom-hierarchy-back';
+		const label = document.createElement('button');
+		label.className = 'bullet-zoom-hierarchy-label';
+		const child = document.createElement('button');
+		child.className = 'bullet-zoom-hierarchy-child-trigger';
+		column.append(back, label, child);
+		menu.append(column);
+		document.body.append(menu);
+
+		const menuStyle = getComputedStyle(menu);
+		const columnStyle = getComputedStyle(column);
+		expect(menuStyle.maxWidth).toBe('100%');
+		expect(menuStyle.overflowX).toBe('hidden');
+		expect(columnStyle.overflowY).toBe('auto');
+		for (const control of [back, label, child]) {
+			const controlStyle = getComputedStyle(control);
+			expect(controlStyle.minWidth).toBe('44px');
+			expect(controlStyle.minHeight).toBe('44px');
+		}
 	});
 
 	it('creates a focused writing surface on desktop and phone without changing sibling panes', () => {
@@ -247,7 +278,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const line = document.createElement('div');
 		line.className = 'cm-line';
 		const control = document.createElement('button');
-		control.className = 'bullet-zoom-enter-control';
+		control.className = 'bullet-zoom-row-control bullet-zoom-enter-control';
 		line.append(control);
 		document.body.append(line);
 
@@ -267,10 +298,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 			.map((rule) => rule.selectorText)
 			.join('\n');
 		expect(selectors).toContain(
-			'body:not(.is-mobile):not(.is-phone)\n\t.cm-line:hover\n\t.bullet-zoom-enter-control',
+			'body:not(.is-mobile):not(.is-phone)\n\t.cm-line:hover\n\t.bullet-zoom-row-control',
 		);
 		expect(selectors).toContain(
-			'body:not(.is-mobile):not(.is-phone)\n\t.bullet-zoom-enter-control:focus-visible',
+			'body:not(.is-mobile):not(.is-phone)\n\t.bullet-zoom-row-control:focus-visible',
 		);
 		expect(selectors).not.toContain('.cm-activeLine');
 	});
@@ -286,7 +317,8 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const activeLine = document.createElement('div');
 		activeLine.className = 'cm-line';
 		const inactiveControl = document.createElement('button');
-		inactiveControl.className = 'bullet-zoom-enter-control';
+		inactiveControl.className =
+			'bullet-zoom-row-control bullet-zoom-enter-control';
 		const activeControl = inactiveControl.cloneNode() as HTMLButtonElement;
 		activeControl.classList.add('is-mobile-active');
 		inactiveLine.append(inactiveControl);
