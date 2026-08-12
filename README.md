@@ -5,11 +5,11 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 ## 目前狀態
 
 - 目前開發版本：`0.1.12`
-- 目前公開 BRAT 版本：`0.1.10`
+- 目前公開 BRAT 版本：`0.1.12`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：`0.1.12` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證乾淨 breadcrumb、文字行尾箭頭、直接祖先導航、原生收合、淺／深色與 Markdown 字數不變；鍵盤 `:focus-visible` 另由自動測試固定；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
 - 手機版自動驗收：`0.1.12` 以 DOM 與 CSS 測試固定 Bike 風格單列路徑、沒有下層選單，以及只在目前編輯行顯示不撐高行距的文字箭頭；這不代表實體 iPhone 已通過
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.8` 已發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.12` 已發佈，editor-only 捲動、收合／Zoom 分流與文字行尾箭頭仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
@@ -77,7 +77,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.10`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.12`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -268,16 +268,18 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 
 `0.1.11` 沒有建立 Git tag 或 GitHub Release；實際 UX 試用後由下列 `0.1.12` 候選版取代。
 
-2026-08-12 完成 `0.1.12` 候選版驗證：
+2026-08-12 完成 `0.1.12` 驗證與發佈：
 
 - breadcrumb 只保留可直接點擊的筆記與祖先，以及不可點擊的目前節點；移除所有 descendant trigger、hierarchy menu、cascade／drill-down controller 與相關 runtime CSS
 - 行尾控制改為跟隨正文字級與行高的淡色 `↘`／`↖`；沒有固定尺寸、minimum size、padding、圓形底色、border radius、上下 margin 或透明放大 hit surface，避免撐高本列或覆蓋相鄰文字與原生收合控制
 - 桌面只有該行 hover 或控制取得 `:focus-visible` 時顯示；手機與平板仍只有目前編輯行顯示。原生收合、Bullet 圓點、命令、退出與 pane ownership 維持分流
 - `npm test`：89 項測試通過；`npm run lint`、`npm run build`：通過
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.12`
-- 專用 `.test-vault` 已換入 `0.1.12` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`
+- 專用 `.test-vault` 已換入 `0.1.12` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：深層路徑只有筆記、Parent 與 Current，沒有下層選單；Parent breadcrumb 可直接返回；hover 時 `↘` 緊接文字尾端且不撐高 Bullet；原生 Fold more 只收起 thread、沒有建立 Breadcrumb；淺色與深色皆正常；驗收後畫面仍為 36 words、214 characters
-- 實體 iPhone 的列高、touch hit area、鍵盤 viewport 與捲動仍是獨立待驗 gate；候選版完成前目前公開 BRAT 版本仍為 `0.1.10`
+- [GitHub Release `0.1.12`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.12) 已發佈並標記為 Latest；Actions run [`31601099269`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31601099269) 通過，tag 指向已驗證的公開 main commit `60d93a2`
+- Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`，與 canonical build 逐檔一致
+- 實體 iPhone 的列高、touch hit area、鍵盤 viewport 與捲動仍是獨立待驗 gate；目前公開 BRAT 版本已更新為 `0.1.12`，但不以自動測試或桌面驗收代替手機實機結果
 
 ### 桌面版人工驗收
 
