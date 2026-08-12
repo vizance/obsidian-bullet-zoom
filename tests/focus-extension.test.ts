@@ -1,6 +1,12 @@
 import { markdown } from '@codemirror/lang-markdown';
 import { history, undo } from '@codemirror/commands';
 import {
+	codeFolding,
+	foldEffect,
+	foldable,
+	foldedRanges,
+} from '@codemirror/language';
+import {
 	Compartment,
 	EditorState,
 	type Extension,
@@ -64,6 +70,35 @@ function decorationRanges(state: EditorState): Array<{ from: number; to: number 
 		}
 	}
 	return ranges;
+}
+
+function activeFoldRanges(view: EditorView): Array<{
+	from: number;
+	to: number;
+}> {
+	const ranges: Array<{ from: number; to: number }> = [];
+	foldedRanges(view.state).between(
+		0,
+		view.state.doc.length,
+		(from, to) => {
+			ranges.push({ from, to });
+		},
+	);
+	return ranges;
+}
+
+function foldLine(view: EditorView, lineNumber: number): {
+	from: number;
+	to: number;
+} {
+	const line = view.state.doc.line(lineNumber);
+	const range = foldable(view.state, line.from, line.to);
+	expect(range).not.toBeNull();
+	if (range === null) {
+		throw new Error(`Expected line ${lineNumber} to be foldable`);
+	}
+	view.dispatch({ effects: foldEffect.of(range) });
+	return range;
 }
 
 describe('per-editor focus state', () => {
@@ -420,6 +455,159 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
+	it('unfolds a folded target before entering focus without projecting hidden descendant controls', () => {
+		const source = '- Parent\n  - Child A\n  - Child B\n- Sibling';
+		const { parent, view } = createView(source, codeFolding());
+		const parentFold = foldLine(view, 1);
+
+		expect(activeFoldRanges(view)).toEqual([parentFold]);
+		expect(view.contentDOM.querySelectorAll('.cm-foldPlaceholder')).toHaveLength(
+			1,
+		);
+		expect(
+			Array.from(
+				view.contentDOM.querySelectorAll<HTMLButtonElement>(
+					'button.bullet-zoom-enter-control',
+				),
+			).map((control) => control.getAttribute('aria-label')),
+		).toEqual(['聚焦「Parent」', '聚焦「Sibling」']);
+
+		const control = view.contentDOM.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-enter-control[aria-label="聚焦「Parent」"]',
+		);
+		expect(control).not.toBeNull();
+		control?.click();
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(view.contentDOM.querySelectorAll('.cm-foldPlaceholder')).toHaveLength(
+			0,
+		);
+		expect(
+			view.contentDOM.querySelectorAll('button.bullet-zoom-exit-control'),
+		).toHaveLength(1);
+		expect(
+			Array.from(
+				view.contentDOM.querySelectorAll<HTMLButtonElement>(
+					'button.bullet-zoom-enter-control',
+				),
+			).map((descendantControl) => descendantControl.getAttribute('aria-label')),
+		).toEqual(['聚焦「Child A」', '聚焦「Child B」']);
+		expect(view.contentDOM.textContent).toContain('Parent↖');
+		expect(view.contentDOM.textContent).toContain('Child A↘');
+		expect(view.contentDOM.textContent).toContain('Child B↘');
+		expect(view.contentDOM.textContent).not.toContain('Sibling');
+		expect(view.state.doc.toString()).toBe(source);
+
+		view.contentDOM
+			.querySelector<HTMLButtonElement>('button.bullet-zoom-exit-control')
+			?.click();
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(view.contentDOM.querySelector('.cm-foldPlaceholder')).toBeNull();
+		expect(view.contentDOM.textContent).toContain('Sibling↘');
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('uses the same folded-target transition for a phone marker tap', () => {
+		const source = '- Parent\n  - Child A\n  - Child B';
+		const { parent, view } = createView(source, codeFolding(), true);
+		foldLine(view, 1);
+		const marker = view.contentDOM.querySelector<HTMLElement>(
+			'.bullet-zoom-marker',
+		);
+
+		expect(marker).not.toBeNull();
+		marker?.click();
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(1).to);
+		expect(view.contentDOM.querySelector('.cm-foldPlaceholder')).toBeNull();
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('unfolds only the target while preserving an independently folded descendant', () => {
+		const source = [
+			'- Parent',
+			'  - Child',
+			'    - Grandchild',
+			'  - Sibling',
+		].join('\n');
+		const { parent, view } = createView(source, codeFolding());
+		const parentFold = foldLine(view, 1);
+		const childFold = foldLine(view, 2);
+		expect(activeFoldRanges(view)).toEqual([parentFold, childFold]);
+
+		expect(enterFocusAt(view, view.state.doc.line(1).from, true)).toBe(true);
+
+		expect(activeFoldRanges(view)).toEqual([childFold]);
+		expect(
+			Array.from(
+				view.contentDOM.querySelectorAll<HTMLButtonElement>(
+					'button.bullet-zoom-row-control',
+				),
+			).map((control) => control.getAttribute('aria-label')),
+		).toEqual([
+			'退出聚焦「Parent」，回到全文',
+			'聚焦「Child」',
+			'聚焦「Sibling」',
+		]);
+		expect(view.contentDOM.querySelectorAll('.cm-foldPlaceholder')).toHaveLength(
+			1,
+		);
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('preserves a descendant fold when a non-moving focus transition retains a covered selection', () => {
+		const source = [
+			'- Parent',
+			'  - Child',
+			'    - Grandchild',
+			'  - Sibling',
+		].join('\n');
+		const { parent, view } = createView(source, codeFolding());
+		const coveredSelection = view.state.doc.line(3).from + 4;
+		view.dispatch({ selection: { anchor: coveredSelection } });
+		const parentFold = foldLine(view, 1);
+		const descendantFold = foldLine(view, 2);
+		expect(activeFoldRanges(view)).toEqual([parentFold, descendantFold]);
+		expect(enterFocusAt(view, view.state.doc.line(1).from)).toBe(true);
+
+		expect(activeFoldRanges(view)).toEqual([descendantFold]);
+		expect(view.state.selection.main.head).toBe(coveredSelection);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('keeps the no-fold focus path unchanged', () => {
+		const source = '- Parent\n  - Child';
+		const { parent, view } = createView(source, codeFolding());
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(enterFocusAt(view, 0, true)).toBe(true);
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(1).to);
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
 	it('renders a reverse exit control for the current root and enter controls for descendants', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild\n- Sibling',
@@ -767,6 +955,7 @@ describe('plugin commands and safe failures', () => {
 	function createView(
 		documentText: string,
 		livePreview = true,
+		additionalExtensions: Extension = [],
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -776,8 +965,9 @@ describe('plugin commands and safe failures', () => {
 				markdown(),
 				focusFilePath.of('Ideas.md'),
 				focusNoteTitle.of('Ideas'),
-				focusLivePreview.of(livePreview),
+					focusLivePreview.of(livePreview),
 					createFocusExtension({ isPhone: false }),
+					additionalExtensions,
 			],
 		});
 		return { parent, view: new EditorView({ parent, state }) };
@@ -792,6 +982,50 @@ describe('plugin commands and safe failures', () => {
 		expect(runFocusCommand(view, (message) => notices.push(message))).toBe(true);
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
 		expect(view.state.selection.main.head).toBe(child.to);
+		expect(notices).toEqual([]);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('unfolds a folded Bullet Point through the focus command', () => {
+		const source = '- Parent\n  - Child';
+		const { parent, view } = createView(source, true, codeFolding());
+		foldLine(view, 1);
+		const notices: string[] = [];
+
+		expect(runFocusCommand(view, (message) => notices.push(message))).toBe(true);
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(notices).toEqual([]);
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('unfolds an ancestor fold that covers the command target', () => {
+		const source = [
+			'- Parent',
+			'  - Child',
+			'    - Grandchild',
+			'  - Sibling',
+		].join('\n');
+		const { parent, view } = createView(source, true, codeFolding());
+		const child = view.state.doc.line(2);
+		view.dispatch({ selection: { anchor: child.from + 4 } });
+		const parentFold = foldLine(view, 1);
+		expect(activeFoldRanges(view)).toEqual([parentFold]);
+		const notices: string[] = [];
+
+		expect(runFocusCommand(view, (message) => notices.push(message))).toBe(true);
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
+		expect(view.contentDOM.querySelector('.cm-foldPlaceholder')).toBeNull();
+		expect(view.contentDOM.textContent).toContain('Grandchild↘');
+		expect(view.state.doc.toString()).toBe(source);
 		expect(notices).toEqual([]);
 		view.destroy();
 		parent.remove();
@@ -981,6 +1215,28 @@ describe('per-editor breadcrumb panel', () => {
 			?.click();
 		expect(getFocusSession(view.state)).toBeNull();
 		expect(parent.querySelector('.bullet-zoom-breadcrumbs')).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('unfolds a folded ancestor when its breadcrumb is activated', () => {
+		const source = '- Parent\n  - Child\n    - Grandchild';
+		const { parent, view } = createView(source, codeFolding());
+		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
+		const parentFold = foldLine(view, 1);
+		expect(activeFoldRanges(view)).toEqual([parentFold]);
+
+		parent
+			.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-breadcrumb.is-ancestor[aria-label="Parent"]',
+			)
+			?.click();
+
+		expect(activeFoldRanges(view)).toEqual([]);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(view.state.doc.toString()).toBe(source);
 		view.destroy();
 		parent.remove();
 	});

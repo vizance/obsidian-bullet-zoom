@@ -6,6 +6,7 @@ import {
 	StateField,
 	type Extension,
 } from '@codemirror/state';
+import { foldedRanges, unfoldEffect } from '@codemirror/language';
 import {
 	Decoration,
 	type DecorationSet,
@@ -206,6 +207,23 @@ type BulletRowControlOwner = Readonly<{
 }>;
 const rowControlOwners = new WeakMap<HTMLElement, BulletRowControlOwner>();
 
+type ActiveFoldRange = Readonly<{ from: number; to: number }>;
+
+function getActiveFoldRanges(state: EditorState): readonly ActiveFoldRange[] {
+	const ranges: ActiveFoldRange[] = [];
+	foldedRanges(state).between(0, state.doc.length, (from, to) => {
+		ranges.push(Object.freeze({ from, to }));
+	});
+	return ranges;
+}
+
+function isPositionReplacedByFold(
+	position: number,
+	folds: readonly ActiveFoldRange[],
+): boolean {
+	return folds.some(({ from, to }) => from <= position && position < to);
+}
+
 class BulletRowControlWidget extends WidgetType {
 	constructor(
 		private readonly label: string,
@@ -250,6 +268,7 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 	}
 
 	const ranges = [];
+	const folds = getActiveFoldRanges(view.state);
 	const focusAnchor = getFocusSession(view.state)?.anchor ?? null;
 	const visitedLines = new Set<number>();
 	for (const visibleRange of view.visibleRanges) {
@@ -258,7 +277,10 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 			if (!visitedLines.has(line.number)) {
 				visitedLines.add(line.number);
 				const bullet = findSupportedBullet(view.state, line.from);
-				if (bullet !== null) {
+					if (
+						bullet !== null &&
+						!isPositionReplacedByFold(bullet.markerFrom, folds)
+					) {
 					ranges.push(
 						markerDecoration.range(bullet.markerFrom, bullet.markerTo),
 					);
@@ -291,9 +313,10 @@ class BulletMarkerPlugin implements PluginValue {
 
 	update(update: ViewUpdate): void {
 		if (
-			update.docChanged ||
-			update.viewportChanged ||
-			getFocusSession(update.startState) !== getFocusSession(update.state) ||
+				update.docChanged ||
+				update.viewportChanged ||
+				foldedRanges(update.startState) !== foldedRanges(update.state) ||
+				getFocusSession(update.startState) !== getFocusSession(update.state) ||
 			update.startState.facet(focusLivePreview) !==
 				update.state.facet(focusLivePreview)
 		) {
@@ -305,6 +328,34 @@ class BulletMarkerPlugin implements PluginValue {
 const bulletMarkerPlugin = ViewPlugin.fromClass(BulletMarkerPlugin, {
 	decorations: (plugin) => plugin.decorations,
 });
+
+function targetFoldEffects(
+	state: EditorState,
+	position: number,
+): Array<StateEffect<unknown>> {
+	const bullet = findSupportedBullet(state, position);
+	const branch = computeBranchRange(state, position);
+	if (bullet === null || branch === null) {
+		return [];
+	}
+
+	const effects: Array<StateEffect<unknown>> = [];
+	foldedRanges(state).between(
+		0,
+		branch.to,
+		(from, to) => {
+			if (
+				(from < bullet.markerFrom && to > bullet.markerFrom) ||
+				(from >= bullet.lineFrom &&
+					from <= bullet.lineTo &&
+					to <= branch.to)
+			) {
+				effects.push(unfoldEffect.of({ from, to }));
+			}
+		},
+	);
+	return effects;
+}
 
 export function enterFocusAt(
 	view: EditorView,
@@ -321,10 +372,11 @@ export function enterFocusAt(
 	}
 
 	view.dispatch({
-		selection: moveSelectionToLineEnd
-			? EditorSelection.cursor(bullet.lineTo)
-			: view.state.selection,
+		...(moveSelectionToLineEnd
+			? { selection: EditorSelection.cursor(bullet.lineTo) }
+			: {}),
 		effects: [
+			...targetFoldEffects(view.state, bullet.markerFrom),
 			focusAtEffect.of(bullet.markerFrom),
 			...(view.state.facet(focusPhoneMode)
 				? [
