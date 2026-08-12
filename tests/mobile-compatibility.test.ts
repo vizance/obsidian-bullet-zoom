@@ -27,7 +27,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.8');
+		expect(manifest.version).toBe('0.1.10');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -43,9 +43,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.8');
-		expect(packageLock.version).toBe('0.1.8');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.8');
+		expect(packageManifest.version).toBe('0.1.10');
+		expect(packageLock.version).toBe('0.1.10');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.10');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -53,7 +53,8 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.5']).toBe('1.11.7');
 		expect(versions['0.1.6']).toBe('1.11.7');
 		expect(versions['0.1.7']).toBe('1.11.7');
-		expect(versions['0.1.8']).toBe('1.11.7');
+		expect(versions['0.1.9']).toBe('1.11.7');
+		expect(versions['0.1.10']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -68,7 +69,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(runtimeSource).not.toMatch(forbiddenRuntimeImport);
 	});
 
-	it('fits a long focused path in one 315 CSS-pixel mobile row', () => {
+	it('fits Bike-inspired phone navigation in one 315 CSS-pixel row', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = `${readProjectFile('styles.css')}\n.bullet-zoom-test-mobile-width { width: 315px; }`;
@@ -77,19 +78,26 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const panel = document.createElement('nav');
 		panel.className =
 			'bullet-zoom-breadcrumbs bullet-zoom-test-mobile-width';
+		const back = document.createElement('button');
+		back.className = 'bullet-zoom-back';
+		back.setAttribute('aria-label', '回到上一層');
+		back.textContent = '‹';
+		panel.append(back);
 
 		const addBreadcrumb = (
 			label: string,
 			...roles: readonly string[]
-		): HTMLButtonElement => {
-			const button = document.createElement('button');
-			button.classList.add('bullet-zoom-breadcrumb', ...roles);
+		): HTMLElement => {
+			const item = document.createElement(
+				roles.includes('is-current') ? 'span' : 'button',
+			);
+			item.classList.add('bullet-zoom-breadcrumb', ...roles);
 			const labelElement = document.createElement('span');
 			labelElement.className = 'bullet-zoom-breadcrumb-label';
 			labelElement.textContent = label;
-			button.append(labelElement);
-			panel.append(button);
-			return button;
+			item.append(labelElement);
+			panel.append(item);
+			return item;
 		};
 
 		const note = addBreadcrumb('2026-08-10 daily note', 'is-note');
@@ -105,6 +113,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		document.body.append(panel);
 
 		const panelStyle = getComputedStyle(panel);
+		const backStyle = getComputedStyle(back);
 		const noteStyle = getComputedStyle(note);
 		const hiddenAncestorStyle = getComputedStyle(hiddenAncestor);
 		const parentStyle = getComputedStyle(parent);
@@ -117,6 +126,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(panelStyle.overflowX).toBe('hidden');
 		expect(panelStyle.overflowY).toBe('hidden');
 		expect(panelStyle.whiteSpace).toBe('nowrap');
+		expect(backStyle.display).toBe('inline-flex');
+		expect(backStyle.minWidth).toBe('44px');
+		expect(backStyle.minHeight).toBe('44px');
 		expect(noteStyle.display).toBe('inline-flex');
 		expect(hiddenAncestorStyle.display).toBe('none');
 		expect(parentStyle.display).toBe('inline-flex');
@@ -132,23 +144,37 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(currentLabelStyle.textOverflow).toBe('ellipsis');
 	});
 
-	it('hides title and Properties only in the focused mobile pane', () => {
+	it('creates a focused writing surface on desktop and phone without changing sibling panes', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
 		document.head.append(style);
-		document.body.classList.add('is-mobile');
-
 		const createPane = (focused: boolean): HTMLDivElement => {
 			const pane = document.createElement('div');
 			pane.className =
 				'markdown-source-view is-live-preview show-properties';
 			pane.classList.toggle('bullet-zoom-pane-is-focused', focused);
+			const editor = document.createElement('div');
+			editor.className = 'cm-editor';
+			const scroller = document.createElement('div');
+			scroller.className = 'cm-scroller';
+			const sizer = document.createElement('div');
+			sizer.className = 'cm-sizer';
 			const title = document.createElement('div');
 			title.className = 'inline-title';
 			const metadata = document.createElement('div');
 			metadata.className = 'metadata-container';
-			pane.append(title, metadata);
+			const embed = document.createElement('div');
+			embed.className = 'markdown-embed';
+			const embeddedTitle = title.cloneNode() as HTMLElement;
+			embeddedTitle.classList.add('embedded-title-fixture');
+			const embeddedMetadata = metadata.cloneNode() as HTMLElement;
+			embeddedMetadata.classList.add('embedded-metadata-fixture');
+			embed.append(embeddedTitle, embeddedMetadata);
+			sizer.append(title, metadata, embed);
+			scroller.append(sizer);
+			editor.append(scroller);
+			pane.append(editor);
 			document.body.append(pane);
 			return pane;
 		};
@@ -159,9 +185,30 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const focusedMetadata = focusedPane.querySelector('.metadata-container');
 		const siblingTitle = siblingPane.querySelector('.inline-title');
 		const siblingMetadata = siblingPane.querySelector('.metadata-container');
+		const embeddedTitle = focusedPane.querySelector('.embedded-title-fixture');
+		const embeddedMetadata = focusedPane.querySelector(
+			'.embedded-metadata-fixture',
+		);
 
-		expect(getComputedStyle(focusedTitle ?? focusedPane).display).toBe('none');
-		expect(getComputedStyle(focusedMetadata ?? focusedPane).display).toBe('none');
+		for (const platformClass of [null, 'is-mobile'] as const) {
+			document.body.classList.toggle('is-mobile', platformClass !== null);
+			expect(getComputedStyle(focusedTitle ?? focusedPane).display).toBe('none');
+			expect(getComputedStyle(focusedMetadata ?? focusedPane).display).toBe(
+				'none',
+			);
+			expect(getComputedStyle(siblingTitle ?? siblingPane).display).not.toBe(
+				'none',
+			);
+			expect(getComputedStyle(siblingMetadata ?? siblingPane).display).not.toBe(
+				'none',
+			);
+			expect(getComputedStyle(embeddedTitle ?? focusedPane).display).not.toBe(
+				'none',
+			);
+			expect(getComputedStyle(embeddedMetadata ?? focusedPane).display).not.toBe(
+				'none',
+			);
+		}
 		const metadataRule = Array.from(style.sheet?.cssRules ?? []).find(
 			(rule): rule is CSSStyleRule =>
 				rule instanceof CSSStyleRule &&
@@ -172,12 +219,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(metadataRule?.style.getPropertyPriority('display')).toBe(
 			'important',
 		);
-		expect(getComputedStyle(siblingTitle ?? siblingPane).display).not.toBe('none');
-		expect(getComputedStyle(siblingMetadata ?? siblingPane).display).not.toBe(
-			'none',
-		);
-
-		document.body.classList.remove('is-mobile');
+		focusedPane.classList.remove('bullet-zoom-pane-is-focused');
 		expect(getComputedStyle(focusedTitle ?? focusedPane).display).not.toBe('none');
 		expect(getComputedStyle(focusedMetadata ?? focusedPane).display).not.toBe(
 			'none',
@@ -192,13 +234,76 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(styles).toContain('var(--text-muted)');
 		expect(styles).toContain('var(--text-normal)');
 		expect(styles).toContain('.bullet-zoom-breadcrumb.is-current');
-		expect(styles).toContain(
-			'background-color: var(--interactive-accent)',
+		expect(styles).toContain('var(--interactive-accent)');
+		expect(styles).toContain('border-bottom');
+		expect(styles).not.toContain('var(--text-on-accent)');
+	});
+
+	it('reveals inline Zoom visibility from desktop row context', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const line = document.createElement('div');
+		line.className = 'cm-line';
+		const control = document.createElement('button');
+		control.className = 'bullet-zoom-enter-control';
+		line.append(control);
+		document.body.append(line);
+
+		expect(getComputedStyle(control).visibility).toBe('visible');
+		expect(getComputedStyle(control).opacity).toBe('0');
+		expect(getComputedStyle(control).pointerEvents).toBe('none');
+		line.classList.add('cm-activeLine');
+		expect(getComputedStyle(control).opacity).toBe('0');
+		expect(getComputedStyle(control).pointerEvents).toBe('none');
+		line.classList.remove('cm-activeLine');
+		control.classList.add('is-mobile-active');
+		expect(getComputedStyle(control).opacity).toBe('0');
+		expect(getComputedStyle(control).pointerEvents).toBe('none');
+
+		const selectors = Array.from(style.sheet?.cssRules ?? [])
+			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+			.map((rule) => rule.selectorText)
+			.join('\n');
+		expect(selectors).toContain(
+			'body:not(.is-mobile):not(.is-phone)\n\t.cm-line:hover\n\t.bullet-zoom-enter-control',
 		);
-		expect(styles).toContain('var(--interactive-accent-hover)');
-		expect(styles).toContain(
-			'box-shadow: inset 0 0 0 2px var(--color-accent-2)',
+		expect(selectors).toContain(
+			'body:not(.is-mobile):not(.is-phone)\n\t.bullet-zoom-enter-control:focus-visible',
 		);
-		expect(styles).toContain('var(--text-on-accent)');
+		expect(selectors).not.toContain('.cm-activeLine');
+	});
+
+	it('shows only the active inline Zoom phone control with a safe touch target', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		document.body.classList.add('is-mobile', 'is-phone');
+		const inactiveLine = document.createElement('div');
+		inactiveLine.className = 'cm-line';
+		const activeLine = document.createElement('div');
+		activeLine.className = 'cm-line';
+		const inactiveControl = document.createElement('button');
+		inactiveControl.className = 'bullet-zoom-enter-control';
+		const activeControl = inactiveControl.cloneNode() as HTMLButtonElement;
+		activeControl.classList.add('is-mobile-active');
+		inactiveLine.append(inactiveControl);
+		activeLine.append(activeControl);
+		document.body.append(inactiveLine, activeLine);
+
+		const inactiveStyle = getComputedStyle(inactiveControl);
+		const activeStyle = getComputedStyle(activeControl);
+		expect(inactiveStyle.visibility).toBe('hidden');
+		expect(inactiveStyle.pointerEvents).toBe('none');
+		expect(inactiveStyle.minWidth).toBe('24px');
+		expect(inactiveStyle.minHeight).toBe('24px');
+		expect(activeStyle.visibility).toBe('visible');
+		expect(activeStyle.pointerEvents).toBe('auto');
+		expect(activeStyle.minWidth).toBe('44px');
+		expect(activeStyle.minHeight).toBe('44px');
+		expect(activeStyle.maxWidth).toBe('100%');
+		expect(activeStyle.position).toBe('static');
 	});
 });

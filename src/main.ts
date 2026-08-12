@@ -45,7 +45,10 @@ export default class BulletZoomPlugin extends Plugin {
 			focusLivePreview.compute([editorLivePreviewField], (state) =>
 				state.field(editorLivePreviewField, false) ?? false,
 			),
-			createFocusExtension({ isPhone: Platform.isPhone }),
+			createFocusExtension({
+				isPhone: Platform.isPhone,
+				isMobile: Platform.isMobile,
+			}),
 		]);
 
 		this.addCommand({

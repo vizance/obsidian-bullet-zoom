@@ -4,11 +4,11 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.8`
+- 目前開發版本：`0.1.10` 候選版
 - 目前公開 BRAT 版本：`0.1.8`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.8` 已於 2026-08-11 在 Obsidian `1.13.5` 專用 `.test-vault` 與正式 Second Brain Vault 通過收合／展開、聚焦中收合不切換 focus，以及命令 Zoom
-- 手機版自動驗收：`0.1.7` 已確認手機 focus／退出 request 由插件私有的 post-layout measure 只更新目前 `.cm-scroller.scrollTop`；`0.1.8` 另以手機 click fixture 固定收合控制不會觸發 Zoom 或阻止原生事件
+- 桌面版人工驗收：`0.1.10` 候選版已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證行尾控制、巢狀聚焦、收合狀態與淺／深色呈現；正式 Second Brain Vault 仍維持公開版 `0.1.8`
+- 手機版自動驗收：`0.1.10` 以 DOM 與 CSS 測試固定 Bike 風格單列導覽，以及只在目前編輯行顯示 44 × 44 CSS px 行尾 Zoom 控制；這不代表實體 iPhone 已通過
 - 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.8` 已發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
@@ -40,11 +40,13 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 `0.1.8` 起，Obsidian 的收合箭頭只負責收合或展開該 Bullet thread，Bullet Zoom 不會再攔截這個操作。Bullet 圓點仍負責 Zoom。若目前主題用收合箭頭覆蓋父 Bullet 的圓點，可先把游標放在該行，再從命令面板、快捷鍵或 Mobile Toolbar 執行 `Bullet Zoom: 聚焦目前的 Bullet Point`。
 
-聚焦後，桌面版的上方路徑會顯示筆記名稱、所有父節點和目前節點。手機版從 `0.1.2` 起改成單列，只顯示「全文」、最近一層父節點與目前節點；點擊父節點可逐層返回，點擊「全文」或執行 `Bullet Zoom: 退出 Bullet 聚焦`，可回到完整筆記。
+`0.1.9` 起，聚焦路徑改成接近 Bike 的輕量文字導覽。最左側的 `‹` 一次回到上一層；筆記名稱與父節點仍可直接跳回；最右側目前層級是不可點擊的文字，使用 Obsidian 主題強調色底線標示。桌面版顯示完整路徑，手機版維持單列，只顯示 `‹`、「全文」、最近一層父節點與目前節點。
+
+`0.1.10` 起，每個可聚焦的普通 Bullet 會在第一行文字尾端提供獨立的 `↳` Zoom 控制。收合箭頭仍只負責收合／展開 thread；行尾控制、Bullet 圓點與命令才會進入 Zoom。桌面版只有滑鼠移到該行，或按鈕本身取得鍵盤焦點時才顯示控制；單純把文字游標停在該行不會顯示。手機版沒有 hover，因此只在目前編輯行顯示至少 44 × 44 CSS px 的觸控區。進入聚焦後，目前根節點不顯示自己的控制，仍可從可見子節點繼續往內聚焦。
 
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
 
-手機聚焦時會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。退出聚焦後，標題與 Properties 會立即恢復。
+桌面與手機聚焦時都會暫時隱藏目前窗格的 inline title 與 Properties，讓目標 Bullet 緊接在路徑下方。其他分割窗格不受影響；退出聚焦後，標題與 Properties 會立即恢復。
 
 `0.1.4` 曾把手機路徑移到 `EditorView.scrollDOM` 前方，但實機證明這仍然位於 Obsidian 手機的安全正文區之外。`0.1.5` 改成由 CodeMirror 把路徑建立在 focused Bullet 前方的正文 block；路徑和 Bullet 會共用 `.cm-scroller` 的 padding、捲動與 safe-area 座標系。桌面版維持原本的 sticky top panel，其他插件的 top panel 也不受影響。
 
@@ -52,7 +54,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 `0.1.6` 實機顯示 CodeMirror 的預設定位會連外層 Obsidian 容器一起捲動，把游標和目標 Bullet 推到狀態列、Dynamic Island 與 view header 下方。`0.1.7` 保留同樣的 52 CSS px Breadcrumb 預留，但只改變目前 editor 的 `.cm-scroller.scrollTop`，並阻止預設流程再推動外層畫面。
 
-路徑最右側是目前所在層級。`0.1.1` 起會使用目前 Obsidian 主題的強調色標示，其他父層維持中性色；這個狀態也會透過 `aria-current="location"` 提供給輔助科技。
+路徑最右側是目前所在層級。`0.1.9` 改用細底線取代整顆強調色按鈕，並保留 `aria-current="location"` 給輔助科技；因為它只用來表示位置，所以不再接受點擊。
 
 插件不預設占用快捷鍵，避免和 Outliner 的移動節點命令或其他 Vault 設定衝突。桌面版可自行替命令指定快捷鍵；手機版可把「回到上一層 Bullet」與「退出 Bullet 聚焦」加入 Mobile Toolbar，使用外接鍵盤時也會套用該 Vault 的自訂組合。
 
@@ -207,9 +209,46 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 同日在正式 Second Brain Vault 的 daily note 實測：`LINE` 的收合箭頭只收合／展開子項目，不出現 Breadcrumb；以命令聚焦 `LINE` 後，再點收合箭頭只切換子 thread，Breadcrumb 與 focus 保持不變；退出 Zoom 後已恢復展開狀態
 - 桌面 `0.1.8` 已在測試 Vault 與正式 Vault 通過人工驗收；實體 iPhone 仍須透過 BRAT 更新再測，完成前不得宣稱手機實機 UX 通過
 
+2026-08-12 完成 `0.1.9` 候選版驗證：
+
+- 導覽改為 Bike 風格的輕量文字路徑：最左側 `‹` 一次返回上一層，筆記與父節點可直接跳回，目前層級改成不可點擊文字並以主題強調色底線標示
+- 桌面路徑高度為 36 CSS px；手機保留 CodeMirror 正文 block、單列裁切與至少 44 × 44 CSS px 的操作區
+- 聚焦時只隱藏目前 CodeMirror 編輯器頂層的 inline title 與非錯誤 Properties；其他 pane 與嵌入內容不受影響，退出後恢復
+- 原生收合事件維持 `0.1.8` 分流：收合箭頭只收合／展開 thread，Bullet 圓點與命令才會 Zoom
+- `npm test -- --run`：75 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `spectra analyze bullet-zoom-0-1-9-bike-navigation-ui`：Coverage、Consistency、Gaps 均為 clean；7 個 Ambiguity finding 都只是規格情境缺少額外具體範例的 Suggestion
+- `spectra validate bullet-zoom-0-1-9-bike-navigation-ui --strict`：通過
+- `spectra-verify`：10/10 tasks、2/2 requirements 與 16/16 scenarios 均有實作或測試證據，設計決策與既有 FocusSession 架構一致；實體 iPhone 幾何仍依設計保留為發佈前待驗 gate
+- `spectra-audit`：Scoundrel、Lazy Developer、Confused Developer 三種檢查的最終複核皆為 clean，Critical／High／Medium／Low finding 均為零
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.9`
+- 專用 `.test-vault` 已換入 `0.1.9` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `1503affdfad61c1b172de805ed6d8171d176863c5ed6f0da04c65b59fd4aff76`、`938e6ff4d18faa8f20d081f2c979d9e86984ee8af1d89f13b7e9aee4987c0c76`、`d6c2e68d1d4fad9cee83811384247b747679ef61dd3697c84dd91a6b90f37f0b`
+- 在 Obsidian `1.13.5` 專用 `.test-vault` 的淺色與深色主題實測：路徑順序、`‹` 上一層、筆記返回全文、目前層級底線、標題／Properties 隱藏與退出恢復均通過；AX tree 也確認目前層級是 container，其他路徑節點才是 button
+- 桌面實測確認 Parent 收合箭頭會隱藏／展開完整子 thread，過程不建立 Breadcrumb，Markdown 原文仍為 213 characters
+- Test Vault 主題已恢復為 `Adapt to system`，Obsidian 已切回 Second Brain；正式 Vault、GitHub Release、BRAT 公開版與實體 iPhone 皆尚未更新
+
+2026-08-12 完成 `0.1.10` 候選版驗證：
+
+- 每個可聚焦的普通 Bullet 第一行尾端新增原生 `↳` 按鈕；目前聚焦根節點省略自己的按鈕，可見子節點仍能繼續往內聚焦
+- 桌面版只在滑鼠 hover 該列或按鈕取得鍵盤焦點時顯示；文字游標所在的 active line 不再自動顯示，避免編輯畫面同時出現過多控制
+- 手機與平板共用 mobile active-line 行為；只有目前編輯列的控制放大到至少 44 × 44 CSS px，其他隱藏控制維持 24 px，不會把每一列撐高
+- 行尾控制直接由自己的即時 CodeMirror DOM 位置重新驗證 Bullet，不依賴可能被 Obsidian 收合箭頭取代的 marker DOM；插件以 WeakMap 驗證按鈕與 EditorView ownership，同 class 的外來 DOM 不會被誤攔截
+- 收合箭頭仍完全交由 Obsidian 處理；行尾控制透過既有 focus transition 聚焦，不改 Markdown，也不主動展開或收合 thread
+- `npm test -- --run`：85 項測試通過
+- `npm run lint`：通過
+- `npm run build`：通過
+- `spectra analyze bullet-zoom-0-1-10-inline-zoom-control`：Coverage、Consistency、Gaps 均為 clean；7 個 Ambiguity finding 都只是規格情境缺少額外具體 Example 的 Suggestion
+- `spectra validate bullet-zoom-0-1-10-inline-zoom-control --strict`：通過
+- `spectra-audit`：Scoundrel、Lazy Developer、Confused Deputy 三種檢查最終均為 clean，Critical／High／Medium／Low finding 皆為零
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.10`
+- 專用 `.test-vault` 已換入 `0.1.10` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `513bb18e95c9156b13b97312d4ab495dedfcb0cf1907c257e6b0b028a3a3830d`、`372d38265128b33705945e989b447acac3e6655f5754e604afc3a7c76505b9e5`、`7cc13442cd93bbe30909c35d0c09346c270807757618aafbfdf6cf9a769337c6`
+- 在 macOS Obsidian `1.13.7` 專用 `.test-vault` 實際操作：第一層與巢狀行尾控制都能建立正確 Breadcrumb；收合中的 `Parent A` 仍保留原生收合狀態，透過相同 focus transition 聚焦後不改 Markdown，測試筆記維持 213 characters；淺色與深色主題的控制都使用 Obsidian theme tokens，不形成高彩度常駐按鈕
+- 實體 iPhone、正式 Second Brain Vault、GitHub Release 與 BRAT 公開版皆尚未更新；手機／平板的 active-line、44 px 尺寸與無水平溢出目前只由 DOM／CSS 自動測試固定，不宣稱實機通過
+
 ### 桌面版人工驗收
 
-環境：macOS、Obsidian `1.13.5`、專用 `.test-vault`、即時預覽模式。
+基準環境：macOS、Obsidian `1.13.5`；`0.1.10` 候選版使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |

@@ -33,6 +33,7 @@ function createState(
 	filePath = 'Ideas.md',
 	additionalExtensions: Extension = [],
 	isPhone = false,
+	isMobile = isPhone,
 ): EditorState {
 	return EditorState.create({
 		doc: document,
@@ -41,7 +42,7 @@ function createState(
 			focusFilePath.of(filePath),
 			focusNoteTitle.of(filePath.replace(/\.md$/, '')),
 			focusLivePreview.of(true),
-			createFocusExtension({ isPhone }),
+			createFocusExtension({ isPhone, isMobile }),
 			additionalExtensions,
 		],
 	});
@@ -347,6 +348,7 @@ describe('bullet marker interaction', () => {
 		documentText: string,
 		additionalExtensions: Extension = [],
 		isPhone = false,
+		isMobile = isPhone,
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -359,6 +361,7 @@ describe('bullet marker interaction', () => {
 					'Ideas.md',
 					additionalExtensions,
 					isPhone,
+					isMobile,
 				),
 			}),
 		};
@@ -372,6 +375,203 @@ describe('bullet marker interaction', () => {
 		markers[1]?.click();
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
 		expect(view.state.selection.main.head).toBe(view.state.doc.line(2).to);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('renders one inline Zoom control for each eligible visible Bullet', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child\n- [ ] Task\n1. Ordered\nParagraph\n- Sibling',
+		);
+		const controls = Array.from(
+			view.dom.querySelectorAll<HTMLButtonElement>(
+				'button.bullet-zoom-enter-control',
+			),
+		);
+
+		expect(controls).toHaveLength(3);
+		expect(controls.map((control) => control.getAttribute('aria-label'))).toEqual(
+			['聚焦「Parent」', '聚焦「Child」', '聚焦「Sibling」'],
+		);
+		expect(controls.every((control) => control.type === 'button')).toBe(true);
+		expect(controls.map((control) => view.posAtDOM(control))).toEqual([
+			view.state.doc.line(1).to,
+			view.state.doc.line(2).to,
+			view.state.doc.line(6).to,
+		]);
+
+		view.dispatch({
+			changes: {
+				from: view.state.doc.line(1).to,
+				insert: ' updated',
+			},
+		});
+		expect(
+			view.dom.querySelectorAll('button.bullet-zoom-enter-control'),
+		).toHaveLength(3);
+		expect(
+			view.dom
+				.querySelector('button.bullet-zoom-enter-control')
+				?.getAttribute('aria-label'),
+		).toBe('聚焦「Parent updated」');
+
+		view.requestMeasure();
+		expect(
+			view.dom.querySelectorAll('button.bullet-zoom-enter-control'),
+		).toHaveLength(3);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('omits the current root inline Zoom control and retains descendant controls', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child\n    - Grandchild\n- Sibling',
+		);
+		expect(enterFocusAt(view, 0)).toBe(true);
+
+		const labels = Array.from(
+			view.dom.querySelectorAll<HTMLButtonElement>(
+				'button.bullet-zoom-enter-control',
+			),
+		).map((control) => control.getAttribute('aria-label'));
+		expect(labels).not.toContain('聚焦「Parent」');
+		expect(labels).toContain('聚焦「Child」');
+		expect(labels).toContain('聚焦「Grandchild」');
+		expect(labels).not.toContain('聚焦「Sibling」');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('marks only the current phone editor line inline Zoom control as active', () => {
+		const { parent, view } = createView('- Parent\n  - Child', [], true);
+		const activeLabels = (): Array<string | null> =>
+			Array.from(
+				view.dom.querySelectorAll<HTMLButtonElement>(
+					'button.bullet-zoom-enter-control.is-mobile-active',
+				),
+			).map((control) => control.getAttribute('aria-label'));
+
+		expect(activeLabels()).toEqual(['聚焦「Parent」']);
+		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
+		expect(activeLabels()).toEqual(['聚焦「Child」']);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('does not mark the desktop cursor line inline Zoom control as active', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		expect(
+			view.dom.querySelectorAll(
+				'button.bullet-zoom-enter-control.is-mobile-active',
+			),
+		).toHaveLength(0);
+		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
+		expect(
+			view.dom.querySelectorAll(
+				'button.bullet-zoom-enter-control.is-mobile-active',
+			),
+		).toHaveLength(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('marks the active inline Zoom control in mobile tablet mode', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			[],
+			false,
+			true,
+		);
+		expect(
+			view.dom.querySelector<HTMLButtonElement>(
+				'button.bullet-zoom-enter-control.is-mobile-active',
+			)?.getAttribute('aria-label'),
+		).toBe('聚焦「Parent」');
+		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
+		expect(
+			view.dom.querySelector<HTMLButtonElement>(
+				'button.bullet-zoom-enter-control.is-mobile-active',
+			)?.getAttribute('aria-label'),
+		).toBe('聚焦「Child」');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('uses inline Zoom activation without changing Markdown or collapsed state', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			foldIndicatorExtension(),
+		);
+		const source = view.state.doc.toString();
+		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
+			'.collapse-indicator',
+		);
+		collapseIndicator?.classList.add('is-collapsed');
+		collapseIndicator?.setAttribute('aria-expanded', 'false');
+		const control = view.contentDOM.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-enter-control[aria-label="聚焦「Parent」"]',
+		);
+		view.contentDOM
+			.querySelector('.bullet-zoom-marker')
+			?.classList.remove('bullet-zoom-marker');
+
+		expect(control).not.toBeNull();
+		control?.click();
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(1).to);
+		expect(view.state.doc.toString()).toBe(source);
+		expect(collapseIndicator?.classList.contains('is-collapsed')).toBe(true);
+		expect(collapseIndicator?.getAttribute('aria-expanded')).toBe('false');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('ignores a same-class inline control not owned by the plugin widget', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		const source = view.state.doc.toString();
+		const foreignControl = document.createElement('button');
+		foreignControl.className = 'bullet-zoom-enter-control';
+		view.contentDOM.querySelector('.cm-line')?.append(foreignControl);
+		const click = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(foreignControl.dispatchEvent(click)).toBe(true);
+		expect(click.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.doc.toString()).toBe(source);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('supports native keyboard-generated inline Zoom activation and nested refocus', () => {
+		const { parent, view } = createView(
+			'# Heading\n\n- Parent\n  - Child\n    - Grandchild',
+		);
+		const parentControl = view.contentDOM.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-enter-control[aria-label="聚焦「Parent」"]',
+		);
+		const keyboardClick = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			detail: 0,
+		});
+
+		expect(parentControl?.dispatchEvent(keyboardClick)).toBe(false);
+		expect(keyboardClick.defaultPrevented).toBe(true);
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
+			'Parent',
+		);
+
+		const childControl = view.contentDOM.querySelector<HTMLButtonElement>(
+			'button.bullet-zoom-enter-control[aria-label="聚焦「Child」"]',
+		);
+		childControl?.click();
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(4).to);
 		view.destroy();
 		parent.remove();
 	});
@@ -672,101 +872,76 @@ describe('per-editor breadcrumb panel', () => {
 		};
 	}
 
-	function buttons(parent: HTMLElement): HTMLButtonElement[] {
-		return Array.from(
-			parent.querySelectorAll<HTMLButtonElement>('.bullet-zoom-breadcrumb'),
-		);
-	}
-
-	it('shows the note, ancestors, and current item with full accessible labels', () => {
+	it('renders Bike-inspired navigation with actions followed by a non-interactive current location', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild',
 		);
 		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
-		const breadcrumbButtons = buttons(parent);
-
-		expect(breadcrumbButtons.map((button) => button.textContent)).toEqual([
-			'Ideas',
-			'Parent',
-			'Child',
-			'Grandchild',
-		]);
-		expect(
-			breadcrumbButtons.map((button) => button.getAttribute('aria-label')),
-		).toEqual(['Ideas', 'Parent', 'Child', 'Grandchild']);
-		expect(breadcrumbButtons.map((button) => button.title)).toEqual([
-			'Ideas',
-			'Parent',
-			'Child',
-			'Grandchild',
-		]);
-		expect(
-			breadcrumbButtons.map((button) => button.getAttribute('aria-current')),
-		).toEqual([null, null, null, 'location']);
-		expect(
-			breadcrumbButtons.map((button) =>
-				button.classList.contains('is-current'),
+		const navigationItems = Array.from(
+			parent.querySelectorAll<HTMLElement>(
+				'.bullet-zoom-back, .bullet-zoom-breadcrumb',
 			),
-		).toEqual([false, false, false, true]);
-		expect(
-			breadcrumbButtons.map((button) => ({
-				isNote: button.classList.contains('is-note'),
-				isAncestor: button.classList.contains('is-ancestor'),
-				isParent: button.classList.contains('is-parent'),
-				isCurrent: button.classList.contains('is-current'),
-			})),
-		).toEqual([
-			{
-				isNote: true,
-				isAncestor: false,
-				isParent: false,
-				isCurrent: false,
-			},
-			{
-				isNote: false,
-				isAncestor: true,
-				isParent: false,
-				isCurrent: false,
-			},
-			{
-				isNote: false,
-				isAncestor: true,
-				isParent: true,
-				isCurrent: false,
-			},
-			{
-				isNote: false,
-				isAncestor: false,
-				isParent: false,
-				isCurrent: true,
-			},
+		);
+
+		expect(navigationItems.map((item) => item.textContent)).toEqual([
+			'‹',
+			'Ideas',
+			'Parent',
+			'Child',
+			'Grandchild',
 		]);
+		expect(navigationItems.map((item) => item.tagName)).toEqual([
+			'BUTTON',
+			'BUTTON',
+			'BUTTON',
+			'BUTTON',
+			'SPAN',
+		]);
+		expect(navigationItems.map((item) => item.getAttribute('aria-label'))).toEqual([
+			'回到上一層',
+			'Ideas',
+			'Parent',
+			'Child',
+			'Grandchild',
+		]);
+		expect(navigationItems.map((item) => item.title)).toEqual([
+			'回到上一層 Bullet',
+			'Ideas',
+			'Parent',
+			'Child',
+			'Grandchild',
+		]);
+		expect(navigationItems.map((item) => item.getAttribute('aria-current'))).toEqual([
+			null,
+			null,
+			null,
+			null,
+			'location',
+		]);
+		expect(
+			parent.querySelector('button.bullet-zoom-breadcrumb.is-current'),
+		).toBeNull();
 		view.destroy();
 		parent.remove();
 	});
 
-	it('refocuses an ancestor from its breadcrumb', () => {
+	it('uses Bike-inspired navigation actions for previous level, ancestor, and note transitions', () => {
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild',
 		);
 		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
 
-		buttons(parent)[1]?.click();
+		parent.querySelector<HTMLButtonElement>('.bullet-zoom-back')?.click();
+		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
+
+		parent
+			.querySelector<HTMLButtonElement>('.bullet-zoom-breadcrumb.is-ancestor')
+			?.click();
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Parent');
-		expect(buttons(parent).map((button) => button.textContent)).toEqual([
-			'Ideas',
-			'Parent',
-		]);
-		view.destroy();
-		parent.remove();
-	});
 
-	it('exits focus from the note breadcrumb and removes the panel', () => {
-		const { parent, view } = createView('- Parent\n  - Child');
-		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
-		expect(parent.querySelector('.bullet-zoom-breadcrumbs')).not.toBeNull();
-
-		buttons(parent)[0]?.click();
+		parent
+			.querySelector<HTMLButtonElement>('.bullet-zoom-breadcrumb.is-note')
+			?.click();
 		expect(getFocusSession(view.state)).toBeNull();
 		expect(parent.querySelector('.bullet-zoom-breadcrumbs')).toBeNull();
 		view.destroy();
@@ -776,11 +951,14 @@ describe('per-editor breadcrumb panel', () => {
 	it('uses the empty-item fallback as its visible and accessible label', () => {
 		const { parent, view } = createView('- Parent\n  -   ');
 		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
-		const emptyButton = buttons(parent).at(-1);
+		const emptyCurrent = parent.querySelector<HTMLElement>(
+			'.bullet-zoom-breadcrumb.is-current',
+		);
 
-		expect(emptyButton?.textContent).toBe('（空白節點）');
-		expect(emptyButton?.getAttribute('aria-label')).toBe('（空白節點）');
-		expect(emptyButton?.title).toBe('（空白節點）');
+		expect(emptyCurrent?.tagName).toBe('SPAN');
+		expect(emptyCurrent?.textContent).toBe('（空白節點）');
+		expect(emptyCurrent?.getAttribute('aria-label')).toBe('（空白節點）');
+		expect(emptyCurrent?.title).toBe('（空白節點）');
 		view.destroy();
 		parent.remove();
 	});
@@ -1108,7 +1286,7 @@ describe('per-editor breadcrumb panel', () => {
 		}
 	});
 
-	it('navigates through phone parent and note buttons inside the block widget', () => {
+	it('uses Bike-inspired phone navigation inside the block widget', () => {
 		document.body.classList.add('is-phone', 'is-mobile');
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild',
@@ -1120,11 +1298,28 @@ describe('per-editor breadcrumb panel', () => {
 			view.dispatch({
 				effects: focusAtEffect.of(view.state.doc.line(3).from),
 			});
+			const mobileNavigation = parent.querySelector(
+				'.bullet-zoom-breadcrumbs-mobile-block',
+			);
+			expect(mobileNavigation).not.toBeNull();
 			expect(
-				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
-			).not.toBeNull();
+				Array.from(
+					mobileNavigation?.querySelectorAll<HTMLElement>(
+						'.bullet-zoom-back, .bullet-zoom-breadcrumb',
+					) ?? [],
+				).map((item) => ({
+					label: item.getAttribute('aria-label'),
+					tag: item.tagName,
+				})),
+			).toEqual([
+				{ label: '回到上一層', tag: 'BUTTON' },
+				{ label: 'Ideas', tag: 'BUTTON' },
+				{ label: 'Parent', tag: 'BUTTON' },
+				{ label: 'Child', tag: 'BUTTON' },
+				{ label: 'Grandchild', tag: 'SPAN' },
+			]);
 
-			buttons(parent)[2]?.click();
+			parent.querySelector<HTMLButtonElement>('.bullet-zoom-back')?.click();
 			expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
 				'Child',
 			);
@@ -1132,7 +1327,9 @@ describe('per-editor breadcrumb panel', () => {
 				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),
 			).not.toBeNull();
 
-			buttons(parent)[0]?.click();
+			parent
+				.querySelector<HTMLButtonElement>('.bullet-zoom-breadcrumb.is-note')
+				?.click();
 			expect(getFocusSession(view.state)).toBeNull();
 			expect(
 				parent.querySelector('.bullet-zoom-breadcrumbs-mobile-block'),

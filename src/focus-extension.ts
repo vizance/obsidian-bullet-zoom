@@ -21,6 +21,7 @@ import {
 import {
 	buildBreadcrumbs,
 	computeBranchRange,
+	displayBulletLabel,
 	findSupportedBullet,
 	type Breadcrumb,
 	type BranchRange,
@@ -57,6 +58,10 @@ export const focusLivePreview = Facet.define<boolean, boolean>({
 });
 
 const focusPhoneMode = Facet.define<boolean, boolean>({
+	combine: (values) => values[values.length - 1] ?? false,
+});
+
+const focusMobileMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
@@ -186,6 +191,45 @@ const focusDecorations = EditorView.decorations.compute(
 );
 
 const markerDecoration = Decoration.mark({ class: 'bullet-zoom-marker' });
+const enterControlOwners = new WeakMap<HTMLElement, EditorView>();
+
+class BulletEnterControlWidget extends WidgetType {
+	constructor(
+		private readonly label: string,
+		private readonly isMobileActive: boolean,
+	) {
+		super();
+	}
+
+	eq(other: BulletEnterControlWidget): boolean {
+		return (
+			this.label === other.label &&
+			this.isMobileActive === other.isMobileActive
+		);
+	}
+
+	ignoreEvent(event: Event): boolean {
+		return event.type !== 'click';
+	}
+
+	toDOM(view: EditorView): HTMLElement {
+		const button = view.dom.ownerDocument.createElement('button');
+		const label = displayBulletLabel(this.label);
+		button.type = 'button';
+		button.className = 'bullet-zoom-enter-control';
+		enterControlOwners.set(button, view);
+		button.classList.toggle('is-mobile-active', this.isMobileActive);
+		button.title = `聚焦「${label}」`;
+		button.setAttribute('aria-label', `聚焦「${label}」`);
+
+		const icon = button.ownerDocument.createElement('span');
+		icon.className = 'bullet-zoom-enter-icon';
+		icon.setAttribute('aria-hidden', 'true');
+		icon.textContent = '↳';
+		button.append(icon);
+		return button;
+	}
+}
 
 function buildMarkerDecorations(view: EditorView): DecorationSet {
 	if (!view.state.facet(focusLivePreview)) {
@@ -193,6 +237,11 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 	}
 
 	const ranges = [];
+	const focusAnchor = getFocusSession(view.state)?.anchor ?? null;
+	const isMobile = view.state.facet(focusMobileMode);
+	const activeLineNumber = view.state.doc.lineAt(
+		view.state.selection.main.head,
+	).number;
 	const visitedLines = new Set<number>();
 	for (const visibleRange of view.visibleRanges) {
 		let line = view.state.doc.lineAt(visibleRange.from);
@@ -204,6 +253,17 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 					ranges.push(
 						markerDecoration.range(bullet.markerFrom, bullet.markerTo),
 					);
+					if (bullet.markerFrom !== focusAnchor) {
+						ranges.push(
+							Decoration.widget({
+								widget: new BulletEnterControlWidget(
+									bullet.label,
+									isMobile && bullet.lineNumber === activeLineNumber,
+								),
+								side: 1,
+							}).range(bullet.lineTo),
+						);
+					}
 				}
 			}
 			if (line.number >= view.state.doc.lines) {
@@ -225,6 +285,7 @@ class BulletMarkerPlugin implements PluginValue {
 	update(update: ViewUpdate): void {
 		if (
 			update.docChanged ||
+			(update.selectionSet && update.state.facet(focusMobileMode)) ||
 			update.viewportChanged ||
 			getFocusSession(update.startState) !== getFocusSession(update.state) ||
 			update.startState.facet(focusLivePreview) !==
@@ -288,12 +349,22 @@ const markerClickHandler = EditorView.domEventHandlers({
 			return false;
 		}
 
-		const marker = event.target.closest('.bullet-zoom-marker');
-		if (marker === null || !view.dom.contains(marker)) {
+		const enterControl = event.target.closest<HTMLElement>(
+			'.bullet-zoom-enter-control',
+		);
+		if (
+			enterControl !== null &&
+			enterControlOwners.get(enterControl) !== view
+		) {
+			return false;
+		}
+		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
+		const activationTarget = enterControl ?? marker;
+		if (activationTarget === null || !view.dom.contains(activationTarget)) {
 			return false;
 		}
 
-		const position = view.posAtDOM(marker);
+		const position = view.posAtDOM(activationTarget);
 		if (!enterFocusAt(view, position, true)) {
 			return false;
 		}
@@ -347,6 +418,18 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 		return;
 	}
 
+	const backButton = container.ownerDocument.createElement('button');
+	backButton.type = 'button';
+	backButton.className = 'bullet-zoom-back';
+	backButton.title = '回到上一層 Bullet';
+	backButton.setAttribute('aria-label', '回到上一層');
+	backButton.textContent = '‹';
+	backButton.addEventListener('click', () => {
+		focusParent(view);
+		view.focus();
+	});
+	container.append(backButton);
+
 	for (const [index, breadcrumb] of session.breadcrumbs.entries()) {
 		const isNote = index === 0;
 		const isCurrent = index === session.breadcrumbs.length - 1;
@@ -362,31 +445,40 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 			container.append(separator);
 		}
 
-		const button = container.ownerDocument.createElement('button');
-		button.type = 'button';
-		button.className = 'bullet-zoom-breadcrumb';
-		if (isNote) {
-			button.classList.add('is-note');
-			button.dataset.mobileLabel = '全文';
-		}
-		if (isAncestor) {
-			button.classList.add('is-ancestor');
-		}
-		if (isParent) {
-			button.classList.add('is-parent');
+		const configureItem = (item: HTMLElement): void => {
+			item.className = 'bullet-zoom-breadcrumb';
+			if (isNote) {
+				item.classList.add('is-note');
+				item.dataset.mobileLabel = '全文';
+			}
+			if (isAncestor) {
+				item.classList.add('is-ancestor');
+			}
+			if (isParent) {
+				item.classList.add('is-parent');
+			}
+
+			const label = container.ownerDocument.createElement('span');
+			label.className = 'bullet-zoom-breadcrumb-label';
+			label.textContent = breadcrumb.label;
+			item.append(label);
+			item.title = breadcrumb.label;
+			item.setAttribute('aria-label', breadcrumb.label);
+			item.dataset.breadcrumbIndex = String(index);
+		};
+
+		if (isCurrent) {
+			const current = container.ownerDocument.createElement('span');
+			configureItem(current);
+			current.classList.add('is-current');
+			current.setAttribute('aria-current', 'location');
+			container.append(current);
+			continue;
 		}
 
-		const label = container.ownerDocument.createElement('span');
-		label.className = 'bullet-zoom-breadcrumb-label';
-		label.textContent = breadcrumb.label;
-		button.append(label);
-		button.title = breadcrumb.label;
-		button.setAttribute('aria-label', breadcrumb.label);
-		button.dataset.breadcrumbIndex = String(index);
-		if (isCurrent) {
-			button.classList.add('is-current');
-			button.setAttribute('aria-current', 'location');
-		}
+		const button = container.ownerDocument.createElement('button');
+		configureItem(button);
+		button.type = 'button';
 		button.addEventListener('click', () => {
 			if (breadcrumb.anchor === null) {
 				exitFocus(view);
@@ -653,9 +745,11 @@ export function runParentCommand(
 
 export function createFocusExtension({
 	isPhone,
-}: Readonly<{ isPhone: boolean }>): Extension {
+	isMobile = isPhone,
+}: Readonly<{ isPhone: boolean; isMobile?: boolean }>): Extension {
 	return [
 		focusPhoneMode.of(isPhone),
+		focusMobileMode.of(isMobile),
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
