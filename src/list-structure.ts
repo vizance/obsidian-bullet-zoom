@@ -169,7 +169,7 @@ export function computeBranchRange(
 	});
 }
 
-function breadcrumbLabel(label: string): string {
+export function displayBulletLabel(label: string): string {
 	return label.length === 0 ? '（空白節點）' : label;
 }
 
@@ -207,14 +207,14 @@ export function buildBreadcrumbs(
 	for (const ancestor of reversedAncestors.reverse()) {
 		breadcrumbs.push(
 			Object.freeze({
-				label: breadcrumbLabel(ancestor.label),
+				label: displayBulletLabel(ancestor.label),
 				anchor: ancestor.lineFrom,
 			}),
 		);
 	}
 	breadcrumbs.push(
 		Object.freeze({
-			label: breadcrumbLabel(target.label),
+			label: displayBulletLabel(target.label),
 			anchor: target.lineFrom,
 		}),
 	);
