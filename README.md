@@ -5,7 +5,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 ## 目前狀態
 
 - 目前開發版本：`0.1.14`
-- 目前公開 BRAT 版本：`0.1.13`
+- 目前公開 BRAT 版本：`0.1.14`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：`0.1.14` 已於 2026-08-13 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證 folded-target Zoom 會先展開再聚焦、隱藏子孫不投影控制、子節點正常往下排列、原生收合獨立與 Markdown 字數不變；正式 Vault 仍維持已安裝的 `0.1.8`
 - 手機版自動驗收：`0.1.14` 的真實 CodeMirror fold-state 測試固定「收合節點只留一個 `↘`、Zoom 時先展開 target、子孫 fold 保留」，並延續真實 `↘` widget、production CSS、淺／深色 theme token、透明互動狀態與計算行高測試；這不代表實體 iPhone 已通過
@@ -81,7 +81,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新公開 GitHub Release 是 `0.1.13`，可直接透過 BRAT 更新；`0.1.14` 完成發布後會由同一個 repo 提供。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新公開 GitHub Release 是 `0.1.14`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -297,7 +297,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `354b0a9995c4ba66c5423cd9703c8e9c03dad3004bc1f00c623a2e012a6f1fca`、`a918900cdb244f23ec0657b58f0ec58c4009ac27a61dedc771c21537891c6f94`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，下載後與 canonical build 逐檔 byte-identical
 - 實體 iPhone 的點擊後行高、灰底、鍵盤 viewport 與捲動仍是獨立待驗 gate；公開 BRAT 已更新為 `0.1.13`，但不以自動測試或桌面驗收代替手機實機結果
 
-2026-08-13 完成 `0.1.14` 自動驗證與候選套件：
+2026-08-13 完成 `0.1.14` 自動驗證、桌面驗收與正式發布：
 
 - 真實 CodeMirror fold-state 回歸先重現 `0.1.13` 的錯誤：folded parent 仍保留 placeholder，而且被 fold 蓋住的 `Child B` 控制會投影到 `…` 旁邊；Zoom 後 target fold 也沒有解除
 - folded descendant 不再建立 marker 或行尾控制；fold state 改變時會重建 decorations，所以收合狀態只保留 parent 自己的 `↘`
@@ -307,7 +307,9 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.14`
 - 專用 `.test-vault` 已換入 `0.1.14` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `6820896682677c443234101ffab73b5c917f25f2692f26d4f3b22c6047536125`、`0639e3fd82a4ef12ca79270cb801e6dee5b72dfe4d3761b48395fa23448ee94b`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，逐檔 byte-identical
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：以原生 Fold more 收合 `Child A1` 時，只保留該列自己的 `↘`，被收合的孫節點沒有把額外控制投影到 `…` 旁；點擊 `↘` 後會先解除 target fold 再建立 `Bullet Zoom Manual Test > Parent A > Child A1` breadcrumb，畫面只有一個 `↖`、兩個孫節點維持向下排列，沒有 placeholder 或直排文字；退出後全文恢復且 target 維持展開；原生收合命令沒有進入 Zoom，驗收前後皆為 36 words、214 characters
-- GitHub Release 與實體 iPhone 複驗仍待後續步驟；桌面人工驗收與自動測試不代替手機實機狀態
+- [GitHub Release `0.1.14`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.14) 已發佈並標記為 Latest；Actions run [`31643035633`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31643035633) 通過，tag 指向已驗證的公開 main commit `9771974`
+- Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `6820896682677c443234101ffab73b5c917f25f2692f26d4f3b22c6047536125`、`0639e3fd82a4ef12ca79270cb801e6dee5b72dfe4d3761b48395fa23448ee94b`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，與 canonical build 逐檔一致
+- 公開 BRAT 已更新為 `0.1.14`；實體 iPhone 的 folded-target Zoom、點擊後行高、鍵盤 viewport 與捲動仍待獨立複驗，桌面人工驗收與自動測試不代替手機實機狀態
 
 ### 桌面版人工驗收
 
