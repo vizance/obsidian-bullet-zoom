@@ -7,6 +7,9 @@ const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
 afterEach(() => {
 	document.body.classList.remove('is-mobile', 'is-phone');
+	document.documentElement.classList.remove('theme-light', 'theme-dark');
+		document.documentElement.style.removeProperty('--text-faint');
+		document.documentElement.style.removeProperty('--text-muted');
 	document.body.replaceChildren();
 	document.head
 		.querySelectorAll('style[data-bullet-zoom-test]')
@@ -27,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.12');
+		expect(manifest.version).toBe('0.1.13');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -43,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.12');
-		expect(packageLock.version).toBe('0.1.12');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.12');
+		expect(packageManifest.version).toBe('0.1.13');
+		expect(packageLock.version).toBe('0.1.13');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.13');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -57,6 +60,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.10']).toBe('1.11.7');
 		expect(versions['0.1.11']).toBe('1.11.7');
 		expect(versions['0.1.12']).toBe('1.11.7');
+		expect(versions['0.1.13']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -231,7 +235,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(styles).not.toContain('var(--text-on-accent)');
 	});
 
-	it('reveals inline Zoom visibility from desktop row context', () => {
+	it('keeps inline Zoom controls persistently visible on desktop and mobile', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
@@ -240,85 +244,117 @@ describe('mobile-compatible plugin bundle contract', () => {
 		line.className = 'cm-line';
 		const control = document.createElement('button');
 		control.className = 'bullet-zoom-row-control bullet-zoom-enter-control';
+		const icon = document.createElement('span');
+		icon.className = 'bullet-zoom-row-icon';
+		icon.textContent = '↘';
+		control.append(icon);
 		line.append(control);
 		document.body.append(line);
 
 		expect(getComputedStyle(control).visibility).toBe('visible');
-		expect(getComputedStyle(control).opacity).toBe('0');
-		expect(getComputedStyle(control).pointerEvents).toBe('none');
+		expect(getComputedStyle(control).display).toBe('inline-flex');
+		expect(getComputedStyle(control).opacity).toBe('1');
+		expect(getComputedStyle(control).pointerEvents).toBe('auto');
 		line.classList.add('cm-activeLine');
-		expect(getComputedStyle(control).opacity).toBe('0');
-		expect(getComputedStyle(control).pointerEvents).toBe('none');
+		expect(getComputedStyle(control).opacity).toBe('1');
+		expect(getComputedStyle(control).pointerEvents).toBe('auto');
 		line.classList.remove('cm-activeLine');
-		control.classList.add('is-mobile-active');
-		expect(getComputedStyle(control).opacity).toBe('0');
-		expect(getComputedStyle(control).pointerEvents).toBe('none');
+		document.body.classList.add('is-mobile', 'is-phone');
+		expect(getComputedStyle(control).display).toBe('inline-flex');
+		expect(getComputedStyle(control).visibility).toBe('visible');
+		expect(getComputedStyle(control).opacity).toBe('1');
+		expect(getComputedStyle(control).pointerEvents).toBe('auto');
 
 		const selectors = Array.from(style.sheet?.cssRules ?? [])
 			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
 			.map((rule) => rule.selectorText)
 			.join('\n');
-		expect(selectors).toContain(
-			'body:not(.is-mobile):not(.is-phone)\n\t.cm-line:hover\n\t.bullet-zoom-row-control',
-		);
-		expect(selectors).toContain(
-			'body:not(.is-mobile):not(.is-phone)\n\t.bullet-zoom-row-control:focus-visible',
-		);
+		expect(selectors).not.toContain('.is-mobile-active');
+		expect(selectors).not.toContain('.cm-line:hover');
 		expect(selectors).not.toContain('.cm-activeLine');
 	});
 
-	it('shows only the active inline Zoom phone control without expanding line geometry', () => {
+	it.each([
+		{ theme: 'light', faintColor: 'rgb(218, 218, 218)' },
+		{ theme: 'dark', faintColor: 'rgb(82, 82, 82)' },
+	])(
+		'keeps the real phone glyph within text geometry in the $theme theme',
+		({ theme, faintColor }) => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = `${readProjectFile('styles.css')}\n.bullet-zoom-test-editor-line { font-size: 20px; line-height: 28px; }`;
 		document.head.append(style);
 		document.body.classList.add('is-mobile', 'is-phone');
-		const inactiveLine = document.createElement('div');
-		inactiveLine.className = 'cm-line';
-		const activeLine = document.createElement('div');
-		activeLine.className = 'cm-line bullet-zoom-test-editor-line';
-		const inactiveControl = document.createElement('button');
-		inactiveControl.className =
+		document.documentElement.classList.add(`theme-${theme}`);
+			document.documentElement.style.setProperty('--text-faint', faintColor);
+			document.documentElement.style.setProperty(
+				'--text-muted',
+				theme === 'light' ? 'rgb(110, 110, 110)' : 'rgb(170, 170, 170)',
+			);
+		const referenceLine = document.createElement('div');
+		referenceLine.className = 'cm-line bullet-zoom-test-editor-line';
+		referenceLine.textContent = 'Reference';
+		const controlLine = document.createElement('div');
+		controlLine.className = 'cm-line bullet-zoom-test-editor-line';
+		controlLine.append('Reference');
+		const control = document.createElement('button');
+		control.className =
 			'bullet-zoom-row-control bullet-zoom-enter-control';
 		const icon = document.createElement('span');
 		icon.className = 'bullet-zoom-row-icon';
 		icon.textContent = '↘';
-		inactiveControl.append(icon);
-		const activeControl = inactiveControl.cloneNode() as HTMLButtonElement;
-		activeControl.classList.add('is-mobile-active');
-		inactiveLine.append(inactiveControl);
-		activeLine.append(activeControl);
-		document.body.append(inactiveLine, activeLine);
+		control.append(icon);
+		controlLine.append(control);
+		document.body.append(referenceLine, controlLine);
 
-		const inactiveStyle = getComputedStyle(inactiveControl);
-		const activeStyle = getComputedStyle(activeControl);
-		expect(inactiveStyle.display).toBe('none');
-		expect(inactiveStyle.visibility).toBe('hidden');
-		expect(inactiveStyle.pointerEvents).toBe('none');
-		expect(Number.parseFloat(inactiveStyle.minWidth)).toBe(0);
-		expect(Number.parseFloat(inactiveStyle.minHeight)).toBe(0);
-		expect(activeStyle.display).toBe('inline-flex');
-		expect(activeStyle.visibility).toBe('visible');
-		expect(activeStyle.pointerEvents).toBe('auto');
-		expect(Number.parseFloat(activeStyle.minWidth)).toBe(0);
-		expect(Number.parseFloat(activeStyle.minHeight)).toBe(0);
-		expect(activeStyle.padding).toBe('0px');
-		expect(Number.parseFloat(activeStyle.getPropertyValue('margin-block'))).toBe(
+		const controlStyle = getComputedStyle(control);
+		expect(controlStyle.display).toBe('inline-flex');
+		expect(controlStyle.visibility).toBe('visible');
+		expect(controlStyle.opacity).toBe('1');
+		expect(controlStyle.pointerEvents).toBe('auto');
+		expect(Number.parseFloat(controlStyle.minWidth)).toBe(0);
+		expect(Number.parseFloat(controlStyle.minHeight)).toBe(0);
+		expect(controlStyle.height).toBe('1em');
+		expect(controlStyle.maxHeight).toBe('1em');
+		expect(controlStyle.padding).toBe('0px');
+		expect(Number.parseFloat(controlStyle.getPropertyValue('margin-block'))).toBe(
 			0,
 		);
-		expect(Number.parseFloat(activeStyle.borderRadius)).toBe(0);
-		expect(activeStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
-		expect(activeStyle.fontSize).toBe('inherit');
-		expect(activeStyle.lineHeight).toBe('inherit');
-		expect(getComputedStyle(activeLine).fontSize).toBe('20px');
-		expect(getComputedStyle(activeLine).lineHeight).toBe('28px');
-		expect(activeStyle.position).toBe('relative');
-		const selectors = Array.from(style.sheet?.cssRules ?? [])
-			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
-			.map((rule) => rule.selectorText)
-			.join('\n');
-		expect(selectors).not.toContain(
-			'.bullet-zoom-row-control.is-mobile-active::before',
-		);
-	});
+		expect(Number.parseFloat(controlStyle.borderRadius)).toBe(0);
+		expect(controlStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+		expect(controlStyle.backgroundImage).toBe('none');
+		expect(controlStyle.boxShadow).toBe('none');
+		expect(controlStyle.color).toBe('var(--text-faint)');
+		expect(
+			document.documentElement.style.getPropertyValue('--text-faint'),
+		).toBe(faintColor);
+		expect(controlStyle.fontSize).toBe('inherit');
+		expect(controlStyle.lineHeight).toBe('1');
+		expect(getComputedStyle(referenceLine).lineHeight).toBe('28px');
+		expect(getComputedStyle(controlLine).lineHeight).toBe('28px');
+			control.focus();
+			const focusedStyle = getComputedStyle(control);
+			expect(focusedStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+			expect(focusedStyle.backgroundImage).toBe('none');
+			expect(focusedStyle.boxShadow).toBe('none');
+			expect(getComputedStyle(controlLine).lineHeight).toBe('28px');
+			const rules = Array.from(style.sheet?.cssRules ?? [])
+				.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+			const selectors = rules
+				.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+				.map((rule) => rule.selectorText)
+				.join('\n');
+			const focusVisibleRule = rules.find(
+				(rule) =>
+					rule.selectorText ===
+					'button.bullet-zoom-row-control:focus-visible',
+			);
+			expect(selectors).toContain('button.bullet-zoom-row-control:active');
+			expect(focusVisibleRule?.style.outline).toBe(
+				'1px solid var(--text-muted)',
+			);
+		expect(selectors).not.toContain('.is-mobile-active');
+		expect(selectors).not.toContain('.bullet-zoom-row-control::before');
+		},
+	);
 });

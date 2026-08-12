@@ -3,71 +3,55 @@
 	touch-action: manipulation;
 }
 
-.bullet-zoom-row-control {
+button.bullet-zoom-row-control,
+button.bullet-zoom-row-control:hover,
+button.bullet-zoom-row-control:focus,
+button.bullet-zoom-row-control:focus-visible,
+button.bullet-zoom-row-control:active {
+	-webkit-appearance: none;
+	appearance: none;
 	position: relative;
 	display: inline-flex;
 	box-sizing: content-box;
 	align-items: center;
 	justify-content: center;
+	width: auto;
 	min-width: 0;
+	max-width: none;
+	height: 1em;
 	min-height: 0;
+	max-height: 1em;
 	margin-block: 0;
 	margin-inline-start: 0.25em;
 	padding: 0;
 	border: 0;
 	border-radius: 0;
-	background: transparent;
+	background-color: transparent;
+	background-image: none;
+	box-shadow: none;
 	color: var(--text-faint);
 	font-family: inherit;
 	font-size: inherit;
-	line-height: inherit;
+	line-height: 1;
 	vertical-align: baseline;
-	opacity: 0;
-	pointer-events: none;
-	cursor: zoom-in;
-	touch-action: manipulation;
-	transition:
-		opacity 100ms ease,
-		color 100ms ease;
-}
-
-body:not(.is-mobile):not(.is-phone)
-	.cm-line:hover
-	.bullet-zoom-row-control,
-body:not(.is-mobile):not(.is-phone)
-	.bullet-zoom-row-control:focus-visible {
+	visibility: visible;
 	opacity: 1;
 	pointer-events: auto;
+	cursor: zoom-in;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
 }
 
-.bullet-zoom-row-control:hover,
-.bullet-zoom-row-control:focus-visible {
-	color: var(--text-normal);
+button.bullet-zoom-row-control:focus-visible {
+	outline: 1px solid var(--text-muted);
+	outline-offset: 1px;
 }
 
 .bullet-zoom-row-icon {
 	display: inline;
 	font: inherit;
-	line-height: inherit;
+	line-height: 1;
 	pointer-events: none;
-}
-
-.is-mobile .bullet-zoom-row-control,
-.is-phone .bullet-zoom-row-control {
-	display: none;
-	visibility: hidden;
-	opacity: 0;
-	pointer-events: none;
-}
-
-.is-mobile .bullet-zoom-row-control.is-mobile-active,
-.is-phone .bullet-zoom-row-control.is-mobile-active,
-.is-mobile .bullet-zoom-row-control:focus-visible,
-.is-phone .bullet-zoom-row-control:focus-visible {
-	display: inline-flex;
-	visibility: visible;
-	opacity: 1;
-	pointer-events: auto;
 }
 
 .bullet-zoom-breadcrumbs {

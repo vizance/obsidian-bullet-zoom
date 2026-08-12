@@ -61,10 +61,6 @@ const focusPhoneMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
-const focusMobileMode = Facet.define<boolean, boolean>({
-	combine: (values) => values[values.length - 1] ?? false,
-});
-
 export const focusAtEffect = StateEffect.define<number>();
 export const clearFocusEffect = StateEffect.define<void>();
 type MobileEditorScrollRequest = Readonly<{
@@ -213,18 +209,13 @@ const rowControlOwners = new WeakMap<HTMLElement, BulletRowControlOwner>();
 class BulletRowControlWidget extends WidgetType {
 	constructor(
 		private readonly label: string,
-		private readonly isMobileActive: boolean,
 		private readonly mode: BulletRowControlMode,
 	) {
 		super();
 	}
 
 	eq(other: BulletRowControlWidget): boolean {
-		return (
-			this.label === other.label &&
-			this.isMobileActive === other.isMobileActive &&
-			this.mode === other.mode
-		);
+		return this.label === other.label && this.mode === other.mode;
 	}
 
 	ignoreEvent(event: Event): boolean {
@@ -237,7 +228,6 @@ class BulletRowControlWidget extends WidgetType {
 		button.type = 'button';
 		button.className = `bullet-zoom-row-control bullet-zoom-${this.mode}-control`;
 		rowControlOwners.set(button, { view, mode: this.mode });
-		button.classList.toggle('is-mobile-active', this.isMobileActive);
 		const accessibleLabel =
 			this.mode === 'exit'
 				? `退出聚焦「${label}」，回到全文`
@@ -261,10 +251,6 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 
 	const ranges = [];
 	const focusAnchor = getFocusSession(view.state)?.anchor ?? null;
-	const isMobile = view.state.facet(focusMobileMode);
-	const activeLineNumber = view.state.doc.lineAt(
-		view.state.selection.main.head,
-	).number;
 	const visitedLines = new Set<number>();
 	for (const visibleRange of view.visibleRanges) {
 		let line = view.state.doc.lineAt(visibleRange.from);
@@ -280,7 +266,6 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 						Decoration.widget({
 							widget: new BulletRowControlWidget(
 								bullet.label,
-								isMobile && bullet.lineNumber === activeLineNumber,
 								bullet.markerFrom === focusAnchor ? 'exit' : 'enter',
 							),
 							side: 1,
@@ -307,7 +292,6 @@ class BulletMarkerPlugin implements PluginValue {
 	update(update: ViewUpdate): void {
 		if (
 			update.docChanged ||
-			(update.selectionSet && update.state.facet(focusMobileMode)) ||
 			update.viewportChanged ||
 			getFocusSession(update.startState) !== getFocusSession(update.state) ||
 			update.startState.facet(focusLivePreview) !==
@@ -764,11 +748,9 @@ export function runParentCommand(
 
 export function createFocusExtension({
 	isPhone,
-	isMobile = isPhone,
-}: Readonly<{ isPhone: boolean; isMobile?: boolean }>): Extension {
+}: Readonly<{ isPhone: boolean }>): Extension {
 	return [
 		focusPhoneMode.of(isPhone),
-		focusMobileMode.of(isPhone || isMobile),
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,

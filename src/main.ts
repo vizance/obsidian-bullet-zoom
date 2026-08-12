@@ -47,7 +47,6 @@ export default class BulletZoomPlugin extends Plugin {
 			),
 			createFocusExtension({
 				isPhone: Platform.isPhone,
-				isMobile: Platform.isMobile,
 			}),
 		]);
 

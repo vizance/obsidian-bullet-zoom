@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.12`
+- 目前開發版本：`0.1.13`
 - 目前公開 BRAT 版本：`0.1.12`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.12` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證乾淨 breadcrumb、文字行尾箭頭、直接祖先導航、原生收合、淺／深色與 Markdown 字數不變；鍵盤 `:focus-visible` 另由自動測試固定；正式 Vault 仍維持已安裝的 `0.1.8`
-- 手機版自動驗收：`0.1.12` 以 DOM 與 CSS 測試固定 Bike 風格單列路徑、沒有下層選單，以及只在目前編輯行顯示不撐高行距的文字箭頭；這不代表實體 iPhone 已通過
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.12` 已發佈，editor-only 捲動、收合／Zoom 分流與文字行尾箭頭仍待實體 iPhone 複驗
+- 桌面版人工驗收：`0.1.13` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證常駐淡灰箭頭、`↘` 進入、`↖` 退出、原生收合、淺／深色與 Markdown 字數不變；production CSS 自動測試另固定計算樣式契約；正式 Vault 仍維持已安裝的 `0.1.8`
+- 手機版自動驗收：`0.1.13` 以真實 `↘` widget、production CSS 與淺／深色 theme token 測試固定所有箭頭常駐、透明互動狀態，以及有箭頭／無箭頭的計算行高相同；這不代表實體 iPhone 已通過
+- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.13` 本機候選版的 editor-only 捲動、收合／Zoom 分流、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
 - 正式 Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
@@ -47,6 +47,8 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 `0.1.11` 曾建立 breadcrumb 下層選單候選版，但沒有發佈。實際試用後確認這會把「回到祖先」與「往下鑽入」兩種操作混在同一條路徑，因此由 `0.1.12` 取代。
 
 `0.1.12` 起，breadcrumb 只保留筆記、祖先與目前節點；點擊可直接回到指定祖先，不再有 hover 選單或下層內容。每個可聚焦 Bullet 的第一行文字尾端改用淡色 `↘`，目前聚焦根節點則用 `↖` 回到全文。箭頭沿用正文的字級與行高，沒有圓形底色、額外 padding、固定按鈕尺寸或上下 margin；桌面版只在滑鼠 hover 該行或鍵盤聚焦按鈕時顯示，手機與平板只在目前編輯行顯示。`Bullet Zoom: 回到上一層 Bullet` 命令不受影響，仍可綁定快捷鍵或 Mobile Toolbar。
+
+`0.1.13` 起，所有支援 Bullet 的 `↘` 與目前聚焦根節點的 `↖` 會在桌面、手機和平板常駐，不需要 hover、文字游標或 active line 才出現。箭頭使用 Obsidian 的 `--text-faint`，會隨淺色／深色主題切換灰度；normal、hover、focus 與 active 都維持透明背景、無陰影、繼承正文 font size，並把 glyph box 限制在 `1em`，避免手機點擊後出現拉高該行的灰色按鈕區塊。鍵盤操作時只加上 `--text-muted` 外框，且不改變版面幾何。
 
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
 
@@ -281,9 +283,19 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`，與 canonical build 逐檔一致
 - 實體 iPhone 的列高、touch hit area、鍵盤 viewport 與捲動仍是獨立待驗 gate；目前公開 BRAT 版本已更新為 `0.1.12`，但不以自動測試或桌面驗收代替手機實機結果
 
+2026-08-12 完成 `0.1.13` 本機候選版驗證：
+
+- 所有 `↘`／`↖` 改為常駐；runtime 已移除 `.is-mobile-active` 與依 selection 重建 mobile widget 的狀態，桌面、手機與平板都直接渲染每個可見支援 Bullet 的控制
+- `button.bullet-zoom-row-control` 在 normal、hover、focus、focus-visible 與 active 狀態統一使用 `var(--text-faint)`、透明背景、無背景圖片、無陰影、0 padding、0 minimum size 與 1em 高；沒有透明放大 hit surface
+- `npm test`：89 項測試通過；production CSS 測試以真實 `↘` glyph 確認淺／深色 theme token、透明互動狀態與較清楚的鍵盤 focus 外框，以及 jsdom 計算樣式中的有箭頭／無箭頭 line-height 皆為 28px；這項測試不具真實排版引擎，桌面視覺另以 Obsidian 人工驗收，手機實際幾何仍待實體 iPhone 複驗；`npm run lint`、`npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.13`
+- 專用 `.test-vault` 已換入 `0.1.13` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `354b0a9995c4ba66c5423cd9703c8e9c03dad3004bc1f00c623a2e012a6f1fca`、`a918900cdb244f23ec0657b58f0ec58c4009ac27a61dedc771c21537891c6f94`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`
+- macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：全文狀態同時存在所有支援 Bullet 的常駐按鈕；`Parent A` 與 `Child A1` 的 `↘` 可逐層進入，聚焦根節點的 `↖` 可回到全文；Fold more／Fold less 只收合與展開原生 thread，沒有進入 Zoom；Light／Dark 都維持淡灰無填色控制；驗收後仍為 36 words、214 characters，測試筆記 SHA-256 維持 `d53d74283c75f72f50ce00dd233629277cbeef60aa3f043b539d085c31f1c0a8`
+- 實體 iPhone 的點擊後行高、灰底、鍵盤 viewport 與捲動仍是獨立待驗 gate；GitHub Release 與公開 BRAT 目前仍為 `0.1.12`
+
 ### 桌面版人工驗收
 
-基準環境：macOS、Obsidian `1.13.5`；`0.1.10`～`0.1.12` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
+基準環境：macOS、Obsidian `1.13.5`；`0.1.10`～`0.1.13` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |
