@@ -33,7 +33,6 @@ function createState(
 	filePath = 'Ideas.md',
 	additionalExtensions: Extension = [],
 	isPhone = false,
-	isMobile = isPhone,
 ): EditorState {
 	return EditorState.create({
 		doc: document,
@@ -42,7 +41,7 @@ function createState(
 			focusFilePath.of(filePath),
 			focusNoteTitle.of(filePath.replace(/\.md$/, '')),
 			focusLivePreview.of(true),
-			createFocusExtension({ isPhone, isMobile }),
+			createFocusExtension({ isPhone }),
 			additionalExtensions,
 		],
 	});
@@ -348,7 +347,6 @@ describe('bullet marker interaction', () => {
 		documentText: string,
 		additionalExtensions: Extension = [],
 		isPhone = false,
-		isMobile = isPhone,
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -361,7 +359,6 @@ describe('bullet marker interaction', () => {
 					'Ideas.md',
 					additionalExtensions,
 					isPhone,
-					isMobile,
 				),
 			}),
 		};
@@ -504,76 +501,34 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it('marks only the current phone editor line inline Zoom control as active', () => {
-		const { parent, view } = createView('- Parent\n  - Child', [], true);
-		const activeLabels = (): Array<string | null> =>
-			Array.from(
-				view.dom.querySelectorAll<HTMLButtonElement>(
-					'button.bullet-zoom-enter-control.is-mobile-active',
-				),
-			).map((control) => control.getAttribute('aria-label'));
+	it.each([
+		{ platform: 'desktop', isPhone: false },
+		{ platform: 'phone', isPhone: true },
+		{ platform: 'tablet', isPhone: false },
+	])(
+		'renders every $platform inline Zoom control without active-line state',
+		({ isPhone }) => {
+			const { parent, view } = createView(
+				'- Parent\n  - Child',
+				[],
+				isPhone,
+			);
+			const controlLabels = (): Array<string | null> =>
+				Array.from(
+					view.dom.querySelectorAll<HTMLButtonElement>(
+						'button.bullet-zoom-enter-control',
+					),
+				).map((control) => control.getAttribute('aria-label'));
 
-		expect(activeLabels()).toEqual(['聚焦「Parent」']);
-		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
-		expect(activeLabels()).toEqual(['聚焦「Child」']);
-		view.destroy();
-		parent.remove();
-	});
-
-	it('does not mark the desktop cursor line inline Zoom control as active', () => {
-		const { parent, view } = createView('- Parent\n  - Child');
-		expect(
-			view.dom.querySelectorAll(
-				'button.bullet-zoom-enter-control.is-mobile-active',
-			),
-		).toHaveLength(0);
-		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
-		expect(
-			view.dom.querySelectorAll(
-				'button.bullet-zoom-enter-control.is-mobile-active',
-			),
-		).toHaveLength(0);
-		view.destroy();
-		parent.remove();
-	});
-
-	it('marks the active inline Zoom control in mobile tablet mode', () => {
-		const { parent, view } = createView(
-			'- Parent\n  - Child',
-			[],
-			false,
-			true,
-		);
-		expect(
-			view.dom.querySelector<HTMLButtonElement>(
-				'button.bullet-zoom-enter-control.is-mobile-active',
-			)?.getAttribute('aria-label'),
-		).toBe('聚焦「Parent」');
-		view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
-		expect(
-			view.dom.querySelector<HTMLButtonElement>(
-				'button.bullet-zoom-enter-control.is-mobile-active',
-			)?.getAttribute('aria-label'),
-		).toBe('聚焦「Child」');
-		view.destroy();
-		parent.remove();
-	});
-
-	it('treats phone mode as mobile even when a caller passes a contradictory flag', () => {
-		const { parent, view } = createView(
-			'- Parent\n  - Child',
-			[],
-			true,
-			false,
-		);
-		expect(
-			view.dom.querySelector<HTMLButtonElement>(
-				'button.bullet-zoom-enter-control.is-mobile-active',
-			)?.getAttribute('aria-label'),
-		).toBe('聚焦「Parent」');
-		view.destroy();
-		parent.remove();
-	});
+			expect(controlLabels()).toEqual(['聚焦「Parent」', '聚焦「Child」']);
+			expect(view.dom.querySelectorAll('.is-mobile-active')).toHaveLength(0);
+			view.dispatch({ selection: { anchor: view.state.doc.line(2).to } });
+			expect(controlLabels()).toEqual(['聚焦「Parent」', '聚焦「Child」']);
+			expect(view.dom.querySelectorAll('.is-mobile-active')).toHaveLength(0);
+			view.destroy();
+			parent.remove();
+		},
+	);
 
 	it('uses inline Zoom activation without changing Markdown or collapsed state', () => {
 		const { parent, view } = createView(
