@@ -23,12 +23,6 @@ export type Breadcrumb = Readonly<{
 	anchor: number | null;
 }>;
 
-export type BulletNavigationNode = Readonly<{
-	label: string;
-	anchor: number | null;
-	children: readonly BulletNavigationNode[];
-}>;
-
 const PLAIN_BULLET_PATTERN = /^([\t ]*)([-+*])([\t ]+)(.*)$/;
 const TASK_PATTERN = /^\[(?: |x|X)\](?:\s|$)/;
 
@@ -177,62 +171,6 @@ export function computeBranchRange(
 
 export function displayBulletLabel(label: string): string {
 	return label.length === 0 ? '（空白節點）' : label;
-}
-
-type MutableBulletNavigationNode = {
-	label: string;
-	anchor: number | null;
-	indent: number;
-	children: MutableBulletNavigationNode[];
-};
-
-function freezeBulletNavigationNode(
-	node: MutableBulletNavigationNode,
-): BulletNavigationNode {
-	return Object.freeze({
-		label: node.label,
-		anchor: node.anchor,
-		children: Object.freeze(node.children.map(freezeBulletNavigationNode)),
-	});
-}
-
-export function buildBulletNavigationTree(
-	state: EditorState,
-	noteTitle: string,
-): BulletNavigationNode {
-	const root: MutableBulletNavigationNode = {
-		label: noteTitle.length === 0 ? '未命名筆記' : noteTitle,
-		anchor: null,
-		indent: -1,
-		children: [],
-	};
-	const ancestors: MutableBulletNavigationNode[] = [root];
-
-	for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
-		const line = state.doc.line(lineNumber);
-		const bullet = findSupportedBullet(state, line.from);
-		if (bullet === null) {
-			continue;
-		}
-
-		while (
-			ancestors.length > 1 &&
-			(ancestors.at(-1)?.indent ?? -1) >= bullet.indent
-		) {
-			ancestors.pop();
-		}
-
-		const node: MutableBulletNavigationNode = {
-			label: displayBulletLabel(bullet.label),
-			anchor: bullet.lineFrom,
-			indent: bullet.indent,
-			children: [],
-		};
-		ancestors.at(-1)?.children.push(node);
-		ancestors.push(node);
-	}
-
-	return freezeBulletNavigationNode(root);
 }
 
 export function buildBreadcrumbs(

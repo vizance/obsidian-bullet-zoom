@@ -4,11 +4,11 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.11`
+- 目前開發版本：`0.1.12`
 - 目前公開 BRAT 版本：`0.1.10`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.11` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證行尾控制、原生收合、無重複箭頭的 breadcrumb、桌面多欄選單、鍵盤關閉、根節點退出、淺／深色與 Markdown 不變；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
-- 手機版自動驗收：`0.1.11` 以 DOM 與 CSS 測試固定 Bike 風格單列路徑、逐層 hierarchy menu，以及只在目前編輯行顯示 44 × 44 CSS px 行尾控制；這不代表實體 iPhone 已通過
+- 桌面版人工驗收：`0.1.12` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證乾淨 breadcrumb、文字行尾箭頭、直接祖先導航、原生收合、淺／深色與 Markdown 字數不變；鍵盤 `:focus-visible` 另由自動測試固定；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
+- 手機版自動驗收：`0.1.12` 以 DOM 與 CSS 測試固定 Bike 風格單列路徑、沒有下層選單，以及只在目前編輯行顯示不撐高行距的文字箭頭；這不代表實體 iPhone 已通過
 - 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.8` 已發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
@@ -44,7 +44,9 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 `0.1.10` 起，每個可聚焦的普通 Bullet 會在第一行文字尾端提供獨立的 `↳` Zoom 控制。收合箭頭仍只負責收合／展開 thread；行尾控制、Bullet 圓點與命令才會進入 Zoom。桌面版只有滑鼠移到該行，或按鈕本身取得鍵盤焦點時才顯示控制；單純把文字游標停在該行不會顯示。手機版沒有 hover，因此只在目前編輯行顯示至少 44 × 44 CSS px 的觸控區。
 
-`0.1.11` 起，聚焦路徑不再顯示重複的 `‹` 上一層按鈕；筆記名稱與父節點仍可直接跳回。每個有下層 Bullet 的 breadcrumb 旁會顯示獨立的 `›` 選單按鈕：桌面版使用 Bike 式多欄 cascade，手機與平板使用單欄逐層展開及返回。目前聚焦根節點的行尾控制改為 `↖`，點擊後直接退出 Zoom 回到全文；可見子節點仍用 `↳` 往內聚焦。`Bullet Zoom: 回到上一層 Bullet` 命令不受影響，仍可綁定快捷鍵或 Mobile Toolbar。
+`0.1.11` 曾建立 breadcrumb 下層選單候選版，但沒有發佈。實際試用後確認這會把「回到祖先」與「往下鑽入」兩種操作混在同一條路徑，因此由 `0.1.12` 取代。
+
+`0.1.12` 起，breadcrumb 只保留筆記、祖先與目前節點；點擊可直接回到指定祖先，不再有 hover 選單或下層內容。每個可聚焦 Bullet 的第一行文字尾端改用淡色 `↘`，目前聚焦根節點則用 `↖` 回到全文。箭頭沿用正文的字級與行高，沒有圓形底色、額外 padding、固定按鈕尺寸或上下 margin；桌面版只在滑鼠 hover 該行或鍵盤聚焦按鈕時顯示，手機與平板只在目前編輯行顯示。`Bullet Zoom: 回到上一層 Bullet` 命令不受影響，仍可綁定快捷鍵或 Mobile Toolbar。
 
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
 
@@ -264,9 +266,22 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：desktop hover 會顯示行尾控制；原生收合不進入 Zoom；根節點 `↖` 能回到全文；breadcrumb 沒有 `‹` 或重複 `›`；多欄 cascade 可逐層展開、使用 Escape 關閉，選取 `Child A2` 後會直接切換聚焦；淺色與深色都正常；測試筆記維持 213 characters，SHA-256 維持 `952cd3f225c79422ae9935f8f859cc6b730ef85a06641d5d174e0e7d5e83d900`
 - GitHub Release、正式 Second Brain Vault 更新與實體 iPhone 複驗仍待完成；手機 keyboard viewport、touch drill-down 與水平 overflow 不以桌面或 DOM 測試代替，目前公開 BRAT 版本仍為 `0.1.10`
 
+`0.1.11` 沒有建立 Git tag 或 GitHub Release；實際 UX 試用後由下列 `0.1.12` 候選版取代。
+
+2026-08-12 完成 `0.1.12` 候選版驗證：
+
+- breadcrumb 只保留可直接點擊的筆記與祖先，以及不可點擊的目前節點；移除所有 descendant trigger、hierarchy menu、cascade／drill-down controller 與相關 runtime CSS
+- 行尾控制改為跟隨正文字級與行高的淡色 `↘`／`↖`；沒有固定尺寸、minimum size、padding、圓形底色、border radius、上下 margin 或透明放大 hit surface，避免撐高本列或覆蓋相鄰文字與原生收合控制
+- 桌面只有該行 hover 或控制取得 `:focus-visible` 時顯示；手機與平板仍只有目前編輯行顯示。原生收合、Bullet 圓點、命令、退出與 pane ownership 維持分流
+- `npm test`：89 項測試通過；`npm run lint`、`npm run build`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.12`
+- 專用 `.test-vault` 已換入 `0.1.12` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `593fd106239a49e9f36ef50f2c44125c84a1a0f8b0d829ec7b0ab6cc332247c0`、`1ea728a52101bc1931866c2d2232ade8d516104a62b5dab7a5cca548c1bd6aff`、`81b3df113ddc76b1049c3392da1d86f1e7dbc08a9a33fdb847b1831630343a17`
+- macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：深層路徑只有筆記、Parent 與 Current，沒有下層選單；Parent breadcrumb 可直接返回；hover 時 `↘` 緊接文字尾端且不撐高 Bullet；原生 Fold more 只收起 thread、沒有建立 Breadcrumb；淺色與深色皆正常；驗收後畫面仍為 36 words、214 characters
+- 實體 iPhone 的列高、touch hit area、鍵盤 viewport 與捲動仍是獨立待驗 gate；候選版完成前目前公開 BRAT 版本仍為 `0.1.10`
+
 ### 桌面版人工驗收
 
-基準環境：macOS、Obsidian `1.13.5`；`0.1.10`、`0.1.11` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
+基準環境：macOS、Obsidian `1.13.5`；`0.1.10`～`0.1.12` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |
@@ -281,6 +296,9 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 | `0.1.11` 行尾角色控制 | 通過 | hover 行顯示 `↳`；聚焦根節點顯示 `↖`，點擊後回到全文；單純文字游標不會讓所有行常駐顯示 |
 | `0.1.11` 原生收合 | 通過 | 點擊 `Parent A` 收合箭頭只隱藏子分支，沒有 Breadcrumb、Zoom 或 Markdown 變更；重新展開後子分支恢復 |
 | `0.1.11` Bike 式層級選單 | 通過 | 路徑不顯示 `‹`，層級間僅一個 `›`；桌面可開到 Parent／Child／Grandchild 三欄，無水平捲軸，並可用鍵盤 Escape 關閉、還原 trigger 焦點 |
+| `0.1.12` 乾淨 Breadcrumb | 通過 | 深層聚焦只顯示筆記、Parent 與 Current；沒有 trigger 或 hierarchy menu，Parent 可直接返回上一層 |
+| `0.1.12` 文字行尾箭頭 | 通過 | hover 的 `↘` 緊接 `Parent A` 文字尾端並沿用正文高度；沒有圓形背景或額外列高；`:focus-visible` 顯示另由 DOM／CSS 測試固定 |
+| `0.1.12` 原生收合 | 通過 | 在 `Parent A` 執行 Obsidian `Fold more` 只隱藏子分支，沒有 Breadcrumb 或 Zoom；再執行 `Fold less` 後完整恢復 |
 | 左右分割窗格 | 通過 | 右側聚焦時，左側同一筆記仍維持完整且獨立 |
 | 切換筆記 | 通過 | 聚焦中的窗格開啟 `Other Note` 後自動清除聚焦，返回原筆記也是完整內容 |
 | 明確退出命令 | 通過 | 執行退出命令後恢復完整筆記與原游標位置 |

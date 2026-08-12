@@ -27,7 +27,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.11');
+		expect(manifest.version).toBe('0.1.12');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -43,9 +43,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.11');
-		expect(packageLock.version).toBe('0.1.11');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.11');
+		expect(packageManifest.version).toBe('0.1.12');
+		expect(packageLock.version).toBe('0.1.12');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.12');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -56,6 +56,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.9']).toBe('1.11.7');
 		expect(versions['0.1.10']).toBe('1.11.7');
 		expect(versions['0.1.11']).toBe('1.11.7');
+		expect(versions['0.1.12']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -96,10 +97,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 		};
 
 		const note = addBreadcrumb('2026-08-10 daily note', 'is-note');
-		const noteMenu = document.createElement('button');
-		noteMenu.className = 'bullet-zoom-menu-trigger is-note';
-		noteMenu.setAttribute('aria-label', '展開「2026-08-10 daily note」的下層');
-		panel.append(noteMenu);
 		const hiddenAncestor = addBreadcrumb(
 			'10:06 ～ 10:41 寫免費文章',
 			'is-ancestor',
@@ -113,7 +110,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		const panelStyle = getComputedStyle(panel);
 		const noteStyle = getComputedStyle(note);
-		const noteMenuStyle = getComputedStyle(noteMenu);
 		const hiddenAncestorStyle = getComputedStyle(hiddenAncestor);
 		const parentStyle = getComputedStyle(parent);
 		const currentStyle = getComputedStyle(current);
@@ -126,9 +122,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(panelStyle.overflowY).toBe('hidden');
 		expect(panelStyle.whiteSpace).toBe('nowrap');
 		expect(noteStyle.display).toBe('inline-flex');
-		expect(noteMenuStyle.display).toBe('inline-flex');
-		expect(noteMenuStyle.minWidth).toBe('44px');
-		expect(noteMenuStyle.minHeight).toBe('44px');
 		expect(hiddenAncestorStyle.display).toBe('none');
 		expect(parentStyle.display).toBe('inline-flex');
 		expect(currentStyle.display).toBe('inline-flex');
@@ -141,38 +134,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(Number.parseFloat(currentStyle.minWidth)).toBe(0);
 		expect(currentLabelStyle.overflow).toBe('hidden');
 		expect(currentLabelStyle.textOverflow).toBe('ellipsis');
-	});
-
-	it('keeps every phone hierarchy-menu action touch-safe inside a single scrollable column', () => {
-		const style = document.createElement('style');
-		style.dataset.bulletZoomTest = 'true';
-		style.textContent = readProjectFile('styles.css');
-		document.head.append(style);
-		document.body.classList.add('is-mobile', 'is-phone');
-		const menu = document.createElement('div');
-		menu.className = 'bullet-zoom-hierarchy-menu is-mobile';
-		const column = document.createElement('div');
-		column.className = 'bullet-zoom-hierarchy-column';
-		const back = document.createElement('button');
-		back.className = 'bullet-zoom-hierarchy-back';
-		const label = document.createElement('button');
-		label.className = 'bullet-zoom-hierarchy-label';
-		const child = document.createElement('button');
-		child.className = 'bullet-zoom-hierarchy-child-trigger';
-		column.append(back, label, child);
-		menu.append(column);
-		document.body.append(menu);
-
-		const menuStyle = getComputedStyle(menu);
-		const columnStyle = getComputedStyle(column);
-		expect(menuStyle.maxWidth).toBe('100%');
-		expect(menuStyle.overflowX).toBe('hidden');
-		expect(columnStyle.overflowY).toBe('auto');
-		for (const control of [back, label, child]) {
-			const controlStyle = getComputedStyle(control);
-			expect(controlStyle.minWidth).toBe('44px');
-			expect(controlStyle.minHeight).toBe('44px');
-		}
 	});
 
 	it('creates a focused writing surface on desktop and phone without changing sibling panes', () => {
@@ -306,19 +267,23 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(selectors).not.toContain('.cm-activeLine');
 	});
 
-	it('shows only the active inline Zoom phone control with a safe touch target', () => {
+	it('shows only the active inline Zoom phone control without expanding line geometry', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
-		style.textContent = readProjectFile('styles.css');
+		style.textContent = `${readProjectFile('styles.css')}\n.bullet-zoom-test-editor-line { font-size: 20px; line-height: 28px; }`;
 		document.head.append(style);
 		document.body.classList.add('is-mobile', 'is-phone');
 		const inactiveLine = document.createElement('div');
 		inactiveLine.className = 'cm-line';
 		const activeLine = document.createElement('div');
-		activeLine.className = 'cm-line';
+		activeLine.className = 'cm-line bullet-zoom-test-editor-line';
 		const inactiveControl = document.createElement('button');
 		inactiveControl.className =
 			'bullet-zoom-row-control bullet-zoom-enter-control';
+		const icon = document.createElement('span');
+		icon.className = 'bullet-zoom-row-icon';
+		icon.textContent = '↘';
+		inactiveControl.append(icon);
 		const activeControl = inactiveControl.cloneNode() as HTMLButtonElement;
 		activeControl.classList.add('is-mobile-active');
 		inactiveLine.append(inactiveControl);
@@ -327,15 +292,33 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		const inactiveStyle = getComputedStyle(inactiveControl);
 		const activeStyle = getComputedStyle(activeControl);
+		expect(inactiveStyle.display).toBe('none');
 		expect(inactiveStyle.visibility).toBe('hidden');
 		expect(inactiveStyle.pointerEvents).toBe('none');
-		expect(inactiveStyle.minWidth).toBe('24px');
-		expect(inactiveStyle.minHeight).toBe('24px');
+		expect(Number.parseFloat(inactiveStyle.minWidth)).toBe(0);
+		expect(Number.parseFloat(inactiveStyle.minHeight)).toBe(0);
+		expect(activeStyle.display).toBe('inline-flex');
 		expect(activeStyle.visibility).toBe('visible');
 		expect(activeStyle.pointerEvents).toBe('auto');
-		expect(activeStyle.minWidth).toBe('44px');
-		expect(activeStyle.minHeight).toBe('44px');
-		expect(activeStyle.maxWidth).toBe('100%');
-		expect(activeStyle.position).toBe('static');
+		expect(Number.parseFloat(activeStyle.minWidth)).toBe(0);
+		expect(Number.parseFloat(activeStyle.minHeight)).toBe(0);
+		expect(activeStyle.padding).toBe('0px');
+		expect(Number.parseFloat(activeStyle.getPropertyValue('margin-block'))).toBe(
+			0,
+		);
+		expect(Number.parseFloat(activeStyle.borderRadius)).toBe(0);
+		expect(activeStyle.backgroundColor).toBe('rgba(0, 0, 0, 0)');
+		expect(activeStyle.fontSize).toBe('inherit');
+		expect(activeStyle.lineHeight).toBe('inherit');
+		expect(getComputedStyle(activeLine).fontSize).toBe('20px');
+		expect(getComputedStyle(activeLine).lineHeight).toBe('28px');
+		expect(activeStyle.position).toBe('relative');
+		const selectors = Array.from(style.sheet?.cssRules ?? [])
+			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+			.map((rule) => rule.selectorText)
+			.join('\n');
+		expect(selectors).not.toContain(
+			'.bullet-zoom-row-control.is-mobile-active::before',
+		);
 	});
 });
