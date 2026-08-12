@@ -4,10 +4,10 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.10` 候選版
-- 目前公開 BRAT 版本：`0.1.8`
+- 目前開發版本：`0.1.10`
+- 目前公開 BRAT 版本：`0.1.10`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.10` 候選版已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證行尾控制、巢狀聚焦、收合狀態與淺／深色呈現；正式 Vault 仍維持公開版 `0.1.8`
+- 桌面版人工驗收：`0.1.10` 已於 2026-08-12 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證行尾控制、巢狀聚焦、收合狀態與淺／深色呈現；正式 Vault 仍維持已安裝的 `0.1.8`
 - 手機版自動驗收：`0.1.10` 以 DOM 與 CSS 測試固定 Bike 風格單列導覽，以及只在目前編輯行顯示 44 × 44 CSS px 行尾 Zoom 控制；這不代表實體 iPhone 已通過
 - 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.8` 已發佈，editor-only 捲動及收合／Zoom 分流仍待實體 iPhone 複驗
 - 正式 Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
@@ -73,7 +73,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.8`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Vault 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新 GitHub Release 是 `0.1.10`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -228,7 +228,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - 桌面實測確認 Parent 收合箭頭會隱藏／展開完整子 thread，過程不建立 Breadcrumb，Markdown 原文仍為 213 characters
 - Test Vault 主題已恢復為 `Adapt to system`，Obsidian 已切回 Vault；正式 Vault、GitHub Release、BRAT 公開版與實體 iPhone 皆尚未更新
 
-2026-08-12 完成 `0.1.10` 候選版驗證：
+2026-08-12 完成 `0.1.10` 驗證與發佈：
 
 - 每個可聚焦的普通 Bullet 第一行尾端新增原生 `↳` 按鈕；目前聚焦根節點省略自己的按鈕，可見子節點仍能繼續往內聚焦
 - 桌面版只在滑鼠 hover 該列或按鈕取得鍵盤焦點時顯示；文字游標所在的 active line 不再自動顯示，避免編輯畫面同時出現過多控制
@@ -244,11 +244,13 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.10`
 - 專用 `.test-vault` 已換入 `0.1.10` 三檔 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `513bb18e95c9156b13b97312d4ab495dedfcb0cf1907c257e6b0b028a3a3830d`、`372d38265128b33705945e989b447acac3e6655f5754e604afc3a7c76505b9e5`、`7cc13442cd93bbe30909c35d0c09346c270807757618aafbfdf6cf9a769337c6`
 - 在 macOS Obsidian `1.13.7` 專用 `.test-vault` 實際操作：第一層與巢狀行尾控制都能建立正確 Breadcrumb；收合中的 `Parent A` 仍保留原生收合狀態，透過相同 focus transition 聚焦後不改 Markdown，測試筆記維持 213 characters；淺色與深色主題的控制都使用 Obsidian theme tokens，不形成高彩度常駐按鈕
-- 實體 iPhone、正式 Vault、GitHub Release 與 BRAT 公開版皆尚未更新；手機／平板的 active-line、44 px 尺寸與無水平溢出目前只由 DOM／CSS 自動測試固定，不宣稱實機通過
+- [GitHub Release `0.1.10`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.10) 已發佈；Actions run [`31589412529`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31589412529) 通過，tag 指向已驗證的公開 main commit `067345e`
+- Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `513bb18e95c9156b13b97312d4ab495dedfcb0cf1907c257e6b0b028a3a3830d`、`372d38265128b33705945e989b447acac3e6655f5754e604afc3a7c76505b9e5`、`7cc13442cd93bbe30909c35d0c09346c270807757618aafbfdf6cf9a769337c6`，與 canonical build 逐檔一致
+- 實體 iPhone 與正式 Vault 仍維持待更新／待複驗；手機／平板的 active-line、44 px 尺寸與無水平溢出目前只由 DOM／CSS 自動測試固定，不宣稱實機通過
 
 ### 桌面版人工驗收
 
-基準環境：macOS、Obsidian `1.13.5`；`0.1.10` 候選版使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
+基準環境：macOS、Obsidian `1.13.5`；`0.1.10` 使用 Obsidian `1.13.7`、專用 `.test-vault`、即時預覽模式。
 
 | 檢查項目 | 結果 | 實際觀察 |
 | --- | --- | --- |
