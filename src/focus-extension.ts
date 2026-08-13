@@ -27,6 +27,10 @@ import {
 	type Breadcrumb,
 	type BranchRange,
 } from './list-structure';
+import {
+	closeOutlineSwitcher,
+	openOutlineSwitcher,
+} from './outline-switcher';
 
 export const LIVE_PREVIEW_REQUIRED_NOTICE =
 	'Bullet Zoom 第一版只支援即時預覽模式。';
@@ -59,6 +63,10 @@ export const focusLivePreview = Facet.define<boolean, boolean>({
 });
 
 const focusPhoneMode = Facet.define<boolean, boolean>({
+	combine: (values) => values[values.length - 1] ?? false,
+});
+
+const focusMobileMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
@@ -200,7 +208,7 @@ const focusDecorations = EditorView.decorations.compute(
 );
 
 const markerDecoration = Decoration.mark({ class: 'bullet-zoom-marker' });
-type BulletRowControlMode = 'enter' | 'exit';
+type BulletRowControlMode = 'enter' | 'parent';
 type BulletRowControlOwner = Readonly<{
 	view: EditorView;
 	mode: BulletRowControlMode;
@@ -228,16 +236,21 @@ class BulletRowControlWidget extends WidgetType {
 	constructor(
 		private readonly label: string,
 		private readonly mode: BulletRowControlMode,
+		private readonly previousLevelLabel: string | null,
 	) {
 		super();
 	}
 
 	eq(other: BulletRowControlWidget): boolean {
-		return this.label === other.label && this.mode === other.mode;
+		return (
+			this.label === other.label &&
+			this.mode === other.mode &&
+			this.previousLevelLabel === other.previousLevelLabel
+		);
 	}
 
-	ignoreEvent(event: Event): boolean {
-		return event.type !== 'click';
+	ignoreEvent(): boolean {
+		return true;
 	}
 
 	toDOM(view: EditorView): HTMLElement {
@@ -247,16 +260,24 @@ class BulletRowControlWidget extends WidgetType {
 		button.className = `bullet-zoom-row-control bullet-zoom-${this.mode}-control`;
 		rowControlOwners.set(button, { view, mode: this.mode });
 		const accessibleLabel =
-			this.mode === 'exit'
-				? `退出聚焦「${label}」，回到全文`
+			this.mode === 'parent'
+				? `回到上一層「${this.previousLevelLabel ?? '全文'}」`
 				: `聚焦「${label}」`;
 		button.title = accessibleLabel;
 		button.setAttribute('aria-label', accessibleLabel);
+		button.addEventListener('click', (event) => {
+			if (!activateBulletRowControl(view, button, this.mode)) {
+				return;
+			}
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			view.focus();
+		});
 
 		const icon = button.ownerDocument.createElement('span');
 		icon.className = 'bullet-zoom-row-icon';
 		icon.setAttribute('aria-hidden', 'true');
-		icon.textContent = this.mode === 'exit' ? '↖' : '↘';
+		icon.textContent = this.mode === 'parent' ? '↖' : '↘';
 		button.append(icon);
 		return button;
 	}
@@ -269,7 +290,10 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 
 	const ranges = [];
 	const folds = getActiveFoldRanges(view.state);
-	const focusAnchor = getFocusSession(view.state)?.anchor ?? null;
+	const focusSession = getFocusSession(view.state);
+	const focusAnchor = focusSession?.anchor ?? null;
+	const previousLevelLabel =
+		focusSession?.breadcrumbs.at(-2)?.label ?? null;
 	const visitedLines = new Set<number>();
 	for (const visibleRange of view.visibleRanges) {
 		let line = view.state.doc.lineAt(visibleRange.from);
@@ -288,7 +312,10 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 						Decoration.widget({
 							widget: new BulletRowControlWidget(
 								bullet.label,
-								bullet.markerFrom === focusAnchor ? 'exit' : 'enter',
+								bullet.markerFrom === focusAnchor ? 'parent' : 'enter',
+								bullet.markerFrom === focusAnchor
+									? previousLevelLabel
+									: null,
 							),
 							side: 1,
 						}).range(bullet.lineTo),
@@ -394,6 +421,36 @@ export function enterFocusAt(
 	return true;
 }
 
+function activateBulletRowControl(
+	view: EditorView,
+	control: HTMLElement,
+	mode: BulletRowControlMode,
+): boolean {
+	const owner = rowControlOwners.get(control);
+	if (
+		owner?.view !== view ||
+		owner.mode !== mode ||
+		!control.isConnected ||
+		!view.dom.contains(control)
+	) {
+		return false;
+	}
+
+	const position = view.posAtDOM(control);
+	if (mode === 'parent') {
+		const session = getFocusSession(view.state);
+		const bullet = findSupportedBullet(view.state, position);
+		return (
+			session !== null &&
+			bullet !== null &&
+			bullet.markerFrom === session.anchor &&
+			focusParent(view)
+		);
+	}
+
+	return enterFocusAt(view, position, true);
+}
+
 const markerClickHandler = EditorView.domEventHandlers({
 	click: (event, view) => {
 		const elementConstructor = view.dom.ownerDocument.defaultView?.HTMLElement;
@@ -407,33 +464,15 @@ const markerClickHandler = EditorView.domEventHandlers({
 			return false;
 		}
 
-		const rowControl = event.target.closest<HTMLElement>(
-			'.bullet-zoom-row-control',
-		);
-		const rowControlOwner =
-			rowControl === null ? undefined : rowControlOwners.get(rowControl);
-		if (rowControl !== null && rowControlOwner?.view !== view) {
+		if (event.target.closest('.bullet-zoom-row-control') !== null) {
 			return false;
 		}
 		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
-		const activationTarget = rowControl ?? marker;
-		if (activationTarget === null || !view.dom.contains(activationTarget)) {
+		if (marker === null || !view.dom.contains(marker)) {
 			return false;
 		}
 
-		const position = view.posAtDOM(activationTarget);
-		if (rowControlOwner?.mode === 'exit') {
-			const session = getFocusSession(view.state);
-			const bullet = findSupportedBullet(view.state, position);
-			if (
-				session === null ||
-				bullet === null ||
-				bullet.markerFrom !== session.anchor ||
-				!exitFocus(view)
-			) {
-				return false;
-			}
-		} else if (!enterFocusAt(view, position, true)) {
+		if (!enterFocusAt(view, view.posAtDOM(marker), true)) {
 			return false;
 		}
 
@@ -477,6 +516,29 @@ class FocusedPanePresentationPlugin implements PluginValue {
 
 const focusedPanePresentationPlugin = ViewPlugin.fromClass(
 	FocusedPanePresentationPlugin,
+);
+
+class OutlineSwitcherLifecyclePlugin implements PluginValue {
+	constructor(private readonly view: EditorView) {}
+
+	update(update: ViewUpdate): void {
+		if (
+			update.docChanged ||
+			update.startState.facet(focusFilePath) !==
+				update.state.facet(focusFilePath) ||
+			getFocusSession(update.startState) !== getFocusSession(update.state)
+		) {
+			closeOutlineSwitcher(update.view, false);
+		}
+	}
+
+	destroy(): void {
+		closeOutlineSwitcher(this.view, false);
+	}
+}
+
+const outlineSwitcherLifecyclePlugin = ViewPlugin.fromClass(
+	OutlineSwitcherLifecyclePlugin,
 );
 
 function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
@@ -544,6 +606,42 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 		});
 		container.append(button);
 	}
+
+	const switcher = container.ownerDocument.createElement('button');
+	switcher.type = 'button';
+	switcher.className = 'bullet-zoom-outline-trigger';
+	switcher.title = '切換 Bullet';
+	switcher.setAttribute('aria-label', '切換 Bullet');
+	const switcherIcon = container.ownerDocument.createElement('span');
+	switcherIcon.className = 'bullet-zoom-outline-trigger-icon';
+	switcherIcon.setAttribute('aria-hidden', 'true');
+	switcherIcon.textContent = '☷';
+	switcher.append(switcherIcon);
+	switcher.addEventListener('click', () => {
+		const capturedSession = getFocusSession(view.state);
+		if (capturedSession === null) {
+			return;
+		}
+		openOutlineSwitcher({
+			view,
+			trigger: switcher,
+			currentAnchor: capturedSession.anchor,
+			noteTitle: capturedSession.breadcrumbs[0]?.label ?? '未命名筆記',
+			filePath: capturedSession.filePath,
+			getFilePath: () => view.state.facet(focusFilePath) ?? '',
+			isMobile: view.state.facet(focusMobileMode),
+			isContextValid: () => {
+				const currentSession = getFocusSession(view.state);
+				return (
+					currentSession?.filePath === capturedSession.filePath &&
+					currentSession.anchor === capturedSession.anchor
+				);
+			},
+			onFocus: (anchor) => enterFocusAt(view, anchor, true),
+			onExit: () => exitFocus(view),
+		});
+	});
+	container.append(switcher);
 }
 
 function createBreadcrumbContainer(
@@ -800,9 +898,11 @@ export function runParentCommand(
 
 export function createFocusExtension({
 	isPhone,
-}: Readonly<{ isPhone: boolean }>): Extension {
+	isMobile,
+}: Readonly<{ isPhone: boolean; isMobile: boolean }>): Extension {
 	return [
 		focusPhoneMode.of(isPhone),
+		focusMobileMode.of(isMobile),
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
@@ -810,6 +910,7 @@ export function createFocusExtension({
 		bulletMarkerPlugin,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
+		outlineSwitcherLifecyclePlugin,
 		breadcrumbPanelExtension,
 	];
 }
