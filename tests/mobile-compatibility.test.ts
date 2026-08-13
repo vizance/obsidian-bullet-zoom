@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.16');
+		expect(manifest.version).toBe('0.1.17');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.16');
-		expect(packageLock.version).toBe('0.1.16');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.16');
+		expect(packageManifest.version).toBe('0.1.17');
+		expect(packageLock.version).toBe('0.1.17');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.17');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -64,6 +64,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.14']).toBe('1.11.7');
 		expect(versions['0.1.15']).toBe('1.11.7');
 		expect(versions['0.1.16']).toBe('1.11.7');
+		expect(versions['0.1.17']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -318,11 +319,13 @@ describe('mobile-compatible plugin bundle contract', () => {
 		},
 	);
 
-	it('keeps inline Zoom controls persistently visible on desktop and mobile', () => {
+	it('supports persistent, desktop hover-only, and touch-safe row controls', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
 		document.head.append(style);
+		const editor = document.createElement('div');
+		editor.className = 'bullet-zoom-row-controls-always-visible';
 		const line = document.createElement('div');
 		line.className = 'cm-line';
 		const control = document.createElement('button');
@@ -332,17 +335,20 @@ describe('mobile-compatible plugin bundle contract', () => {
 		icon.textContent = '↘';
 		control.append(icon);
 		line.append(control);
-		document.body.append(line);
+		editor.append(line);
+		document.body.append(editor);
 
 		expect(getComputedStyle(control).visibility).toBe('visible');
 		expect(getComputedStyle(control).display).toBe('inline-flex');
 		expect(getComputedStyle(control).opacity).toBe('1');
 		expect(getComputedStyle(control).pointerEvents).toBe('auto');
+		editor.className = 'bullet-zoom-row-controls-hover-only';
+		expect(getComputedStyle(control).opacity).toBe('0');
+		expect(getComputedStyle(control).pointerEvents).toBe('none');
 		line.classList.add('cm-activeLine');
-		expect(getComputedStyle(control).opacity).toBe('1');
-		expect(getComputedStyle(control).pointerEvents).toBe('auto');
+		expect(getComputedStyle(control).opacity).toBe('0');
 		line.classList.remove('cm-activeLine');
-		document.body.classList.add('is-mobile', 'is-phone');
+		editor.classList.add('bullet-zoom-row-controls-touch');
 		expect(getComputedStyle(control).display).toBe('inline-flex');
 		expect(getComputedStyle(control).visibility).toBe('visible');
 		expect(getComputedStyle(control).opacity).toBe('1');
@@ -353,8 +359,30 @@ describe('mobile-compatible plugin bundle contract', () => {
 			.map((rule) => rule.selectorText)
 			.join('\n');
 		expect(selectors).not.toContain('.is-mobile-active');
-		expect(selectors).not.toContain('.cm-line:hover');
+		expect(selectors).toContain('.cm-line:hover');
 		expect(selectors).not.toContain('.cm-activeLine');
+	});
+
+	it('keeps a hidden mobile overflow preview out of layout', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const preview = document.createElement('button');
+		preview.className = 'bullet-zoom-outline-sidebar-preview';
+		preview.hidden = true;
+		document.body.append(preview);
+		expect(getComputedStyle(preview).display).toBe('none');
+	});
+
+	it('keeps outline labels to one width-sensitive ellipsis line', () => {
+		const source = readProjectFile('styles.css');
+		expect(source).toMatch(
+			/\.bullet-zoom-outline-sidebar-label\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s,
+		);
+		expect(source).toMatch(
+			/\.bullet-zoom-outline-sidebar-body\s*\{[^}]*overflow-x:\s*hidden;/s,
+		);
 	});
 
 	it.each([

@@ -31,6 +31,8 @@ import {
 	runExitCommand,
 	runFocusCommand,
 	runParentCommand,
+	setRowControlsAlwaysVisible,
+	setRowControlsAlwaysVisibleForViews,
 	SUPPORTED_BULLET_REQUIRED_NOTICE,
 } from '../src/focus-extension';
 
@@ -40,8 +42,8 @@ function createState(
 	additionalExtensions: Extension = [],
 	isPhone = false,
 	isMobile = isPhone,
+	alwaysShowRowControls = true,
 ): EditorState {
-	void isMobile;
 	return EditorState.create({
 		doc: document,
 		extensions: [
@@ -49,7 +51,11 @@ function createState(
 			focusFilePath.of(filePath),
 			focusNoteTitle.of(filePath.replace(/\.md$/, '')),
 			focusLivePreview.of(true),
-			createFocusExtension({ isPhone }),
+			createFocusExtension({
+				isPhone,
+				isMobile,
+				alwaysShowRowControls,
+			}),
 			additionalExtensions,
 		],
 	});
@@ -103,6 +109,117 @@ function foldLine(view: EditorView, lineNumber: number): {
 	return range;
 }
 
+describe('row-control visibility state', () => {
+	function createVisibilityView(
+		alwaysShowRowControls: boolean,
+		isMobile = false,
+	): { parent: HTMLDivElement; view: EditorView } {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		return {
+			parent,
+			view: new EditorView({
+				parent,
+				state: createState(
+					'- Parent\n  - Child',
+					'Ideas.md',
+					[],
+					false,
+					isMobile,
+					alwaysShowRowControls,
+				),
+			}),
+		};
+	}
+
+	it('starts in the configured always-visible mode', () => {
+		const { parent, view } = createVisibilityView(true);
+		expect(view.dom.classList).toContain(
+			'bullet-zoom-row-controls-always-visible',
+		);
+		expect(view.dom.classList).not.toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('starts in desktop hover-only mode without a touch override', () => {
+		const { parent, view } = createVisibilityView(false);
+		expect(view.dom.classList).toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		expect(view.dom.classList).not.toContain(
+			'bullet-zoom-row-controls-touch',
+		);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('keeps the touch-platform override in hover-only mode', () => {
+		const { parent, view } = createVisibilityView(false, true);
+		expect(view.dom.classList).toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		expect(view.dom.classList).toContain(
+			'bullet-zoom-row-controls-touch',
+		);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('updates one owning editor without changing a sibling pane', () => {
+		const first = createVisibilityView(true);
+		const second = createVisibilityView(true);
+		expect(setRowControlsAlwaysVisible(first.view, false)).toBe(true);
+		expect(first.view.dom.classList).toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		expect(second.view.dom.classList).toContain(
+			'bullet-zoom-row-controls-always-visible',
+		);
+		first.view.destroy();
+		second.view.destroy();
+		first.parent.remove();
+		second.parent.remove();
+	});
+
+	it('rejects unrelated and destroyed editor views', () => {
+		const unrelatedParent = document.createElement('div');
+		document.body.append(unrelatedParent);
+		const unrelated = new EditorView({ parent: unrelatedParent });
+		expect(setRowControlsAlwaysVisible(unrelated, false)).toBe(false);
+		unrelated.destroy();
+		unrelatedParent.remove();
+
+		const owned = createVisibilityView(true);
+		owned.view.destroy();
+		expect(setRowControlsAlwaysVisible(owned.view, false)).toBe(false);
+		owned.parent.remove();
+	});
+
+	it('broadcasts a saved value to every owned pane and skips unavailable views', () => {
+		const first = createVisibilityView(true);
+		const second = createVisibilityView(true);
+		expect(
+			setRowControlsAlwaysVisibleForViews(
+				[first.view, null, second.view],
+				false,
+			),
+		).toBe(2);
+		expect(first.view.dom.classList).toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		expect(second.view.dom.classList).toContain(
+			'bullet-zoom-row-controls-hover-only',
+		);
+		first.view.destroy();
+		second.view.destroy();
+		first.parent.remove();
+		second.parent.remove();
+	});
+});
+
 describe('per-editor focus state', () => {
 	it('keeps split pane state independent', () => {
 		const document = '- Parent\n  - Child';
@@ -138,7 +255,7 @@ describe('per-editor focus state', () => {
 				fileCompartment.of(focusFilePath.of('Ideas.md')),
 				focusNoteTitle.of('Ideas'),
 				focusLivePreview.of(true),
-				createFocusExtension({ isPhone: false }),
+				createFocusExtension({ isPhone: false, isMobile: false }),
 			],
 		});
 		const focused = focus(state, state.doc.line(2).from);
@@ -1088,7 +1205,7 @@ describe('plugin commands and safe failures', () => {
 				focusFilePath.of('Ideas.md'),
 				focusNoteTitle.of('Ideas'),
 					focusLivePreview.of(livePreview),
-					createFocusExtension({ isPhone: false }),
+					createFocusExtension({ isPhone: false, isMobile: false }),
 					additionalExtensions,
 			],
 		});
