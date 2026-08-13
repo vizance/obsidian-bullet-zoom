@@ -133,7 +133,12 @@ export function syncOutlineLabelOverflow(container: HTMLElement): void {
 		if (label === null || preview === null) {
 			continue;
 		}
-		preview.hidden = label.scrollWidth <= label.clientWidth + 1;
+		const labelText = label.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
+		const overflowTarget = labelText ?? label;
+		preview.hidden =
+			overflowTarget.scrollWidth <= overflowTarget.clientWidth + 1;
 	}
 }
 
@@ -331,8 +336,12 @@ export function renderOutlineSidebar(
 			const labelButton = createButton(
 				document,
 				'bullet-zoom-outline-sidebar-label',
-				label,
+				'',
 			);
+			const labelText = document.createElement('span');
+			labelText.className = 'bullet-zoom-outline-sidebar-label-text';
+			labelText.textContent = label;
+			labelButton.append(labelText);
 			labelButton.title = label;
 			labelButton.setAttribute('aria-label', `聚焦「${label}」`);
 			if (node.anchor === model.currentAnchor) {

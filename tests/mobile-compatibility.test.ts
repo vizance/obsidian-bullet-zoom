@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.19');
+		expect(manifest.version).toBe('0.1.20');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.19');
-		expect(packageLock.version).toBe('0.1.19');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.19');
+		expect(packageManifest.version).toBe('0.1.20');
+		expect(packageLock.version).toBe('0.1.20');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.20');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -56,6 +56,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.5']).toBe('1.11.7');
 		expect(versions['0.1.6']).toBe('1.11.7');
 		expect(versions['0.1.7']).toBe('1.11.7');
+		expect(versions['0.1.8']).toBe('1.11.7');
 		expect(versions['0.1.9']).toBe('1.11.7');
 		expect(versions['0.1.10']).toBe('1.11.7');
 		expect(versions['0.1.11']).toBe('1.11.7');
@@ -64,8 +65,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.14']).toBe('1.11.7');
 		expect(versions['0.1.15']).toBe('1.11.7');
 		expect(versions['0.1.16']).toBe('1.11.7');
+		expect(versions['0.1.17']).toBe('1.11.7');
 		expect(versions['0.1.18']).toBe('1.11.7');
 		expect(versions['0.1.19']).toBe('1.11.7');
+		expect(versions['0.1.20']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -244,7 +247,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 	it('uses one native-sidebar surface with 44px mobile actions and no overlay geometry', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
-		style.textContent = readProjectFile('styles.css');
+		style.textContent = `.is-mobile button { display: flex; justify-content: center; }\n${readProjectFile('styles.css')}`;
 		document.head.append(style);
 		document.body.classList.add('is-mobile');
 		const sidebar = document.createElement('div');
@@ -257,6 +260,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
 		const label = document.createElement('button');
 		label.className = 'bullet-zoom-outline-sidebar-label';
+		const labelText = document.createElement('span');
+		labelText.className = 'bullet-zoom-outline-sidebar-label-text';
+		labelText.textContent = '從開頭保留的長文字內容';
+		label.append(labelText);
 		const preview = document.createElement('button');
 		preview.className = 'bullet-zoom-outline-sidebar-preview';
 		preview.textContent = '…';
@@ -283,6 +290,14 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(getComputedStyle(row).gridAutoRows).toBe('minmax(44px, auto)');
 		expect(getComputedStyle(disclosure).gridArea).toBe('disclosure');
 		expect(getComputedStyle(label).gridArea).toBe('label');
+		expect(getComputedStyle(label).width).toBe('100%');
+		expect(getComputedStyle(label).maxWidth).toBe('100%');
+		expect(getComputedStyle(label).justifyContent).toBe('flex-start');
+		expect(getComputedStyle(label).textAlign).toBe('start');
+		expect(getComputedStyle(labelText).minWidth).toBe('0');
+		expect(getComputedStyle(labelText).overflow).toBe('hidden');
+		expect(getComputedStyle(labelText).textOverflow).toBe('ellipsis');
+		expect(getComputedStyle(labelText).whiteSpace).toBe('nowrap');
 		expect(getComputedStyle(preview).gridArea).toBe('preview');
 		expect(getComputedStyle(row).paddingInlineStart).toBe('24px');
 		preview.hidden = true;
@@ -412,10 +427,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(getComputedStyle(preview).display).toBe('none');
 	});
 
-	it('keeps outline labels to one width-sensitive ellipsis line', () => {
+	it('keeps outline label text to one start-preserving ellipsis line', () => {
 		const source = readProjectFile('styles.css');
 		expect(source).toMatch(
-			/\.bullet-zoom-outline-sidebar-label\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s,
+			/\.bullet-zoom-outline-sidebar-label-text\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s,
 		);
 		expect(source).toMatch(
 			/\.bullet-zoom-outline-sidebar-body\s*\{[^}]*overflow-x:\s*hidden;/s,

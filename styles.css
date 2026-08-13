@@ -357,11 +357,20 @@ button.bullet-zoom-breadcrumb {
 .bullet-zoom-outline-sidebar-label {
 	grid-area: label;
 	display: block;
+	width: 100%;
+	max-width: 100%;
 	min-width: 0;
 	min-height: 36px;
 	overflow: hidden;
 	padding: var(--size-4-2, 8px);
 	text-align: start;
+}
+
+.bullet-zoom-outline-sidebar-label-text {
+	display: block;
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -448,7 +457,11 @@ button.bullet-zoom-breadcrumb {
 .is-mobile .bullet-zoom-outline-sidebar-label {
 	display: flex;
 	align-items: center;
+	justify-content: flex-start;
+	width: 100%;
+	max-width: 100%;
 	padding: var(--size-2-1, 4px) var(--size-2-1, 4px);
+	text-align: start;
 	line-height: var(--line-height-normal);
 }
 
