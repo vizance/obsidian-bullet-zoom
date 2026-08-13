@@ -425,6 +425,11 @@ describe('native outline sidebar rendering', () => {
 		expect(container.querySelector('img')).toBeNull();
 		expect(
 			Array.from(
+				container.querySelectorAll('.bullet-zoom-outline-sidebar-label-text'),
+			).map(({ textContent }) => textContent),
+		).toEqual(['<img src=x onerror=alert(1)>', '（空白節點）']);
+		expect(
+			Array.from(
 				container.querySelectorAll('.bullet-zoom-outline-sidebar-label'),
 			).map(({ textContent }) => textContent),
 		).toEqual(['<img src=x onerror=alert(1)>', '（空白節點）']);
@@ -445,8 +450,13 @@ describe('native outline sidebar rendering', () => {
 		const label = container.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-label',
 		);
+		const labelText = label?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
 		expect(label?.title).toBe(longLabel);
 		expect(label?.textContent).toBe(longLabel);
+		expect(labelText?.textContent).toBe(longLabel);
+		expect(label?.children).toHaveLength(1);
 		expect(container.querySelector('.bullet-zoom-outline-sidebar-preview')).toBeNull();
 	});
 
@@ -470,6 +480,9 @@ describe('native outline sidebar rendering', () => {
 		const preview = container.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-preview',
 		);
+		const labelTextElement = label?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
 		expect(preview?.hidden).toBe(true);
 		if (
 			label !== null &&
@@ -477,8 +490,17 @@ describe('native outline sidebar rendering', () => {
 			preview !== null &&
 			preview !== undefined
 		) {
-			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
-			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 180 });
+			if (labelTextElement === null || labelTextElement === undefined) {
+				throw new Error('Expected an owned label text element');
+			}
+			Object.defineProperty(labelTextElement, 'clientWidth', {
+				configurable: true,
+				value: 80,
+			});
+			Object.defineProperty(labelTextElement, 'scrollWidth', {
+				configurable: true,
+				value: 180,
+			});
 			syncOutlineLabelOverflow(container);
 			expect(preview.hidden).toBe(false);
 			preview.click();
@@ -488,8 +510,11 @@ describe('native outline sidebar rendering', () => {
 				preview,
 			);
 
-			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 80 });
-			Object.defineProperty(label, 'clientWidth', {
+			Object.defineProperty(labelTextElement, 'scrollWidth', {
+				configurable: true,
+				value: 80,
+			});
+			Object.defineProperty(labelTextElement, 'clientWidth', {
 				configurable: true,
 				get: () => (preview.hidden ? 100 : 60),
 			});
@@ -534,6 +559,9 @@ describe('native outline sidebar rendering', () => {
 		const preview = row?.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-preview',
 		);
+		const labelTextElement = label?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
 
 		expect(Array.from(row?.children ?? []).map(({ className }) => className)).toEqual([
 			'bullet-zoom-outline-sidebar-disclosure',
@@ -549,11 +577,14 @@ describe('native outline sidebar rendering', () => {
 			preview !== null &&
 			preview !== undefined
 		) {
-			Object.defineProperty(label, 'clientWidth', {
+			if (labelTextElement === null || labelTextElement === undefined) {
+				throw new Error('Expected an owned label text element');
+			}
+			Object.defineProperty(labelTextElement, 'clientWidth', {
 				configurable: true,
 				value: 80,
 			});
-			Object.defineProperty(label, 'scrollWidth', {
+			Object.defineProperty(labelTextElement, 'scrollWidth', {
 				configurable: true,
 				value: 180,
 			});
@@ -667,11 +698,20 @@ describe('native outline sidebar coordinator', () => {
 		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-preview',
 		);
+		const labelTextElement = label?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
 		expect(label?.textContent).toBe('This is a long plain Bullet label');
 		expect(preview).not.toBeNull();
-		if (label !== null && preview !== null) {
-			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 90 });
-			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 240 });
+		if (label !== null && preview !== null && labelTextElement !== undefined) {
+			Object.defineProperty(labelTextElement, 'clientWidth', {
+				configurable: true,
+				value: 90,
+			});
+			Object.defineProperty(labelTextElement, 'scrollWidth', {
+				configurable: true,
+				value: 240,
+			});
 			syncOutlineLabelOverflow(fixture.sidebarView.contentEl);
 			const beforeDoc = fixture.editorView.state.doc.toString();
 			const beforeSelection = fixture.editorView.state.selection;
@@ -717,10 +757,19 @@ describe('native outline sidebar coordinator', () => {
 		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-preview',
 		);
+		const labelTextElement = label?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-label-text',
+		);
 		expect(observe).toHaveBeenCalledWith(fixture.sidebarView.contentEl);
-		if (label !== null && preview !== null) {
-			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
-			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 160 });
+		if (label !== null && preview !== null && labelTextElement !== undefined) {
+			Object.defineProperty(labelTextElement, 'clientWidth', {
+				configurable: true,
+				value: 80,
+			});
+			Object.defineProperty(labelTextElement, 'scrollWidth', {
+				configurable: true,
+				value: 160,
+			});
 			expect(resizeCallback).not.toBeNull();
 			(resizeCallback as unknown as () => void)();
 			expect(preview.hidden).toBe(false);
