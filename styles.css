@@ -47,21 +47,27 @@ button.bullet-zoom-row-control:focus-visible {
 	outline-offset: 1px;
 }
 
-.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
-	button.bullet-zoom-row-control {
+.bullet-zoom-row-controls-hover-only button.bullet-zoom-row-control {
 	opacity: 0;
 	pointer-events: none;
 }
 
-.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
-	.cm-line:hover
-	button.bullet-zoom-row-control,
-.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
+.bullet-zoom-row-controls-hover-only
 	button.bullet-zoom-row-control:focus-visible,
-.bullet-zoom-row-controls-hover-only.bullet-zoom-row-controls-touch
+.bullet-zoom-row-controls-hover-only
+	.bullet-zoom-row-control-touch-active
 	button.bullet-zoom-row-control {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.bullet-zoom-row-controls-hover-only
+		.cm-line:hover
+		button.bullet-zoom-row-control {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 
 .bullet-zoom-row-icon {

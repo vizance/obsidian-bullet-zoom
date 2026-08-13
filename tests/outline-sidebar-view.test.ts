@@ -115,6 +115,7 @@ async function createCoordinatorFixture(
 	const sidebarLeaf: MutableLeaf = { view: {}, detach: vi.fn() };
 	const handlers = new Map<string, Set<(value?: unknown) => void>>();
 	let mostRecent: MutableLeaf | null = sourceLeaf;
+	let activeEditorView: EditorView | null = null;
 	let sourceAttached = true;
 	let eligible = true;
 	let editorView: EditorView;
@@ -167,6 +168,7 @@ async function createCoordinatorFixture(
 	const coordinator = new BulletOutlineSidebarCoordinator({
 		workspace: workspace as unknown as Workspace,
 		isMobile,
+		getActiveEditorView: () => activeEditorView,
 		resolveEditorView: (leaf) =>
 			editorByLeaf.get(leaf as unknown as MutableLeaf) ?? null,
 		isEditorEligible: () => eligible,
@@ -209,6 +211,7 @@ async function createCoordinatorFixture(
 		}),
 	});
 	editorByLeaf.set(sourceLeaf, editorView);
+	activeEditorView = editorView;
 	filePaths.set(editorView, 'Ideas.md');
 	currentAnchors.set(editorView, null);
 	const focusEditor = vi
@@ -1650,6 +1653,19 @@ describe('native outline sidebar coordinator', () => {
 		const fixture = await createCoordinatorFixture('- Parent');
 		fixture.ensureSideLeaf.mockRejectedValueOnce(new Error('workspace unavailable'));
 		await expect(fixture.coordinator.openCurrent()).resolves.toBe('failed');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('opens the active mobile editor when no recent root leaf is available', async () => {
+		const fixture = await createCoordinatorFixture('- Current mobile note', true);
+		fixture.coordinator.notifyEditorDestroyed(fixture.editorView);
+		fixture.emit('active-leaf-change', null);
+
+		await expect(fixture.coordinator.openCurrent()).resolves.toBe('opened');
+		expect(fixture.sidebarView.contentEl.textContent).toContain(
+			'Current mobile note',
+		);
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
