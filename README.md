@@ -5,7 +5,7 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 ## 目前狀態
 
 - 目前開發版本：`0.1.15`
-- 目前公開 BRAT 版本：`0.1.14`
+- 目前公開 BRAT 版本：`0.1.15`
 - 最低 Obsidian 版本：`1.11.7`
 - 桌面版人工驗收：`0.1.15` 已於 2026-08-13 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證選單式切換與三層行尾 `↖` 會依序返回 Child、Parent、全文；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
 - 手機版自動驗收：`0.1.15` 已加入 phone／tablet 底部選單、44 × 44 CSS px 控制、鍵盤可視高度、無水平溢出、pane lifecycle，以及不依賴 editor click bubbling 的 iPad 行尾按鈕回歸，並延續 `0.1.14` 的真實 CodeMirror fold-state 測試；jsdom 不具真實 iOS 排版、觸控合成與鍵盤動畫，這不代表實體 iPhone 或 iPad 已通過
@@ -85,7 +85,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`
 - `styles.css`
 
-桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新公開 GitHub Release 是 `0.1.14`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
+桌面版和手機版都使用同一個 repo。若手機的 Second Brain 已透過 Obsidian Sync 同步設定，也可以直接在手機的 BRAT 加入同一個路徑。目前最新公開 GitHub Release 是 `0.1.15`，可直接透過 BRAT 更新。實體手機更新與複驗完成前，不宣稱手機 UX 已正式通過。
 
 ### 手動安裝（備用）
 
@@ -315,7 +315,7 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `6820896682677c443234101ffab73b5c917f25f2692f26d4f3b22c6047536125`、`0639e3fd82a4ef12ca79270cb801e6dee5b72dfe4d3761b48395fa23448ee94b`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，與 canonical build 逐檔一致
 - 公開 BRAT 已更新為 `0.1.14`；實體 iPhone 的 folded-target Zoom、點擊後行高、鍵盤 viewport 與捲動仍待獨立複驗，桌面人工驗收與自動測試不代替手機實機狀態
 
-2026-08-13 建立 `0.1.15` 選單式 Bullet 切換候選版：
+2026-08-13 完成 `0.1.15` 選單式 Bullet 切換候選版、桌面驗收與正式發布：
 
 - Breadcrumb 最右側新增獨立的「切換 Bullet」按鈕；筆記、祖先、目前節點與 separator 維持原本角色，hover 或 activation 不會自行開啟選單
 - 目前 Markdown 文件的所有支援 Bullet 會建立成 immutable outline tree；folded／offscreen 節點仍保留，重複 label 使用 marker anchor 區分，Heading、Task、編號、frontmatter 與 fenced code 排除
@@ -326,7 +326,9 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.15`
 - 專用 `.test-vault` 已換入 `0.1.15` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `473ac67c8789a723e4ff18d9d31a1ad34069315e6f16a51c29b01081ce31ab82`、`228d4bb82c98ab4b963eb9c9084b88b8b77d4ed6e83c9ae09f68e0db949fd299`、`a36e765fac1a859a8626394edd32e4eecb64bfdfb346f60e0447128f1eab208f`，逐檔 byte-identical
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：從 `Parent A` 開啟獨立「切換 Bullet」按鈕時，breadcrumb 維持純導航；選單先顯示兩個 root，`Parent A` 的 `›` 可展開 `Child A1`、`Child A2` 與下一層兩個 Grandchild，點擊 `Child A1` 文字會立即切換 focus 並關閉選單；另從 `Grandchild A1a` 的行尾 `↖` 實際依序返回 `Child A1`、`Parent A`、全文，每一層只顯示一個行尾反向控制；淺色與深色模式皆能讀取、Escape 可關閉、驗收前後皆為 36 words、214 characters
-- 實體 iPhone 的 bottom sheet、鍵盤 `visualViewport` 動畫、Light／Dark、folded target 與深層 drill-down，以及實體 iPad 的行尾單次 tap 尚未執行；目前公開 GitHub Release 與 BRAT 仍為 `0.1.14`，不把自動測試或桌面驗收視為行動裝置實機通過
+- 公開 pull request [`vizance/obsidian-bullet-zoom#3`](https://github.com/vizance/obsidian-bullet-zoom/pull/3) 已合併至 `main` commit `0e1de98`；[GitHub Release `0.1.15`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.15) 已發佈並標記為 Latest，Actions run [`31660633278`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31660633278) 通過
+- Release 下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `473ac67c8789a723e4ff18d9d31a1ad34069315e6f16a51c29b01081ce31ab82`、`228d4bb82c98ab4b963eb9c9084b88b8b77d4ed6e83c9ae09f68e0db949fd299`、`a36e765fac1a859a8626394edd32e4eecb64bfdfb346f60e0447128f1eab208f`，與 canonical build 逐檔 byte-identical；公開 BRAT 已可安裝 `0.1.15`
+- 實體 iPhone 的 bottom sheet、鍵盤 `visualViewport` 動畫、Light／Dark、folded target 與深層 drill-down，以及實體 iPad 的行尾單次 tap 尚未執行；不把自動測試、桌面驗收或 Release 資產驗證視為行動裝置實機通過
 
 ### 桌面版人工驗收
 
