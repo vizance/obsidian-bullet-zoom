@@ -64,6 +64,8 @@ Obsidian 左側的原生收合箭頭只負責收合或展開 Bullet thread，不
 - 點擊「全文」：離開 Zoom。
 - 文字游標移到支援的 Bullet 時，側邊欄會同步展開路徑並標示目前節點，但不會自行 Zoom。
 
+手機與平板沿用 Obsidian 原生右側 drawer。開啟時只自動展開目前 Bullet 所在路徑；每個節點固定維持一列，左側 disclosure、中間文字與需要時才顯示的 `…` 不會拆成額外空白行。成功 Zoom 後會自動回到原本的筆記。
+
 過長的 Bullet 會以單行 `...` 顯示，Markdown 粗體、斜體、刪除線、inline code 與連結語法會轉成純文字：
 
 - 桌面版：滑鼠停在文字上可查看全文。
@@ -112,9 +114,9 @@ Bullet Zoom 不提供預設快捷鍵，以免和 Outliner 或你的 Vault 設定
 
 ## 手機與平板說明
 
-插件與 BRAT 安裝包支援桌面版、手機與平板，並針對手機 Breadcrumb、editor-only 捲動、原生 drawer 與 iPad 點擊事件加入自動測試。
+插件與 BRAT 安裝包支援桌面版、手機與平板，並針對手機 Breadcrumb、editor-only 捲動、原生 drawer、單列大綱排版與 iPad 點擊事件加入自動測試。
 
-自動測試無法完整模擬 iOS 鍵盤、Dynamic Island、真實觸控排版與不同 Obsidian 主題。如果遇到畫面被遮住、點擊區域異常或捲動位置不正確，請附上裝置、OS、Obsidian 版本與截圖回報。
+這些自動測試只固定 DOM 與 CSS 契約，無法完整模擬 iOS 鍵盤、Dynamic Island、真實觸控排版與不同 Obsidian 主題。每個候選版本仍需在實體 iPhone 與 iPad 驗收；如果遇到畫面被遮住、點擊區域異常或捲動位置不正確，請附上裝置、OS、Obsidian 版本與截圖回報。
 
 ## 疑難排解
 

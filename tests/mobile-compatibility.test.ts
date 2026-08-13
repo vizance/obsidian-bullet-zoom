@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.18');
+		expect(manifest.version).toBe('0.1.19');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.18');
-		expect(packageLock.version).toBe('0.1.18');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.18');
+		expect(packageManifest.version).toBe('0.1.19');
+		expect(packageLock.version).toBe('0.1.19');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.19');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -65,6 +65,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.15']).toBe('1.11.7');
 		expect(versions['0.1.16']).toBe('1.11.7');
 		expect(versions['0.1.18']).toBe('1.11.7');
+		expect(versions['0.1.19']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -256,7 +257,10 @@ describe('mobile-compatible plugin bundle contract', () => {
 		disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
 		const label = document.createElement('button');
 		label.className = 'bullet-zoom-outline-sidebar-label';
-		row.append(disclosure, label);
+		const preview = document.createElement('button');
+		preview.className = 'bullet-zoom-outline-sidebar-preview';
+		preview.textContent = '…';
+		row.append(disclosure, label, preview);
 		body.append(row);
 		sidebar.append(body);
 		document.body.append(sidebar);
@@ -268,7 +272,21 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(getComputedStyle(disclosure).minHeight).toBe('44px');
 		expect(getComputedStyle(disclosure).minWidth).toBe('44px');
 		expect(getComputedStyle(label).minHeight).toBe('44px');
-		expect(getComputedStyle(row).paddingInlineStart).toBe('48px');
+		expect(getComputedStyle(preview).minHeight).toBe('44px');
+		expect(getComputedStyle(preview).minWidth).toBe('44px');
+		expect(getComputedStyle(row).gridTemplateColumns).toBe(
+			'44px minmax(0, 1fr) auto',
+		);
+		expect(getComputedStyle(row).gridTemplateAreas).toBe(
+			"'disclosure label preview'",
+		);
+		expect(getComputedStyle(row).gridAutoRows).toBe('minmax(44px, auto)');
+		expect(getComputedStyle(disclosure).gridArea).toBe('disclosure');
+		expect(getComputedStyle(label).gridArea).toBe('label');
+		expect(getComputedStyle(preview).gridArea).toBe('preview');
+		expect(getComputedStyle(row).paddingInlineStart).toBe('24px');
+		preview.hidden = true;
+		expect(getComputedStyle(preview).display).toBe('none');
 		expect(readProjectFile('styles.css')).not.toContain(
 			'.bullet-zoom-outline-layer',
 		);
@@ -276,12 +294,13 @@ describe('mobile-compatible plugin bundle contract', () => {
 	});
 
 	it.each(['theme-light', 'theme-dark'])(
-		'uses theme tokens without changing editor or breadcrumb line geometry in %s',
+		'uses compact 44px mobile controls and theme tokens without changing editor geometry in %s',
 		(theme) => {
 			const style = document.createElement('style');
 			style.dataset.bulletZoomTest = 'true';
 			style.textContent = `${readProjectFile('styles.css')}\n.bullet-zoom-test-line { line-height: 28px; }`;
 			document.head.append(style);
+			document.body.classList.add('is-mobile');
 			document.documentElement.classList.add(theme);
 			const line = document.createElement('div');
 			line.className = 'cm-line bullet-zoom-test-line';
@@ -292,6 +311,13 @@ describe('mobile-compatible plugin bundle contract', () => {
 			sidebar.className = 'bullet-zoom-outline-sidebar';
 			const row = document.createElement('div');
 			row.className = 'bullet-zoom-outline-sidebar-row is-current';
+			const disclosure = document.createElement('button');
+			disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
+			const label = document.createElement('button');
+			label.className = 'bullet-zoom-outline-sidebar-label';
+			const preview = document.createElement('button');
+			preview.className = 'bullet-zoom-outline-sidebar-preview';
+			row.append(disclosure, label, preview);
 			sidebar.append(row);
 			document.body.append(line, breadcrumbs, sidebar);
 
@@ -306,6 +332,13 @@ describe('mobile-compatible plugin bundle contract', () => {
 			);
 			expect(sidebarRule?.style.background).toBe('var(--background-primary)');
 			expect(sidebarRule?.style.color).toBe('var(--text-normal)');
+			expect(getComputedStyle(sidebar).fontSize).toBe('var(--font-ui-small)');
+			expect(getComputedStyle(row).minHeight).toBe('44px');
+			expect(getComputedStyle(disclosure).minWidth).toBe('44px');
+			expect(getComputedStyle(disclosure).minHeight).toBe('44px');
+			expect(getComputedStyle(label).minHeight).toBe('44px');
+			expect(getComputedStyle(preview).minWidth).toBe('44px');
+			expect(getComputedStyle(preview).minHeight).toBe('44px');
 			expect(readProjectFile('styles.css')).toMatch(
 				/\.bullet-zoom-outline-sidebar-row\.is-current\s*\{[^}]*var\(--interactive-accent\)/s,
 			);

@@ -471,7 +471,12 @@ describe('native outline sidebar rendering', () => {
 			'.bullet-zoom-outline-sidebar-preview',
 		);
 		expect(preview?.hidden).toBe(true);
-		if (label !== null && preview !== null) {
+		if (
+			label !== null &&
+			label !== undefined &&
+			preview !== null &&
+			preview !== undefined
+		) {
 			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
 			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 180 });
 			syncOutlineLabelOverflow(container);
@@ -491,6 +496,81 @@ describe('native outline sidebar rendering', () => {
 			syncOutlineLabelOverflow(container);
 			expect(preview.hidden).toBe(true);
 		}
+	});
+
+	it('keeps mobile disclosure, label, and overflowing preview in one owned row', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		const labelText = '很長而且需要截斷的父層 Bullet 全文';
+		renderOutlineSidebar(
+			container,
+			model({
+				isMobile: true,
+				outline: Object.freeze([
+					Object.freeze({
+						label: labelText,
+						anchor: 0,
+						children: Object.freeze([
+							Object.freeze({
+								label: 'Child',
+								anchor: 20,
+								children: Object.freeze([]),
+							}),
+						]),
+					}),
+				]),
+			}),
+			handlers,
+		);
+		const row = container.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-row',
+		);
+		const disclosure = row?.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-disclosure',
+		);
+		const label = row?.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		const preview = row?.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+
+		expect(Array.from(row?.children ?? []).map(({ className }) => className)).toEqual([
+			'bullet-zoom-outline-sidebar-disclosure',
+			'bullet-zoom-outline-sidebar-label',
+			'bullet-zoom-outline-sidebar-preview',
+		]);
+		expect(disclosure?.parentElement).toBe(row);
+		expect(label?.parentElement).toBe(row);
+		expect(preview?.parentElement).toBe(row);
+		if (
+			label !== null &&
+			label !== undefined &&
+			preview !== null &&
+			preview !== undefined
+		) {
+			Object.defineProperty(label, 'clientWidth', {
+				configurable: true,
+				value: 80,
+			});
+			Object.defineProperty(label, 'scrollWidth', {
+				configurable: true,
+				value: 180,
+			});
+			syncOutlineLabelOverflow(container);
+			expect(preview.hidden).toBe(false);
+		}
+
+		disclosure?.click();
+		label?.click();
+		preview?.click();
+		expect(handlers.onToggle).toHaveBeenCalledWith({ anchor: 0, revision: 1 });
+		expect(handlers.onSelect).toHaveBeenCalledWith({ anchor: 0, revision: 1 });
+		expect(handlers.onPreview).toHaveBeenCalledWith(
+			{ anchor: 0, revision: 1 },
+			labelText,
+			preview,
+		);
 	});
 
 	it('keeps duplicate plain labels routed by their numeric anchors', () => {
@@ -724,6 +804,38 @@ describe('native outline sidebar coordinator', () => {
 		expect(fixture.focusEditor).toHaveBeenCalled();
 		expect(fixture.setActiveLeaf).not.toHaveBeenCalled();
 		expect(fixture.sidebarView.contentEl.textContent).toContain('Grandchild');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('opens only the current path without globally expanding unrelated branches', async () => {
+		const fixture = await createCoordinatorFixture(
+			'- Parent A\n  - Child A\n    - Grandchild A\n- Parent B\n  - Child B',
+			true,
+		);
+		const grandchild = fixture.editorView.state.doc.line(3).from + 4;
+		fixture.setCurrentAnchor(grandchild);
+		await Promise.resolve();
+
+		const parentA = fixture.editorView.state.doc.line(1).from;
+		const childA = fixture.editorView.state.doc.line(2).from + 2;
+		const parentB = fixture.editorView.state.doc.line(4).from;
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				`[data-anchor="${parentA}"] .bullet-zoom-outline-sidebar-disclosure`,
+			)?.getAttribute('aria-expanded'),
+		).toBe('true');
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				`[data-anchor="${childA}"] .bullet-zoom-outline-sidebar-disclosure`,
+			)?.getAttribute('aria-expanded'),
+		).toBe('true');
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				`[data-anchor="${parentB}"] .bullet-zoom-outline-sidebar-disclosure`,
+			)?.getAttribute('aria-expanded'),
+		).toBe('false');
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('Child B');
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
