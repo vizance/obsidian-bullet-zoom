@@ -113,6 +113,7 @@ describe('row-control visibility state', () => {
 	function createVisibilityView(
 		alwaysShowRowControls: boolean,
 		isMobile = false,
+		source = '- Parent\n  - Child',
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -121,7 +122,7 @@ describe('row-control visibility state', () => {
 			view: new EditorView({
 				parent,
 				state: createState(
-					'- Parent\n  - Child',
+					source,
 					'Ideas.md',
 					[],
 					false,
@@ -156,13 +157,83 @@ describe('row-control visibility state', () => {
 		parent.remove();
 	});
 
-	it('keeps the touch-platform override in hover-only mode', () => {
+	it('starts touch platforms with every hover-only row hidden', () => {
 		const { parent, view } = createVisibilityView(false, true);
 		expect(view.dom.classList).toContain(
 			'bullet-zoom-row-controls-hover-only',
 		);
-		expect(view.dom.classList).toContain(
+		expect(view.dom.classList).not.toContain(
 			'bullet-zoom-row-controls-touch',
+		);
+		expect(
+			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
+		).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('reveals only the touched mobile Bullet without consuming the first tap', () => {
+		const { parent, view } = createVisibilityView(
+			false,
+			true,
+			'- Parent\n  - Child\nParagraph',
+		);
+		const lines = Array.from(view.dom.querySelectorAll<HTMLElement>('.cm-line'));
+		const parentLine = lines[0];
+		const childLine = lines[1];
+		const paragraphLine = lines[2];
+		if (
+			parentLine === undefined ||
+			childLine === undefined ||
+			paragraphLine === undefined
+		) {
+			throw new Error('Expected three rendered editor lines');
+		}
+		const touch = (target: HTMLElement): PointerEvent => {
+			const event = new Event('pointerdown', {
+				bubbles: true,
+				cancelable: true,
+			}) as PointerEvent;
+			Object.defineProperty(event, 'pointerType', { value: 'touch' });
+			target.dispatchEvent(event);
+			return event;
+		};
+
+		const firstTap = touch(parentLine);
+		expect(firstTap.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(parentLine.classList).toContain(
+			'bullet-zoom-row-control-touch-active',
+		);
+		expect(childLine.classList).not.toContain(
+			'bullet-zoom-row-control-touch-active',
+		);
+		parentLine
+			.querySelector<HTMLElement>('.bullet-zoom-marker')
+			?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+		expect(getFocusSession(view.state)).toBeNull();
+
+		touch(childLine);
+		expect(parentLine.classList).not.toContain(
+			'bullet-zoom-row-control-touch-active',
+		);
+		expect(childLine.classList).toContain(
+			'bullet-zoom-row-control-touch-active',
+		);
+
+		touch(paragraphLine);
+		expect(
+			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
+		).toBeNull();
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.state.doc.toString()).toBe('- Parent\n  - Child\nParagraph');
+
+		touch(childLine);
+		childLine
+			.querySelector<HTMLButtonElement>('.bullet-zoom-row-control')
+			?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(
+			view.state.doc.line(2).from + 2,
 		);
 		view.destroy();
 		parent.remove();
@@ -182,6 +253,31 @@ describe('row-control visibility state', () => {
 		second.view.destroy();
 		first.parent.remove();
 		second.parent.remove();
+	});
+
+	it('clears a touch-revealed row when always-visible mode is enabled', () => {
+		const { parent, view } = createVisibilityView(false, true);
+		const line = view.dom.querySelector<HTMLElement>('.cm-line');
+		if (line === null) {
+			throw new Error('Expected a rendered Bullet line');
+		}
+		const touch = new Event('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+		}) as PointerEvent;
+		Object.defineProperty(touch, 'pointerType', { value: 'touch' });
+		line.dispatchEvent(touch);
+		expect(line.classList).toContain('bullet-zoom-row-control-touch-active');
+
+		expect(setRowControlsAlwaysVisible(view, true)).toBe(true);
+		expect(view.dom.classList).toContain(
+			'bullet-zoom-row-controls-always-visible',
+		);
+		expect(
+			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
+		).toBeNull();
+		view.destroy();
+		parent.remove();
 	});
 
 	it('rejects unrelated and destroyed editor views', () => {

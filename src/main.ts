@@ -69,6 +69,10 @@ export default class BulletZoomPlugin extends Plugin {
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
+			getActiveEditorView: () => {
+				const editor = this.app.workspace.activeEditor?.editor;
+				return editor === undefined ? null : getEditorView(editor);
+			},
 			resolveEditorView: (leaf) => this.resolveLeafEditor(leaf),
 			isEditorEligible: (view) =>
 				view.state.facet(focusLivePreview) &&
