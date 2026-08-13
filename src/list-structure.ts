@@ -29,10 +29,33 @@ export type BulletOutlineNode = Readonly<{
 	children: readonly BulletOutlineNode[];
 }>;
 
+export function findOutlinePath(
+	nodes: readonly BulletOutlineNode[],
+	anchor: number,
+): readonly BulletOutlineNode[] | null {
+	for (const node of nodes) {
+		if (node.anchor === anchor) {
+			return Object.freeze([node]);
+		}
+		const childPath = findOutlinePath(node.children, anchor);
+		if (childPath !== null) {
+			return Object.freeze([node, ...childPath]);
+		}
+	}
+	return null;
+}
+
 export class BulletOutlineParsePendingError extends Error {
 	constructor() {
 		super('The Markdown syntax tree is not ready for a complete outline.');
 		this.name = 'BulletOutlineParsePendingError';
+	}
+}
+
+export class BulletOutlineLimitError extends Error {
+	constructor() {
+		super('The Bullet outline exceeds the supported size or depth.');
+		this.name = 'BulletOutlineLimitError';
 	}
 }
 
@@ -41,6 +64,8 @@ const ANY_LIST_MARKER_PATTERN = /^[\t ]*(?:[-+*]|\d+[.)])[\t ]+/;
 const TASK_PATTERN = /^\[(?: |x|X)\](?:\s|$)/;
 const frontmatterEndLineCache = new WeakMap<EditorState, number>();
 const completeSyntaxTreeCache = new WeakMap<EditorState, Tree>();
+const MAX_OUTLINE_NODES = 1_000;
+const MAX_OUTLINE_DEPTH = 128;
 
 function frontmatterEndLine(state: EditorState): number {
 	const cached = frontmatterEndLineCache.get(state);
@@ -249,12 +274,39 @@ type MutableBulletOutlineNode = {
 	children: MutableBulletOutlineNode[];
 };
 
-function freezeOutlineNode(node: MutableBulletOutlineNode): BulletOutlineNode {
-	return Object.freeze({
-		label: node.label,
-		anchor: node.anchor,
-		children: Object.freeze(node.children.map(freezeOutlineNode)),
-	});
+function freezeOutlineNodes(
+	roots: readonly MutableBulletOutlineNode[],
+): readonly BulletOutlineNode[] {
+	const frozenNodes = new Map<MutableBulletOutlineNode, BulletOutlineNode>();
+	const work: Array<Readonly<{ node: MutableBulletOutlineNode; visited: boolean }>> =
+		roots.map((node) => ({ node, visited: false }));
+	while (work.length > 0) {
+		const current = work.pop();
+		if (current === undefined) {
+			break;
+		}
+		if (!current.visited) {
+			work.push({ node: current.node, visited: true });
+			for (let index = current.node.children.length - 1; index >= 0; index -= 1) {
+				const child = current.node.children[index];
+				if (child !== undefined) {
+					work.push({ node: child, visited: false });
+				}
+			}
+			continue;
+		}
+		frozenNodes.set(
+			current.node,
+			Object.freeze({
+				label: current.node.label,
+				anchor: current.node.anchor,
+				children: Object.freeze(
+					current.node.children.map((child) => frozenNodes.get(child)!),
+				),
+			}),
+		);
+	}
+	return Object.freeze(roots.map((root) => frozenNodes.get(root)!));
 }
 
 export type HyperMdOutlineEntry = Readonly<{
@@ -296,6 +348,8 @@ export function buildHyperMdBulletOutline(
 	entries: readonly HyperMdOutlineEntry[],
 ): readonly BulletOutlineNode[] {
 	const roots: MutableBulletOutlineNode[] = [];
+	let nodeCount = 0;
+	let structuralEntryCount = 0;
 	const stack: Array<{
 		level: number;
 		node: MutableBulletOutlineNode | null;
@@ -314,9 +368,20 @@ export function buildHyperMdBulletOutline(
 		while (stack.length > 0 && stack.at(-1)!.level >= entry.level) {
 			stack.pop();
 		}
+		structuralEntryCount += 1;
+		if (
+			structuralEntryCount > MAX_OUTLINE_NODES ||
+			stack.length + 1 > MAX_OUTLINE_DEPTH
+		) {
+			throw new BulletOutlineLimitError();
+		}
 		if (entry.bullet === null) {
 			stack.push({ level: entry.level, node: null });
 			continue;
+		}
+		nodeCount += 1;
+		if (nodeCount > MAX_OUTLINE_NODES) {
+			throw new BulletOutlineLimitError();
 		}
 		const node: MutableBulletOutlineNode = {
 			label: displayBulletLabel(entry.bullet.label),
@@ -331,7 +396,7 @@ export function buildHyperMdBulletOutline(
 		}
 		stack.push({ level: entry.level, node });
 	}
-	return Object.freeze(roots.map(freezeOutlineNode));
+	return freezeOutlineNodes(roots);
 }
 
 export function hyperMdListLevel(node: SyntaxNode | null): number | null {
@@ -416,21 +481,61 @@ function hasListItemAncestor(node: SyntaxNode): boolean {
 }
 
 function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOutlineNode[] {
-	const entries: HyperMdOutlineEntry[] = [];
+	const roots: MutableBulletOutlineNode[] = [];
+	let nodeCount = 0;
+	let structuralEntryCount = 0;
+	const stack: Array<{
+		level: number;
+		node: MutableBulletOutlineNode | null;
+	}> = [];
 	for (let number = 1; number <= state.doc.lines; number += 1) {
 		const line = state.doc.line(number);
 		const firstContentOffset = /^[\t ]*/.exec(line.text)?.[0].length ?? 0;
 		const position = Math.min(line.to, line.from + firstContentOffset);
-		entries.push(
-			Object.freeze({
-				level: hyperMdListLevel(tree.resolveInner(position, 1)),
-				bullet: findSupportedBullet(state, line.from),
-				hasListMarker: ANY_LIST_MARKER_PATTERN.test(line.text),
-				nonBlank: line.text.trim().length > 0,
-			}),
-		);
+		if (line.text.trim().length === 0) {
+			continue;
+		}
+		const level = hyperMdListLevel(tree.resolveInner(position, 1));
+		if (level === null) {
+			stack.length = 0;
+			continue;
+		}
+		if (!ANY_LIST_MARKER_PATTERN.test(line.text)) {
+			continue;
+		}
+		while (stack.length > 0 && stack.at(-1)!.level >= level) {
+			stack.pop();
+		}
+		structuralEntryCount += 1;
+		if (
+			structuralEntryCount > MAX_OUTLINE_NODES ||
+			stack.length + 1 > MAX_OUTLINE_DEPTH
+		) {
+			throw new BulletOutlineLimitError();
+		}
+		const bullet = findSupportedBullet(state, line.from);
+		if (bullet === null) {
+			stack.push({ level, node: null });
+			continue;
+		}
+		nodeCount += 1;
+		if (nodeCount > MAX_OUTLINE_NODES) {
+			throw new BulletOutlineLimitError();
+		}
+		const node: MutableBulletOutlineNode = {
+			label: displayBulletLabel(bullet.label),
+			anchor: bullet.markerFrom,
+			children: [],
+		};
+		const parent = stack.at(-1)?.node;
+		if (parent === undefined || parent === null) {
+			roots.push(node);
+		} else {
+			parent.children.push(node);
+		}
+		stack.push({ level, node });
 	}
-	return buildHyperMdBulletOutline(entries);
+	return freezeOutlineNodes(roots);
 }
 
 export function buildBulletOutline(
@@ -467,32 +572,51 @@ export function buildBulletOutline(
 		return buildHyperMdOutline(state, completeTree);
 	}
 	const roots: MutableBulletOutlineNode[] = [];
-	const nodesByAnchor = new Map<number, MutableBulletOutlineNode>();
+	const parentStack: Array<MutableBulletOutlineNode | null> = [];
+	let nodeCount = 0;
+	let structuralEntryCount = 0;
+	completeTree.iterate({
+		enter: (syntaxNode) => {
+			if (syntaxNode.name !== 'ListItem') {
+				return;
+			}
+			structuralEntryCount += 1;
+			if (
+				structuralEntryCount > MAX_OUTLINE_NODES ||
+				parentStack.length + 1 > MAX_OUTLINE_DEPTH
+			) {
+				throw new BulletOutlineLimitError();
+			}
+			const bullet = findSupportedBullet(state, syntaxNode.from);
+			if (bullet === null) {
+				parentStack.push(null);
+				return;
+			}
+			nodeCount += 1;
+			if (nodeCount > MAX_OUTLINE_NODES) {
+				throw new BulletOutlineLimitError();
+			}
+			const node: MutableBulletOutlineNode = {
+				label: displayBulletLabel(bullet.label),
+				anchor: bullet.markerFrom,
+				children: [],
+			};
+			const parent = parentStack.at(-1);
+			if (parent === undefined || parent === null) {
+				roots.push(node);
+			} else {
+				parent.children.push(node);
+			}
+			parentStack.push(node);
+		},
+		leave: (syntaxNode) => {
+			if (syntaxNode.name === 'ListItem') {
+				parentStack.pop();
+			}
+		},
+	});
 
-	for (let lineNumber = 1; lineNumber <= state.doc.lines; lineNumber += 1) {
-		const line = state.doc.line(lineNumber);
-		const bullet = findSupportedBullet(state, line.from);
-		if (bullet === null) {
-			continue;
-		}
-
-		const node: MutableBulletOutlineNode = {
-			label: displayBulletLabel(bullet.label),
-			anchor: bullet.markerFrom,
-			children: [],
-		};
-		const parent = supportedBulletAncestors(state, bullet)
-			.map(({ markerFrom }) => nodesByAnchor.get(markerFrom))
-			.find((candidate) => candidate !== undefined);
-		if (parent === undefined) {
-			roots.push(node);
-		} else {
-			parent.children.push(node);
-		}
-		nodesByAnchor.set(bullet.markerFrom, node);
-	}
-
-	return Object.freeze(roots.map(freezeOutlineNode));
+	return freezeOutlineNodes(roots);
 }
 
 export function buildBreadcrumbs(
