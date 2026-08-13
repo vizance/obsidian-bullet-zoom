@@ -347,13 +347,15 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - macOS Obsidian `1.13.7` 專用 `.test-vault` 實際操作：原生 right sidebar 可從 Ribbon 開啟；`Parent A > Child A1 > Grandchild A1a > Level four A1a > Level five A1a` 以單欄垂直 disclosure 逐層展開，最深 label 始終可選；disclosure 只改變側欄可見性，選取 `Level five A1a` 會建立完整 breadcrumb 並讓 editor 聚焦，側欄仍保持開啟；以原生 Fold more 收起祖先後，從側欄選取 `Grandchild A1a` 會解除覆蓋 fold 並顯示其分支；相鄰空白 Markdown pane 成為 active source 時，側欄切換為該 pane 的空狀態；Light／Dark 都清楚可讀。最新候選 bundle 另實測：全文狀態依序點擊正文 `Child A1` 與 `Grandchild A1a` 時，右側大綱會展開路徑並把 current 標示同步移到對應節點，過程沒有建立 Breadcrumb 或 Zoom；再以行尾 `↘` 進入 `Grandchild A1a` 後，Breadcrumb 只顯示筆記、`Parent A`、`Child A1` 與目前節點，沒有原本最右側的選單按鈕。先前驗收的測試 Markdown 檔 SHA-256 為 `618c13c8ea6c2d4f8d7897d4312f81a8d48789cf7a57a97e91879fde1e4f5fca`、52 words、303 characters；本輪 UI 操作未編輯文字，但未以該舊 hash 代替重新驗證。自動化控制無法可靠拖曳原生 sidebar divider，因此可調寬度仍未驗證，`4.3` 不標完成
 - 實體 iPhone／iPad 的原生 drawer、深層 disclosure、選取後返回 editor、軟體鍵盤、行尾單次 tap 與 Light／Dark 仍待 BRAT 候選版發布後驗收；自動測試不代替實機結果
 
-2026-08-13 完成 `0.1.17` 行尾箭頭顯示設定與精簡大綱標籤候選版：
+2026-08-13 完成 `0.1.17` 行尾箭頭顯示設定、精簡大綱標籤與正式發布：
 
 - 「設定 → Bullet Zoom」新增「永遠顯示行尾縮放箭頭」。預設開啟，維持既有 `↘`／`↖` 常駐；關閉後，桌面只會在滑鼠移到該行或鍵盤聚焦按鈕時顯示。手機與 iPad 沒有可靠 Hover，因此兩種設定下都保持箭頭可見、可點
 - 設定採嚴格 boolean，會先成功儲存再同步所有已開啟的 Markdown pane；儲存失敗會保留原本設定並顯示 Notice。後續新開的 editor 會直接使用已載入的設定，不必重啟 Obsidian
 - 右側 Bullet 大綱改用 Markdown syntax tree 產生純文字標籤：粗體、斜體、刪除線、inline code、Markdown link 與 wiki link 的語法標記不再顯示，連結仍保留可讀名稱，HTML-like 內容只作為文字呈現
 - 每個大綱標籤固定為單行 ellipsis。桌面可透過原生 Hover title 看完整文字；手機與 iPad 只有實際測量出文字溢位時才顯示淡色 `…`，點擊後以原生 `Bullet 全文` Modal 顯示完整純文字，不會 Zoom、移動游標、改 fold、改 Markdown 或切換 leaf
 - `npm test -- --run`：211 項測試通過；`npm run lint -- --max-warnings=0`、TypeScript production build 與 `git diff --check` 通過。專用 `.test-vault` 已換入 `0.1.17` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `fb4d3c89e7b8698328301fa1977c63c9a07ca154213cb06c15c336f96301a69c`、`3dd0cee1ba403e0c8310b105c03760eb0fff911ee09574c524a3ab48eacb7e29`、`9921e0e807bc6f1e07d131cdddfdca96aa76ce58f40cb80bb7439a2f3a0e43c2`，逐檔 byte-identical。macOS Hover 與實體 iPhone／iPad 的觸控、Modal、Light／Dark 均維持待驗，不以 jsdom 取代實機結果
+- private pull request [`vizance/chi_agent#8`](https://github.com/vizance/chi_agent/pull/8) 與公開 pull request [`vizance/obsidian-bullet-zoom#7`](https://github.com/vizance/obsidian-bullet-zoom/pull/7) 均已合併；[GitHub Release `0.1.17`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.17) 已發佈並成為 Latest，Actions run [`31691319637`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31691319637) 通過
+- Release 下載回讀的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `fb4d3c89e7b8698328301fa1977c63c9a07ca154213cb06c15c336f96301a69c`、`3dd0cee1ba403e0c8310b105c03760eb0fff911ee09574c524a3ab48eacb7e29`、`9921e0e807bc6f1e07d131cdddfdca96aa76ce58f40cb80bb7439a2f3a0e43c2`，與 canonical build 逐檔 byte-identical；公開 BRAT 已可安裝 `0.1.17`
 
 ### 桌面版人工驗收
 
