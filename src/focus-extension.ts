@@ -62,6 +62,86 @@ const focusPhoneMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
+const focusMobileMode = Facet.define<boolean, boolean>({
+	combine: (values) => values[values.length - 1] ?? false,
+});
+
+const rowControlsAlwaysVisible = Facet.define<boolean, boolean>({
+	combine: (values) => values[values.length - 1] ?? true,
+});
+
+const setRowControlsAlwaysVisibleEffect = StateEffect.define<boolean>();
+
+const rowControlsAlwaysVisibleField = StateField.define<boolean>({
+	create: (state) => state.facet(rowControlsAlwaysVisible),
+	update: (current, transaction) => {
+		for (const effect of transaction.effects) {
+			if (effect.is(setRowControlsAlwaysVisibleEffect)) {
+				return effect.value;
+			}
+		}
+		return current;
+	},
+});
+
+const activeRowControlViews = new WeakSet<EditorView>();
+const ROW_CONTROLS_ALWAYS_CLASS =
+	'bullet-zoom-row-controls-always-visible';
+const ROW_CONTROLS_HOVER_CLASS = 'bullet-zoom-row-controls-hover-only';
+const ROW_CONTROLS_TOUCH_CLASS = 'bullet-zoom-row-controls-touch';
+
+class RowControlVisibilityPlugin implements PluginValue {
+	constructor(private readonly view: EditorView) {
+		activeRowControlViews.add(view);
+	}
+
+	destroy(): void {
+		activeRowControlViews.delete(this.view);
+	}
+}
+
+const rowControlVisibilityPlugin = ViewPlugin.fromClass(
+	RowControlVisibilityPlugin,
+);
+
+const rowControlVisibilityAttributes = EditorView.editorAttributes.compute(
+	[rowControlsAlwaysVisibleField, focusMobileMode],
+	(state) => ({
+		class: [
+			state.field(rowControlsAlwaysVisibleField)
+				? ROW_CONTROLS_ALWAYS_CLASS
+				: ROW_CONTROLS_HOVER_CLASS,
+			...(state.facet(focusMobileMode)
+				? [ROW_CONTROLS_TOUCH_CLASS]
+				: []),
+		].join(' '),
+	}),
+);
+
+export function setRowControlsAlwaysVisible(
+	view: EditorView,
+	value: boolean,
+): boolean {
+	if (!activeRowControlViews.has(view)) {
+		return false;
+	}
+	view.dispatch({ effects: setRowControlsAlwaysVisibleEffect.of(value) });
+	return true;
+}
+
+export function setRowControlsAlwaysVisibleForViews(
+	views: Iterable<EditorView | null>,
+	value: boolean,
+): number {
+	let updated = 0;
+	for (const view of views) {
+		if (view !== null && setRowControlsAlwaysVisible(view, value)) {
+			updated += 1;
+		}
+	}
+	return updated;
+}
+
 export const focusAtEffect = StateEffect.define<number>();
 export const clearFocusEffect = StateEffect.define<void>();
 type MobileEditorScrollRequest = Readonly<{
@@ -832,11 +912,15 @@ export function runParentCommand(
 
 export function createFocusExtension({
 	isPhone,
+	isMobile,
+	alwaysShowRowControls = true,
 	onEditorReady,
 	onEditorUpdate,
 	onEditorDestroy,
 }: Readonly<{
 	isPhone: boolean;
+	isMobile: boolean;
+	alwaysShowRowControls?: boolean;
 	onEditorReady?: (view: EditorView) => void;
 	onEditorUpdate?: (update: ViewUpdate) => void;
 	onEditorDestroy?: (view: EditorView) => void;
@@ -850,6 +934,11 @@ export function createFocusExtension({
 	});
 	return [
 		focusPhoneMode.of(isPhone),
+		focusMobileMode.of(isMobile),
+		rowControlsAlwaysVisible.of(alwaysShowRowControls),
+		rowControlsAlwaysVisibleField,
+		rowControlVisibilityAttributes,
+		rowControlVisibilityPlugin,
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,

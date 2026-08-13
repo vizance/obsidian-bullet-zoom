@@ -268,6 +268,121 @@ export function displayBulletLabel(label: string): string {
 	return label.length === 0 ? '（空白節點）' : label;
 }
 
+type LabelEdit = Readonly<{
+	from: number;
+	to: number;
+	replacement: string;
+}>;
+
+function outlinePlainTextLabel(
+	state: EditorState,
+	bullet: SupportedBullet,
+	tree: Tree,
+): string {
+	const raw = state.sliceDoc(bullet.contentFrom, bullet.lineTo).trim();
+	if (raw.length === 0) {
+		return displayBulletLabel(raw);
+	}
+	const contentOffset = state
+		.sliceDoc(bullet.contentFrom, bullet.lineTo)
+		.indexOf(raw);
+	const rawFrom = bullet.contentFrom + Math.max(0, contentOffset);
+	const rawTo = rawFrom + raw.length;
+	const edits: LabelEdit[] = [];
+	const replacementRanges: Array<Readonly<{ from: number; to: number }>> = [];
+
+	for (const match of raw.matchAll(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g)) {
+		if (match.index === undefined || match[1] === undefined) {
+			continue;
+		}
+		const from = rawFrom + match.index;
+		const to = from + match[0].length;
+		replacementRanges.push({ from, to });
+		edits.push({ from, to, replacement: match[2] ?? match[1] });
+	}
+
+	tree.iterate({
+		from: rawFrom,
+		to: rawTo,
+		enter: (node) => {
+			if (
+			replacementRanges.some(
+				(range) => node.from >= range.from && node.to <= range.to,
+			)
+		) {
+			return;
+		}
+		if (node.name === 'Link' || node.name === 'Image') {
+			const source = state.sliceDoc(node.from, node.to);
+			const labelStart = source.startsWith('![') ? 2 : 1;
+			const labelEnd = source.indexOf(']', labelStart);
+			if (labelEnd >= labelStart) {
+				replacementRanges.push({ from: node.from, to: node.to });
+				edits.push({
+					from: node.from,
+					to: node.to,
+					replacement: source.slice(labelStart, labelEnd),
+				});
+			}
+		} else if (
+			[
+				'EmphasisMark',
+				'StrikethroughMark',
+				'CodeMark',
+				'LinkMark',
+				'URL',
+				'LinkTitle',
+			].includes(node.name)
+		) {
+			edits.push({ from: node.from, to: node.to, replacement: '' });
+		} else if (node.name === 'Escape') {
+			edits.push({
+				from: node.from,
+				to: node.to,
+				replacement: state.sliceDoc(node.from, node.to).slice(1),
+			});
+		}
+	},
+	});
+
+	for (const match of raw.matchAll(/~~[^~]+~~/g)) {
+		if (match.index === undefined) {
+			continue;
+		}
+		const from = rawFrom + match.index;
+		if (
+			replacementRanges.some(
+				(range) => from >= range.from && from < range.to,
+			)
+		) {
+			continue;
+		}
+		edits.push({ from, to: from + 2, replacement: '' });
+		const closingFrom = from + match[0].length - 2;
+		edits.push({
+			from: closingFrom,
+			to: closingFrom + 2,
+			replacement: '',
+		});
+	}
+
+	let result = raw;
+	const uniqueEdits = Array.from(
+		new Map(
+			edits.map((edit) => [
+				`${edit.from}:${edit.to}:${edit.replacement}`,
+				 edit,
+			]),
+		).values(),
+	);
+	for (const edit of uniqueEdits.sort((left, right) => right.from - left.from)) {
+		const from = edit.from - rawFrom;
+		const to = edit.to - rawFrom;
+		result = result.slice(0, from) + edit.replacement + result.slice(to);
+	}
+	return displayBulletLabel(result.trim());
+}
+
 type MutableBulletOutlineNode = {
 	label: string;
 	anchor: number;
@@ -523,7 +638,7 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 			throw new BulletOutlineLimitError();
 		}
 		const node: MutableBulletOutlineNode = {
-			label: displayBulletLabel(bullet.label),
+			label: outlinePlainTextLabel(state, bullet, tree),
 			anchor: bullet.markerFrom,
 			children: [],
 		};
@@ -597,7 +712,7 @@ export function buildBulletOutline(
 				throw new BulletOutlineLimitError();
 			}
 			const node: MutableBulletOutlineNode = {
-				label: displayBulletLabel(bullet.label),
+				label: outlinePlainTextLabel(state, bullet, completeTree),
 				anchor: bullet.markerFrom,
 				children: [],
 			};
