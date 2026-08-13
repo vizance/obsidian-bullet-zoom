@@ -32,6 +32,7 @@ import {
 	BulletOutlineSidebarCoordinator,
 	BulletOutlineSidebarView,
 	renderOutlineSidebar,
+	syncOutlineLabelOverflow,
 	type OutlineSidebarActions,
 	type OutlineSidebarModel,
 } from '../src/outline-sidebar-view';
@@ -84,6 +85,7 @@ function model(
 		currentAnchor: null,
 		expandedAnchors: new Set<number>(),
 		revealCurrent: true,
+		isMobile: false,
 		...overrides,
 	});
 }
@@ -94,6 +96,7 @@ function actions(): OutlineSidebarActions {
 		onSelect: vi.fn(),
 		onExit: vi.fn(),
 		onRetry: vi.fn(),
+		onPreview: vi.fn(),
 	};
 }
 
@@ -196,6 +199,7 @@ async function createCoordinatorFixture(
 					focusLivePreview.of(true),
 					createFocusExtension({
 					isPhone: false,
+					isMobile,
 					onEditorReady: (view) => coordinator.notifyEditorReady(view),
 					onEditorUpdate: (update) => coordinator.notifyEditorUpdate(update),
 					onEditorDestroy: (view) => coordinator.notifyEditorDestroyed(view),
@@ -264,6 +268,7 @@ async function createCoordinatorFixture(
 						focusLivePreview.of(true),
 						createFocusExtension({
 							isPhone: false,
+							isMobile,
 							onEditorReady: (view) => coordinator.notifyEditorReady(view),
 							onEditorUpdate: (update) =>
 								coordinator.notifyEditorUpdate(update),
@@ -422,6 +427,97 @@ describe('native outline sidebar rendering', () => {
 		).toEqual(['<img src=x onerror=alert(1)>', '（空白節點）']);
 	});
 
+	it('keeps every label to one ellipsized line and exposes its full desktop text', () => {
+		const container = document.createElement('div');
+		const longLabel = '這是一段很長而且需要在側欄中截斷的 Bullet 內容';
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([
+					Object.freeze({ label: longLabel, anchor: 0, children: Object.freeze([]) }),
+				]),
+			}),
+			actions(),
+		);
+		const label = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		expect(label?.title).toBe(longLabel);
+		expect(label?.textContent).toBe(longLabel);
+		expect(container.querySelector('.bullet-zoom-outline-sidebar-preview')).toBeNull();
+	});
+
+	it('shows the separate mobile full-text action only for an overflowing label', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		const labelText = '很長的手機 Bullet 全文';
+		renderOutlineSidebar(
+			container,
+			model({
+				isMobile: true,
+				outline: Object.freeze([
+					Object.freeze({ label: labelText, anchor: 0, children: Object.freeze([]) }),
+				]),
+			}),
+			handlers,
+		);
+		const label = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		const preview = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(preview?.hidden).toBe(true);
+		if (label !== null && preview !== null) {
+			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
+			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 180 });
+			syncOutlineLabelOverflow(container);
+			expect(preview.hidden).toBe(false);
+			preview.click();
+			expect(handlers.onPreview).toHaveBeenCalledWith(
+				{ anchor: 0, revision: 1 },
+				labelText,
+				preview,
+			);
+
+			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 80 });
+			Object.defineProperty(label, 'clientWidth', {
+				configurable: true,
+				get: () => (preview.hidden ? 100 : 60),
+			});
+			syncOutlineLabelOverflow(container);
+			expect(preview.hidden).toBe(true);
+		}
+	});
+
+	it('keeps duplicate plain labels routed by their numeric anchors', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([
+					Object.freeze({ label: 'Same', anchor: 0, children: Object.freeze([]) }),
+					Object.freeze({ label: 'Same', anchor: 7, children: Object.freeze([]) }),
+				]),
+			}),
+			handlers,
+		);
+		const labels = container.querySelectorAll<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		labels[0]?.click();
+		labels[1]?.click();
+		expect(handlers.onSelect).toHaveBeenNthCalledWith(1, {
+			anchor: 0,
+			revision: 1,
+		});
+		expect(handlers.onSelect).toHaveBeenNthCalledWith(2, {
+			anchor: 7,
+			revision: 1,
+		});
+	});
+
 	it('shows non-actionable empty and pending states with an explicit pending retry', () => {
 		const container = document.createElement('div');
 		const handlers = actions();
@@ -477,6 +573,114 @@ describe('native outline sidebar rendering', () => {
 });
 
 describe('native outline sidebar coordinator', () => {
+	it('opens a validated mobile full-text preview without changing editor state', async () => {
+		const fixture = await createCoordinatorFixture(
+			'- This is a long **plain** Bullet label',
+			true,
+		);
+		const label = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(label?.textContent).toBe('This is a long plain Bullet label');
+		expect(preview).not.toBeNull();
+		if (label !== null && preview !== null) {
+			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 90 });
+			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 240 });
+			syncOutlineLabelOverflow(fixture.sidebarView.contentEl);
+			const beforeDoc = fixture.editorView.state.doc.toString();
+			const beforeSelection = fixture.editorView.state.selection;
+			preview.click();
+			expect(document.body.textContent).toContain('Bullet 全文');
+			expect(document.body.textContent).toContain(
+				'This is a long plain Bullet label',
+			);
+			expect(fixture.onFocus).not.toHaveBeenCalled();
+			expect(fixture.onExit).not.toHaveBeenCalled();
+			expect(fixture.setActiveLeaf).not.toHaveBeenCalled();
+			expect(fixture.editorView.state.doc.toString()).toBe(beforeDoc);
+			expect(fixture.editorView.state.selection).toEqual(beforeSelection);
+			document.body
+				.querySelector<HTMLButtonElement>('.bullet-zoom-outline-preview-close')
+				?.click();
+			expect(document.activeElement).toBe(preview);
+		}
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('remeasures mobile overflow on native sidebar resize and disconnects on close', async () => {
+		const originalResizeObserver = window.ResizeObserver;
+		let resizeCallback: (() => void) | null = null;
+		const observe = vi.fn();
+		const disconnect = vi.fn();
+		class ResizeObserverMock {
+			constructor(callback: () => void) {
+				resizeCallback = callback;
+			}
+			observe = observe;
+			disconnect = disconnect;
+		}
+		Object.defineProperty(window, 'ResizeObserver', {
+			configurable: true,
+			value: ResizeObserverMock,
+		});
+		const fixture = await createCoordinatorFixture('- Long mobile label', true);
+		const label = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(observe).toHaveBeenCalledWith(fixture.sidebarView.contentEl);
+		if (label !== null && preview !== null) {
+			Object.defineProperty(label, 'clientWidth', { configurable: true, value: 80 });
+			Object.defineProperty(label, 'scrollWidth', { configurable: true, value: 160 });
+			expect(resizeCallback).not.toBeNull();
+			(resizeCallback as unknown as () => void)();
+			expect(preview.hidden).toBe(false);
+		}
+		await fixture.sidebarView.onClose();
+		expect(disconnect).toHaveBeenCalledOnce();
+		Object.defineProperty(window, 'ResizeObserver', {
+			configurable: true,
+			value: originalResizeObserver,
+		});
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('rejects a stale mobile preview action after the document changes', async () => {
+		const fixture = await createCoordinatorFixture('- Old **label**', true);
+		const stalePreview =
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-outline-sidebar-preview',
+			);
+		expect(stalePreview).not.toBeNull();
+		fixture.editorView.dispatch({
+			changes: { from: 0, to: fixture.editorView.state.doc.length, insert: '- New label' },
+		});
+		stalePreview?.click();
+		expect(document.body.textContent).not.toContain('Bullet 全文');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('rejects a disconnected mobile preview control without opening a dialog', async () => {
+		const fixture = await createCoordinatorFixture('- Long label', true);
+		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(preview).not.toBeNull();
+		preview?.remove();
+		preview?.click();
+		expect(document.body.textContent).not.toContain('Bullet 全文');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
 	it('reveals and validates the registered deferred ItemView', async () => {
 		const fixture = await createCoordinatorFixture('- Parent');
 		expect(fixture.ensureSideLeaf).toHaveBeenCalledWith(

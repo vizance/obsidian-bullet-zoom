@@ -26,6 +26,7 @@ import {
 	runExitCommand,
 	runFocusCommand,
 	runParentCommand,
+	setRowControlsAlwaysVisibleForViews,
 } from './focus-extension';
 import { findSupportedBullet } from './list-structure';
 import {
@@ -33,6 +34,13 @@ import {
 	BulletOutlineSidebarCoordinator,
 	BulletOutlineSidebarView,
 } from './outline-sidebar-view';
+import {
+	BulletZoomSettingTab,
+	DEFAULT_SETTINGS,
+	parseBulletZoomSettings,
+	persistAlwaysShowRowControls,
+	type BulletZoomSettings,
+} from './settings';
 
 type EditorWithCodeMirror = Editor & { cm?: unknown };
 
@@ -54,18 +62,14 @@ function showOutlineActionFailure(): void {
 
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
+	private bulletZoomSettings: BulletZoomSettings = DEFAULT_SETTINGS;
 
-	onload(): void {
-		const resolveLeafEditor = (leaf: WorkspaceLeaf): EditorView | null => {
-			if (!(leaf.view instanceof MarkdownView) || leaf.view.getMode() !== 'source') {
-				return null;
-			}
-			return getEditorView(leaf.view.editor);
-		};
+	async onload(): Promise<void> {
+		this.bulletZoomSettings = parseBulletZoomSettings(await this.loadData());
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
-			resolveEditorView: resolveLeafEditor,
+			resolveEditorView: (leaf) => this.resolveLeafEditor(leaf),
 			isEditorEligible: (view) =>
 				view.state.facet(focusLivePreview) &&
 				view.state.facet(focusFilePath) !== null,
@@ -87,6 +91,13 @@ export default class BulletZoomPlugin extends Plugin {
 			(leaf) => new BulletOutlineSidebarView(leaf, outlineCoordinator),
 		);
 		outlineCoordinator.start();
+		this.addSettingTab(
+			new BulletZoomSettingTab(this, {
+				getSettings: () => this.bulletZoomSettings,
+				setAlwaysShowRowControls: (value) =>
+					this.setAlwaysShowRowControls(value),
+			}),
+		);
 
 		this.registerEditorExtension([
 			focusFilePath.compute([editorInfoField], (state) =>
@@ -100,6 +111,9 @@ export default class BulletZoomPlugin extends Plugin {
 			),
 			createFocusExtension({
 				isPhone: Platform.isPhone,
+				isMobile: Platform.isMobile,
+				alwaysShowRowControls:
+					this.bulletZoomSettings.alwaysShowRowControls,
 				onEditorReady: (view) => outlineCoordinator.notifyEditorReady(view),
 				onEditorUpdate: (update) =>
 					outlineCoordinator.notifyEditorUpdate(update),
@@ -159,5 +173,28 @@ export default class BulletZoomPlugin extends Plugin {
 	onunload(): void {
 		this.outlineCoordinator?.destroy();
 		this.outlineCoordinator = null;
+	}
+
+	private resolveLeafEditor(leaf: WorkspaceLeaf): EditorView | null {
+		if (!(leaf.view instanceof MarkdownView) || leaf.view.getMode() !== 'source') {
+			return null;
+		}
+		return getEditorView(leaf.view.editor);
+	}
+
+	private async setAlwaysShowRowControls(value: boolean): Promise<boolean> {
+		return persistAlwaysShowRowControls(value, {
+			save: (settings) => this.saveData(settings),
+			onFailure: () =>
+				showNotice('無法儲存 Bullet Zoom 設定，請稍後再試。'),
+			onSaved: (settings) => {
+				this.bulletZoomSettings = settings;
+				const editorViews: Array<EditorView | null> = [];
+				this.app.workspace.iterateAllLeaves((leaf) => {
+					editorViews.push(this.resolveLeafEditor(leaf));
+				});
+				setRowControlsAlwaysVisibleForViews(editorViews, value);
+			},
+		});
 	}
 }

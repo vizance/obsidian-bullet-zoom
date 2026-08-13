@@ -2,6 +2,7 @@ import type { Text } from '@codemirror/state';
 import { EditorView, type ViewUpdate } from '@codemirror/view';
 import {
 	ItemView,
+	Modal,
 	type EventRef,
 	type Workspace,
 	type WorkspaceLeaf,
@@ -39,6 +40,7 @@ export type OutlineSidebarModel = Readonly<{
 	currentAnchor: number | null;
 	expandedAnchors: ReadonlySet<number>;
 	revealCurrent: boolean;
+	isMobile: boolean;
 }>;
 
 export type OutlineNodeAction = Readonly<{
@@ -51,6 +53,11 @@ export type OutlineSidebarActions = Readonly<{
 	onSelect: (action: OutlineNodeAction) => void;
 	onExit: (revision: number) => void;
 	onRetry: (revision: number) => void;
+	onPreview: (
+		action: OutlineNodeAction,
+		label: string,
+		trigger: HTMLButtonElement,
+	) => void;
 }>;
 
 type SourceContext = Readonly<{
@@ -99,6 +106,65 @@ function createButton(
 	button.className = className;
 	button.textContent = label;
 	return button;
+}
+
+export function syncOutlineLabelOverflow(container: HTMLElement): void {
+	const rows = Array.from(
+		container.querySelectorAll<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-row',
+		),
+	);
+	for (const row of rows) {
+		const preview = row.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		if (preview !== null) {
+			preview.hidden = true;
+		}
+	}
+	for (const row of rows) {
+		const label = row.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		const preview = row.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		if (label === null || preview === null) {
+			continue;
+		}
+		preview.hidden = label.scrollWidth <= label.clientWidth + 1;
+	}
+}
+
+class BulletLabelPreviewModal extends Modal {
+	constructor(
+		app: BulletOutlineSidebarView['app'],
+		private readonly label: string,
+		private readonly trigger: HTMLButtonElement,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.titleEl.textContent = 'Bullet 全文';
+		const text = this.contentEl.ownerDocument.createElement('p');
+		text.className = 'bullet-zoom-outline-preview-text';
+		text.textContent = this.label;
+		const close = createButton(
+			this.contentEl.ownerDocument,
+			'bullet-zoom-outline-preview-close',
+			'關閉',
+		);
+		close.addEventListener('click', () => this.close());
+		this.contentEl.replaceChildren(text, close);
+	}
+
+	onClose(): void {
+		this.contentEl.replaceChildren();
+		if (this.trigger.isConnected) {
+			this.trigger.focus({ preventScroll: true });
+		}
+	}
 }
 
 export function renderOutlineSidebar(
@@ -277,6 +343,23 @@ export function renderOutlineSidebar(
 				),
 			);
 			row.append(labelButton);
+			if (model.isMobile) {
+				const preview = createButton(
+					document,
+					'bullet-zoom-outline-sidebar-preview',
+					'…',
+				);
+				preview.hidden = true;
+				preview.setAttribute('aria-label', `查看「${label}」全文`);
+				preview.addEventListener('click', () =>
+					actions.onPreview(
+						Object.freeze({ anchor: node.anchor, revision: model.revision }),
+						label,
+						preview,
+					),
+				);
+				row.append(preview);
+			}
 
 			if (isExpanded) {
 				const group = document.createElement('ul');
@@ -290,6 +373,7 @@ export function renderOutlineSidebar(
 	};
 
 	renderNodes(model.outline, tree, 0);
+	syncOutlineLabelOverflow(container);
 	if (
 		!model.revealCurrent &&
 		activeAnchor !== null &&
@@ -327,6 +411,7 @@ export function renderOutlineSidebar(
 export class BulletOutlineSidebarView extends ItemView {
 	private model: OutlineSidebarModel | null = null;
 	private retainedReadyScrollTop = 0;
+	private resizeObserver: ResizeObserver | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -348,10 +433,20 @@ export class BulletOutlineSidebarView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
+		const ResizeObserverConstructor =
+			this.contentEl.ownerDocument.defaultView?.ResizeObserver;
+		if (ResizeObserverConstructor !== undefined) {
+			this.resizeObserver = new ResizeObserverConstructor(() =>
+				syncOutlineLabelOverflow(this.contentEl),
+			);
+			this.resizeObserver.observe(this.contentEl);
+		}
 		this.coordinator.attachView(this);
 	}
 
 	async onClose(): Promise<void> {
+		this.resizeObserver?.disconnect();
+		this.resizeObserver = null;
 		this.coordinator.detachView(this);
 		this.contentEl.replaceChildren();
 		this.contentEl.classList.remove('bullet-zoom-outline-sidebar');
@@ -382,8 +477,17 @@ export class BulletOutlineSidebarView extends ItemView {
 				},
 				onExit: (revision) => {
 					void this.coordinator.exit(revision);
-			},
-			onRetry: (revision) => this.coordinator.retry(revision),
+				},
+				onRetry: (revision) => this.coordinator.retry(revision),
+				onPreview: (action, label, trigger) => {
+					if (
+						trigger.isConnected &&
+						this.contentEl.contains(trigger) &&
+						this.coordinator.isPreviewActionValid(action)
+					) {
+						new BulletLabelPreviewModal(this.app, label, trigger).open();
+					}
+				},
 		});
 		if (
 			previousStatus === 'pending' &&
@@ -652,6 +756,10 @@ export class BulletOutlineSidebarCoordinator {
 		}
 	}
 
+	isPreviewActionValid({ anchor, revision }: OutlineNodeAction): boolean {
+		return this.isActionValid(anchor, revision);
+	}
+
 	private captureLeaf(leaf: WorkspaceLeaf | null): void {
 		if (leaf === null || this.destroyed) {
 			return;
@@ -907,6 +1015,7 @@ export class BulletOutlineSidebarCoordinator {
 				currentAnchor,
 				expandedAnchors: new Set(this.expandedAnchors),
 				revealCurrent,
+				isMobile: this.options.isMobile,
 			}),
 		);
 	}
@@ -986,6 +1095,7 @@ export class BulletOutlineSidebarCoordinator {
 				currentAnchor: null,
 				expandedAnchors: new Set<number>(),
 				revealCurrent: false,
+				isMobile: this.options.isMobile,
 			}),
 		);
 	}
