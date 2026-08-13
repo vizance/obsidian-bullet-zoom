@@ -4,12 +4,12 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 
 ## 目前狀態
 
-- 目前開發版本：`0.1.14`
+- 目前開發版本：`0.1.15`
 - 目前公開 BRAT 版本：`0.1.14`
 - 最低 Obsidian 版本：`1.11.7`
-- 桌面版人工驗收：`0.1.14` 已於 2026-08-13 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證 folded-target Zoom 會先展開再聚焦、隱藏子孫不投影控制、子節點正常往下排列、原生收合獨立與 Markdown 字數不變；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
-- 手機版自動驗收：`0.1.14` 的真實 CodeMirror fold-state 測試固定「收合節點只留一個 `↘`、Zoom 時先展開 target、子孫 fold 保留」，並延續真實 `↘` widget、production CSS、淺／深色 theme token、透明互動狀態與計算行高測試；這不代表實體 iPhone 已通過
-- 實體手機驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.14` 的 folded-target Zoom、editor-only 捲動、常駐箭頭與點擊後行高仍待實體 iPhone 複驗
+- 桌面版人工驗收：`0.1.15` 已於 2026-08-13 在 Obsidian `1.13.7` 專用 `.test-vault` 驗證選單式切換與三層行尾 `↖` 會依序返回 Child、Parent、全文；正式 Second Brain Vault 仍維持已安裝的 `0.1.8`
+- 手機版自動驗收：`0.1.15` 已加入 phone／tablet 底部選單、44 × 44 CSS px 控制、鍵盤可視高度、無水平溢出、pane lifecycle，以及不依賴 editor click bubbling 的 iPad 行尾按鈕回歸，並延續 `0.1.14` 的真實 CodeMirror fold-state 測試；jsdom 不具真實 iOS 排版、觸控合成與鍵盤動畫，這不代表實體 iPhone 或 iPad 已通過
+- 實體行動裝置驗收：`0.1.6` 未通過；聚焦三層 Bullet 時會把外層編輯畫面推到狀態列與 view header 下方。`0.1.15` 的底部選單、folded-target Zoom、editor-only 捲動、常駐箭頭、點擊後行高與 iPad 單次 tap 仍待實體 iPhone／iPad 複驗
 - 正式 Second Brain Vault：已於 2026-08-11 透過 BRAT 更新到 `0.1.8`，桌面實際操作通過；實體 iPhone 待複驗
 
 ## 支援範圍
@@ -51,6 +51,10 @@ Bullet Zoom 是一款 Obsidian 插件，讓你在即時預覽模式裡聚焦某�
 `0.1.13` 起，所有支援 Bullet 的 `↘` 與目前聚焦根節點的 `↖` 會在桌面、手機和平板常駐，不需要 hover、文字游標或 active line 才出現。箭頭使用 Obsidian 的 `--text-faint`，會隨淺色／深色主題切換灰度；normal、hover、focus 與 active 都維持透明背景、無陰影、繼承正文 font size，並把 glyph box 限制在 `1em`，避免手機點擊後出現拉高該行的灰色按鈕區塊。鍵盤操作時只加上 `--text-muted` 外框，且不改變版面幾何。
 
 `0.1.14` 起，已收合的 Bullet thread 只保留父節點自己的 `↘`，被 fold 蓋住的子節點不再把額外箭頭投影到 `…` 旁邊。從行尾箭頭、Bullet 圓點、命令或 breadcrumb 進入已收合節點時，插件會在同一筆 editor transition 先展開該節點自己的 fold；若游標目標原本被祖先 fold 蓋住，也會一併解除覆蓋目標的 fold 再 Zoom。進入後只顯示根節點的 `↖`，可見子節點向下正常排列。更深層原本獨立收合的 thread 仍保持收合，Markdown 原文不會改變；退出 Zoom 後，剛才的目標節點維持展開。
+
+`0.1.15` 起，聚焦路徑最右側新增一個獨立的「切換 Bullet」按鈕。Breadcrumb 本身仍只負責回到全文或指定祖先，hover 與點擊都不會展開子選單。桌面會開啟 Bike 風格的級聯欄位，並預先展開目前所在路徑；手機與平板會開啟一次只看一層的底部選單。每一列的文字按鈕會直接 Zoom 到該 Bullet，右側 `›` 只查看它的直屬子節點；`全文` 會離開 Zoom。選單只讀取目前 Markdown 檔案中的普通無序 Bullet，不包含其他檔案、Heading、Task List 或編號清單。開啟時會先要求 CodeMirror 完成整份筆記的語法樹；若 50 ms 的同步解析時間仍不足，選單只顯示「筆記結構仍在解析，請稍後再開啟」，不會把局部結果誤當成完整筆記。手機選單會跟隨 `visualViewport` 的即時高度與位移，讓軟體鍵盤開關或變更高度時仍留在可見範圍。
+
+同一版也修正行尾控制：聚焦根節點的 `↖` 每次只回到直接父 Bullet，只有最外層 Bullet 再按一次才會回到全文。行尾原生按鈕改由自己的 CodeMirror Widget 處理 activation，不依賴 click 先冒泡到 editor，因此 iPad 不應再發生第一下只啟用編輯列、必須再點左側 Bullet marker 的情況。這項互動已由非冒泡事件測試與 macOS Obsidian 實測固定，實體 iPhone／iPad 仍須在正式發布前完成驗收。
 
 `0.1.3` 起可執行 `Bullet Zoom: 回到上一層 Bullet`，一次只回到目前節點的直屬父 Bullet。請到「設定 → 快捷鍵」搜尋 `回到上一層 Bullet`，再依目前 Vault 的快捷鍵配置指定按法。連續執行會逐層返回；目前已在最外層 Bullet 時，再執行一次會回到完整筆記。若要不經過父層、直接回到完整筆記，仍可執行 `Bullet Zoom: 退出 Bullet 聚焦`。
 
@@ -310,6 +314,19 @@ BRAT 會從 GitHub Release 下載下列三個檔案，之後也可以用 BRAT �
 - [GitHub Release `0.1.14`](https://github.com/vizance/obsidian-bullet-zoom/releases/tag/0.1.14) 已發佈並標記為 Latest；Actions run [`31643035633`](https://github.com/vizance/obsidian-bullet-zoom/actions/runs/31643035633) 通過，tag 指向已驗證的公開 main commit `9771974`
 - Release 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `6820896682677c443234101ffab73b5c917f25f2692f26d4f3b22c6047536125`、`0639e3fd82a4ef12ca79270cb801e6dee5b72dfe4d3761b48395fa23448ee94b`、`a8fb7bf9df270b5d783c7b5f73165e8f5c18b431d425560dc3ae86ece82f73e0`，與 canonical build 逐檔一致
 - 公開 BRAT 已更新為 `0.1.14`；實體 iPhone 的 folded-target Zoom、點擊後行高、鍵盤 viewport 與捲動仍待獨立複驗，桌面人工驗收與自動測試不代替手機實機狀態
+
+2026-08-13 建立 `0.1.15` 選單式 Bullet 切換候選版：
+
+- Breadcrumb 最右側新增獨立的「切換 Bullet」按鈕；筆記、祖先、目前節點與 separator 維持原本角色，hover 或 activation 不會自行開啟選單
+- 目前 Markdown 文件的所有支援 Bullet 會建立成 immutable outline tree；folded／offscreen 節點仍保留，重複 label 使用 marker anchor 區分，Heading、Task、編號、frontmatter 與 fenced code 排除
+- 桌面使用 viewport-clamped 級聯欄位；手機與平板使用一次一層的 bottom sheet。文字會立即聚焦，`›` 只展開直屬子節點，`全文` 使用既有退出 transition
+- 行尾 `↖` 改為一次只回到直接父 Bullet，最外層才返回全文；`↘`／`↖` 由 Widget 自己處理 native click，iPad 不再依賴 editor-container bubbling 或左側 Bullet marker
+- 文件、檔案、focus session 或 EditorView 失效時只關閉所屬 pane 的選單；Escape／外部點擊會關閉並在 trigger 仍有效時恢復鍵盤焦點，所有 Markdown label 都以純文字插入
+- `npm test -- --run`：154 項測試通過；包含完整 syntax tree、CommonMark `ListItem` ancestry、Obsidian HyperMD 單趟 hierarchy、lazy continuation branch、分割窗格 topmost lifecycle、桌面 resize、modal focus trap、`visualViewport` 鍵盤高度、三平台逐層 `↖`、iPad 非冒泡 activation，以及 detached／destroyed widget 回歸；`npm run lint -- --max-warnings=0`、`npm run build`、`git diff --check`：通過
+- `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 版本均對齊 `0.1.15`
+- 專用 `.test-vault` 已換入 `0.1.15` 三檔候選 bundle；canonical 與 Test Vault 的 `main.js`、`manifest.json`、`styles.css` SHA-256 分別為 `473ac67c8789a723e4ff18d9d31a1ad34069315e6f16a51c29b01081ce31ab82`、`228d4bb82c98ab4b963eb9c9084b88b8b77d4ed6e83c9ae09f68e0db949fd299`、`a36e765fac1a859a8626394edd32e4eecb64bfdfb346f60e0447128f1eab208f`，逐檔 byte-identical
+- macOS Obsidian `1.13.7` 專用 `.test-vault` 人工驗收通過：從 `Parent A` 開啟獨立「切換 Bullet」按鈕時，breadcrumb 維持純導航；選單先顯示兩個 root，`Parent A` 的 `›` 可展開 `Child A1`、`Child A2` 與下一層兩個 Grandchild，點擊 `Child A1` 文字會立即切換 focus 並關閉選單；另從 `Grandchild A1a` 的行尾 `↖` 實際依序返回 `Child A1`、`Parent A`、全文，每一層只顯示一個行尾反向控制；淺色與深色模式皆能讀取、Escape 可關閉、驗收前後皆為 36 words、214 characters
+- 實體 iPhone 的 bottom sheet、鍵盤 `visualViewport` 動畫、Light／Dark、folded target 與深層 drill-down，以及實體 iPad 的行尾單次 tap 尚未執行；目前公開 GitHub Release 與 BRAT 仍為 `0.1.14`，不把自動測試或桌面驗收視為行動裝置實機通過
 
 ### 桌面版人工驗收
 
