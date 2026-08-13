@@ -47,6 +47,23 @@ button.bullet-zoom-row-control:focus-visible {
 	outline-offset: 1px;
 }
 
+.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
+	button.bullet-zoom-row-control {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
+	.cm-line:hover
+	button.bullet-zoom-row-control,
+.bullet-zoom-row-controls-hover-only:not(.bullet-zoom-row-controls-touch)
+	button.bullet-zoom-row-control:focus-visible,
+.bullet-zoom-row-controls-hover-only.bullet-zoom-row-controls-touch
+	button.bullet-zoom-row-control {
+	opacity: 1;
+	pointer-events: auto;
+}
+
 .bullet-zoom-row-icon {
 	display: inline;
 	font: inherit;
@@ -278,7 +295,7 @@ button.bullet-zoom-breadcrumb {
 .bullet-zoom-outline-sidebar-row {
 	display: grid;
 	box-sizing: border-box;
-	grid-template-columns: 28px minmax(0, 1fr);
+	grid-template-columns: 28px minmax(0, 1fr) auto;
 	align-items: stretch;
 	width: 100%;
 	min-width: 0;
@@ -335,8 +352,38 @@ button.bullet-zoom-breadcrumb {
 	overflow: hidden;
 	padding: var(--size-4-2, 8px);
 	text-align: start;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bullet-zoom-outline-sidebar-preview {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	min-height: 36px;
+	padding: 0 var(--size-2-2, 6px);
+	color: var(--text-faint);
+}
+
+.bullet-zoom-outline-sidebar-preview[hidden] {
+	display: none;
+}
+
+.bullet-zoom-outline-sidebar-preview:hover,
+.bullet-zoom-outline-sidebar-preview:focus-visible {
+	color: var(--text-normal);
+}
+
+.bullet-zoom-outline-preview-text {
+	white-space: pre-wrap;
 	overflow-wrap: anywhere;
-	white-space: normal;
+}
+
+.bullet-zoom-outline-preview-close {
+	min-height: 36px;
+	padding: 0 var(--size-4-3, 12px);
+	border-radius: var(--button-radius, 5px);
 }
 
 .bullet-zoom-outline-sidebar-label[aria-current='true'] {
@@ -356,8 +403,13 @@ button.bullet-zoom-breadcrumb {
 .is-mobile .bullet-zoom-outline-sidebar-root,
 .is-mobile .bullet-zoom-outline-sidebar-retry,
 .is-mobile .bullet-zoom-outline-sidebar-disclosure,
-.is-mobile .bullet-zoom-outline-sidebar-label {
+.is-mobile .bullet-zoom-outline-sidebar-label,
+.is-mobile .bullet-zoom-outline-sidebar-preview {
 	min-height: 44px;
+}
+
+.is-mobile .bullet-zoom-outline-sidebar-preview {
+	min-width: 44px;
 }
 
 .is-mobile .bullet-zoom-outline-sidebar-disclosure,

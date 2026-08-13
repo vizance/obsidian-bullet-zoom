@@ -114,6 +114,44 @@ describe('findSupportedBullet', () => {
 	});
 });
 
+describe('outlinePlainTextLabel', () => {
+	it('keeps semantic text while removing supported inline Markdown marks', () => {
+		const source =
+			'- **粗體** *斜體* ~~刪除~~ `程式碼` [連結文字](https://example.com "標題") ![圖片說明](image.png) [[目標筆記|顯示名稱]] \\*星號';
+		const state = createState(source);
+		expect(buildBulletOutline(state)[0]?.label).toBe(
+			'粗體 斜體 刪除 程式碼 連結文字 圖片說明 顯示名稱 *星號',
+		);
+	});
+
+	it('uses the wiki-link target when no alias is present', () => {
+		const state = createState('- 參考 [[Reference Note]]');
+		expect(buildBulletOutline(state)[0]?.label).toBe(
+			'參考 Reference Note',
+		);
+	});
+
+	it('preserves intentional spaces inside inline code', () => {
+		const state = createState('- 執行 `npm  test`');
+		expect(buildBulletOutline(state)[0]?.label).toBe('執行 npm  test');
+	});
+
+	it('uses the empty fallback when formatting has no visible content', () => {
+		const state = createState('- [ ](https://example.com)');
+		expect(buildBulletOutline(state)[0]?.label).toBe('（空白節點）');
+	});
+
+	it('keeps duplicate plain labels independently addressable by anchor', () => {
+		const state = createState('- **Same**\n- Same');
+		const outline = buildBulletOutline(state);
+		expect(outline.map(({ label }) => label)).toEqual(['Same', 'Same']);
+		expect(outline.map(({ anchor }) => anchor)).toEqual([
+			state.doc.line(1).from,
+			state.doc.line(2).from,
+		]);
+	});
+});
+
 describe('computeBranchRange', () => {
 	it('returns the focused item, descendants, and indented continuation lines', () => {
 		const state = createState(
@@ -339,7 +377,7 @@ describe('buildBulletOutline', () => {
 
 		expect(buildBulletOutline(createState(source))).toEqual([
 			{
-				label: 'Plain bullet with [[Other note]]',
+				label: 'Plain bullet with Other note',
 				anchor: createState(source).doc.line(7).from,
 				children: [],
 			},
