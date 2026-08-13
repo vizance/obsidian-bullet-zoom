@@ -114,7 +114,7 @@ Bullet Zoom 不提供預設快捷鍵，以免和 Outliner 或你的 Vault 設定
 
 ## 手機與平板說明
 
-插件與 BRAT 安裝包支援桌面版、手機與平板，並針對手機 Breadcrumb、editor-only 捲動、原生 drawer、單列大綱排版與 iPad 點擊事件加入自動測試。
+插件與 BRAT 安裝包支援桌面版、手機與平板。手機大綱會依 drawer 寬度自動調整文字欄，文字固定靠左；過長內容只在尾端顯示 `...`，可點右側 `…` 查看完整純文字。插件也針對手機 Breadcrumb、editor-only 捲動、原生 drawer、單列大綱排版與 iPad 點擊事件加入自動測試。
 
 這些自動測試只固定 DOM 與 CSS 契約，無法完整模擬 iOS 鍵盤、Dynamic Island、真實觸控排版與不同 Obsidian 主題。每個候選版本仍需在實體 iPhone 與 iPad 驗收；如果遇到畫面被遮住、點擊區域異常或捲動位置不正確，請附上裝置、OS、Obsidian 版本與截圖回報。
 
