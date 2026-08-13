@@ -7,6 +7,7 @@ import {
 	buildBulletOutline,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
+	BulletOutlineLimitError,
 	collectHyperMdAncestorBullets,
 	computeBranchRange,
 	findSupportedBullet,
@@ -227,12 +228,12 @@ describe('buildBreadcrumbs', () => {
 
 	it('does not cache a target-limited syntax tree as the complete document tree', () => {
 		const state = createState(
-			Array.from({ length: 3_000 }, (_, index) => `- Item ${index}`).join('\n'),
+			Array.from({ length: 900 }, (_, index) => `- Item ${index}`).join('\n'),
 		);
 		expect(buildBreadcrumbs(state, 0, 'Ideas')?.at(-1)?.label).toBe('Item 0');
-		expect(buildBulletOutline(state)).toHaveLength(3_000);
-		expect(findSupportedBullet(state, state.doc.line(3_000).from)?.label).toBe(
-			'Item 2999',
+		expect(buildBulletOutline(state)).toHaveLength(900);
+		expect(findSupportedBullet(state, state.doc.line(900).from)?.label).toBe(
+			'Item 899',
 		);
 	});
 });
@@ -531,12 +532,12 @@ describe('buildBulletOutline', () => {
 	});
 
 	it('keeps a large flat HyperMD outline linear and complete', () => {
-		const source = Array.from({ length: 2_000 }, (_, index) => `- Item ${index}`).join(
+		const source = Array.from({ length: 1_000 }, (_, index) => `- Item ${index}`).join(
 			'\n',
 		);
 		const state = createState(source);
-		expect(buildBulletOutline(state)).toHaveLength(2_000);
-		const entries = Array.from({ length: 2_000 }, (_, index) => {
+		expect(buildBulletOutline(state)).toHaveLength(1_000);
+		const entries = Array.from({ length: 1_000 }, (_, index) => {
 			const bullet = findSupportedBullet(state, state.doc.line(index + 1).from);
 			expect(bullet).not.toBeNull();
 			return {
@@ -546,6 +547,69 @@ describe('buildBulletOutline', () => {
 				nonBlank: true,
 			};
 		});
-		expect(buildHyperMdBulletOutline(entries)).toHaveLength(2_000);
+		expect(buildHyperMdBulletOutline(entries)).toHaveLength(1_000);
+	});
+
+	it('builds a deeply nested standard outline in one bounded tree walk', () => {
+		const source = Array.from(
+			{ length: 100 },
+			(_, index) => `${'  '.repeat(index)}- Level ${index + 1}`,
+		).join('\n');
+		const outline = buildBulletOutline(createState(source));
+		let nodes = outline;
+		let depth = 0;
+		while (nodes.length > 0) {
+			depth += 1;
+			nodes = nodes[0]?.children ?? [];
+		}
+		expect(depth).toBe(100);
+	});
+
+	it('fails closed before an outline can exceed the nesting budget', () => {
+		const bullet = findSupportedBullet(createState('- Item'), 0);
+		expect(bullet).not.toBeNull();
+		if (bullet === null) {
+			return;
+		}
+		const entries = Array.from({ length: 129 }, (_, index) => ({
+			level: index + 1,
+			bullet: Object.freeze({ ...bullet, markerFrom: index, lineFrom: index }),
+			hasListMarker: true,
+			nonBlank: true,
+		}));
+		expect(() => buildHyperMdBulletOutline(entries)).toThrow(
+			BulletOutlineLimitError,
+		);
+		const unsupportedEntries = [
+			{
+				level: 1,
+				bullet,
+				hasListMarker: true,
+				nonBlank: true,
+			},
+			...Array.from({ length: 128 }, (_, index) => ({
+				level: index + 2,
+				bullet: null,
+				hasListMarker: true,
+				nonBlank: true,
+			})),
+		];
+		expect(() => buildHyperMdBulletOutline(unsupportedEntries)).toThrow(
+			BulletOutlineLimitError,
+		);
+		const unsupportedStandardSource = [
+			'- Valid',
+			...Array.from({ length: 5_000 }, (_, index) => `- [ ] Task ${index}`),
+		].join('\n');
+		expect(() =>
+			buildBulletOutline(createState(unsupportedStandardSource)),
+		).toThrow(BulletOutlineLimitError);
+		const excessiveSupportedSource = Array.from(
+			{ length: 1_001 },
+			(_, index) => `- Item ${index}`,
+		).join('\n');
+		expect(() =>
+			buildBulletOutline(createState(excessiveSupportedSource)),
+		).toThrow(BulletOutlineLimitError);
 	});
 });
