@@ -88,7 +88,36 @@ const activeRowControlViews = new WeakSet<EditorView>();
 const ROW_CONTROLS_ALWAYS_CLASS =
 	'bullet-zoom-row-controls-always-visible';
 const ROW_CONTROLS_HOVER_CLASS = 'bullet-zoom-row-controls-hover-only';
-const ROW_CONTROLS_TOUCH_CLASS = 'bullet-zoom-row-controls-touch';
+const ROW_CONTROL_TOUCH_ACTIVE_CLASS =
+	'bullet-zoom-row-control-touch-active';
+
+const setTouchActiveRowEffect = StateEffect.define<number | null>();
+
+const touchActiveRowField = StateField.define<number | null>({
+	create: () => null,
+	update: (current, transaction) => {
+		let next = current;
+		for (const effect of transaction.effects) {
+			if (effect.is(setTouchActiveRowEffect)) {
+				next = effect.value;
+			} else if (
+				effect.is(setRowControlsAlwaysVisibleEffect) &&
+				effect.value
+			) {
+				next = null;
+			}
+		}
+
+		if (next === null) {
+			return null;
+		}
+		const mapped = transaction.docChanged
+			? transaction.changes.mapPos(next, 1)
+			: next;
+		const bullet = findSupportedBullet(transaction.state, mapped);
+		return bullet?.markerFrom === mapped ? mapped : null;
+	},
+});
 
 class RowControlVisibilityPlugin implements PluginValue {
 	constructor(private readonly view: EditorView) {
@@ -105,18 +134,70 @@ const rowControlVisibilityPlugin = ViewPlugin.fromClass(
 );
 
 const rowControlVisibilityAttributes = EditorView.editorAttributes.compute(
-	[rowControlsAlwaysVisibleField, focusMobileMode],
+	[rowControlsAlwaysVisibleField],
 	(state) => ({
-		class: [
-			state.field(rowControlsAlwaysVisibleField)
-				? ROW_CONTROLS_ALWAYS_CLASS
-				: ROW_CONTROLS_HOVER_CLASS,
-			...(state.facet(focusMobileMode)
-				? [ROW_CONTROLS_TOUCH_CLASS]
-				: []),
-		].join(' '),
+		class: state.field(rowControlsAlwaysVisibleField)
+			? ROW_CONTROLS_ALWAYS_CLASS
+			: ROW_CONTROLS_HOVER_CLASS,
 	}),
 );
+
+const touchActiveRowDecoration = Decoration.line({
+	class: ROW_CONTROL_TOUCH_ACTIVE_CLASS,
+});
+
+const touchActiveRowDecorations = EditorView.decorations.compute(
+	[touchActiveRowField, rowControlsAlwaysVisibleField, focusMobileMode],
+	(state) => {
+		const anchor = state.field(touchActiveRowField);
+		if (
+			anchor === null ||
+			!state.facet(focusMobileMode) ||
+			state.field(rowControlsAlwaysVisibleField)
+		) {
+			return Decoration.none;
+		}
+		const bullet = findSupportedBullet(state, anchor);
+		return bullet?.markerFrom === anchor
+			? Decoration.set([
+					touchActiveRowDecoration.range(bullet.lineFrom),
+				])
+			: Decoration.none;
+	},
+);
+
+const touchRowPointerHandler = EditorView.domEventHandlers({
+	pointerdown: (event, view) => {
+		if (
+			event.pointerType !== 'touch' ||
+			!view.state.facet(focusMobileMode) ||
+			view.state.field(rowControlsAlwaysVisibleField)
+		) {
+			return false;
+		}
+		const HTMLElementConstructor =
+			view.dom.ownerDocument.defaultView?.HTMLElement;
+		if (
+			HTMLElementConstructor === undefined ||
+			!(event.target instanceof HTMLElementConstructor) ||
+			event.target.closest('.bullet-zoom-row-control') !== null ||
+			event.target.closest('.collapse-indicator') !== null
+		) {
+			return false;
+		}
+
+		const line = event.target.closest<HTMLElement>('.cm-line');
+		let nextAnchor: number | null = null;
+		if (line !== null && view.dom.contains(line)) {
+			const bullet = findSupportedBullet(view.state, view.posAtDOM(line));
+			nextAnchor = bullet?.markerFrom ?? null;
+		}
+		if (view.state.field(touchActiveRowField) !== nextAnchor) {
+			view.dispatch({ effects: setTouchActiveRowEffect.of(nextAnchor) });
+		}
+		return false;
+	},
+});
 
 export function setRowControlsAlwaysVisible(
 	view: EditorView,
@@ -539,6 +620,12 @@ const markerClickHandler = EditorView.domEventHandlers({
 		if (event.target.closest('.bullet-zoom-row-control') !== null) {
 			return false;
 		}
+		if (
+			view.state.facet(focusMobileMode) &&
+			!view.state.field(rowControlsAlwaysVisibleField)
+		) {
+			return false;
+		}
 		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
 		if (marker === null || !view.dom.contains(marker)) {
 			return false;
@@ -937,13 +1024,16 @@ export function createFocusExtension({
 		focusMobileMode.of(isMobile),
 		rowControlsAlwaysVisible.of(alwaysShowRowControls),
 		rowControlsAlwaysVisibleField,
+		touchActiveRowField,
 		rowControlVisibilityAttributes,
+		touchActiveRowDecorations,
 		rowControlVisibilityPlugin,
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
 		mobileBreadcrumbDecorations,
 		bulletMarkerPlugin,
+		touchRowPointerHandler,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
 		sidebarBridge,

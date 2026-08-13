@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.17');
+		expect(manifest.version).toBe('0.1.18');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.17');
-		expect(packageLock.version).toBe('0.1.17');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.17');
+		expect(packageManifest.version).toBe('0.1.18');
+		expect(packageLock.version).toBe('0.1.18');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.18');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -64,7 +64,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.14']).toBe('1.11.7');
 		expect(versions['0.1.15']).toBe('1.11.7');
 		expect(versions['0.1.16']).toBe('1.11.7');
-		expect(versions['0.1.17']).toBe('1.11.7');
+		expect(versions['0.1.18']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -348,7 +348,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		line.classList.add('cm-activeLine');
 		expect(getComputedStyle(control).opacity).toBe('0');
 		line.classList.remove('cm-activeLine');
-		editor.classList.add('bullet-zoom-row-controls-touch');
+		line.classList.add('bullet-zoom-row-control-touch-active');
 		expect(getComputedStyle(control).display).toBe('inline-flex');
 		expect(getComputedStyle(control).visibility).toBe('visible');
 		expect(getComputedStyle(control).opacity).toBe('1');
@@ -358,8 +358,12 @@ describe('mobile-compatible plugin bundle contract', () => {
 			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
 			.map((rule) => rule.selectorText)
 			.join('\n');
-		expect(selectors).not.toContain('.is-mobile-active');
-		expect(selectors).toContain('.cm-line:hover');
+		expect(selectors).toContain(
+			'.bullet-zoom-row-control-touch-active',
+		);
+		expect(readProjectFile('styles.css')).toMatch(
+			/@media\s*\(hover:\s*hover\)\s*and\s*\(pointer:\s*fine\)[\s\S]*\.cm-line:hover/,
+		);
 		expect(selectors).not.toContain('.cm-activeLine');
 	});
 

@@ -66,7 +66,7 @@ export class BulletZoomSettingTab extends PluginSettingTab {
 		return [
 			{
 				name: '永遠顯示行尾縮放箭頭',
-				desc: '關閉後，桌面只在滑鼠移到該行或鍵盤聚焦時顯示；手機與平板仍保持可見。',
+				desc: '關閉後，桌面以 hover 或鍵盤聚焦顯示；手機與平板點一下 bullet 列，只顯示該列箭頭。',
 				control: {
 					type: 'toggle',
 					key: 'alwaysShowRowControls',
@@ -96,7 +96,7 @@ export class BulletZoomSettingTab extends PluginSettingTab {
 		new Setting(this.containerEl)
 			.setName('永遠顯示行尾縮放箭頭')
 			.setDesc(
-				'關閉後，桌面只在滑鼠移到該行或鍵盤聚焦時顯示；手機與平板仍保持可見。',
+				'關閉後，桌面以 hover 或鍵盤聚焦顯示；手機與平板點一下 bullet 列，只顯示該列箭頭。',
 			)
 			.addToggle((toggle) =>
 				toggle

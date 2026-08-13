@@ -73,6 +73,7 @@ type SourceContext = Readonly<{
 export type OutlineSidebarCoordinatorOptions = Readonly<{
 	workspace: Workspace;
 	isMobile: boolean;
+	getActiveEditorView: () => EditorView | null;
 	resolveEditorView: (leaf: WorkspaceLeaf) => EditorView | null;
 	isEditorEligible: (view: EditorView) => boolean;
 	getFilePath: (view: EditorView) => string | null;
@@ -619,6 +620,10 @@ export class BulletOutlineSidebarCoordinator {
 	async openCurrent(): Promise<OutlineOpenResult> {
 		if (this.destroyed) {
 			return 'failed';
+		}
+		const activeEditorView = this.options.getActiveEditorView();
+		if (activeEditorView !== null) {
+			return this.openForEditor(activeEditorView);
 		}
 		this.captureMostRecentLeaf();
 		if (this.source === null) {
