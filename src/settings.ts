@@ -13,6 +13,9 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	alwaysShowRowControls: true,
 });
 
+const ROW_CONTROL_VISIBILITY_DESCRIPTION =
+	'只影響桌面版。開啟時固定顯示行尾箭頭；關閉後只在 hover 或鍵盤聚焦時顯示。手機與平板固定使用左側 Bullet 圓點縮放。';
+
 export function parseBulletZoomSettings(data: unknown): BulletZoomSettings {
 	if (
 		typeof data === 'object' &&
@@ -66,7 +69,7 @@ export class BulletZoomSettingTab extends PluginSettingTab {
 		return [
 			{
 				name: '永遠顯示行尾縮放箭頭',
-				desc: '關閉後，桌面以 hover 或鍵盤聚焦顯示；手機與平板點一下 bullet 列，只顯示該列箭頭。',
+				desc: ROW_CONTROL_VISIBILITY_DESCRIPTION,
 				control: {
 					type: 'toggle',
 					key: 'alwaysShowRowControls',
@@ -95,9 +98,7 @@ export class BulletZoomSettingTab extends PluginSettingTab {
 		this.containerEl.replaceChildren();
 		new Setting(this.containerEl)
 			.setName('永遠顯示行尾縮放箭頭')
-			.setDesc(
-				'關閉後，桌面以 hover 或鍵盤聚焦顯示；手機與平板點一下 bullet 列，只顯示該列箭頭。',
-			)
+			.setDesc(ROW_CONTROL_VISIBILITY_DESCRIPTION)
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.controller.getSettings().alwaysShowRowControls)
