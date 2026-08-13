@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.15');
+		expect(manifest.version).toBe('0.1.16');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.15');
-		expect(packageLock.version).toBe('0.1.15');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.15');
+		expect(packageManifest.version).toBe('0.1.16');
+		expect(packageLock.version).toBe('0.1.16');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.16');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -63,6 +63,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.13']).toBe('1.11.7');
 		expect(versions['0.1.14']).toBe('1.11.7');
 		expect(versions['0.1.15']).toBe('1.11.7');
+		expect(versions['0.1.16']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -112,10 +113,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 			'這是一個非常長而且必須在剩餘寬度內截斷的目前節點',
 			'is-current',
 		);
-		const switcher = document.createElement('button');
-		switcher.className = 'bullet-zoom-outline-trigger';
-		switcher.setAttribute('aria-label', '切換 bullet');
-		panel.append(switcher);
 		document.body.append(panel);
 
 		const panelStyle = getComputedStyle(panel);
@@ -123,7 +120,6 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const hiddenAncestorStyle = getComputedStyle(hiddenAncestor);
 		const parentStyle = getComputedStyle(parent);
 		const currentStyle = getComputedStyle(current);
-		const switcherStyle = getComputedStyle(switcher);
 		const currentLabelStyle = getComputedStyle(
 			current.querySelector('.bullet-zoom-breadcrumb-label') ?? current,
 		);
@@ -141,10 +137,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(parentStyle.minWidth).toBe('44px');
 		expect(parentStyle.minHeight).toBe('44px');
 		expect(currentStyle.minHeight).toBe('44px');
-		expect(switcherStyle.width).toBe('44px');
-		expect(switcherStyle.minWidth).toBe('44px');
-		expect(switcherStyle.minHeight).toBe('44px');
-		expect(switcherStyle.flexShrink).toBe('0');
+		expect(panel.querySelector('.bullet-zoom-outline-trigger')).toBeNull();
 		expect(currentStyle.flexShrink).toBe('1');
 		expect(Number.parseFloat(currentStyle.minWidth)).toBe(0);
 		expect(currentLabelStyle.overflow).toBe('hidden');
@@ -246,48 +239,39 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(styles).not.toContain('var(--text-on-accent)');
 	});
 
-	it('keeps the mobile outline sheet inside the visible viewport with 44px actions', () => {
+	it('uses one native-sidebar surface with 44px mobile actions and no overlay geometry', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
 		document.head.append(style);
-		const layer = document.createElement('div');
-		layer.className =
-			'bullet-zoom-outline-layer is-mobile-presentation';
-		const dialog = document.createElement('div');
-		dialog.className =
-			'bullet-zoom-outline-dialog bullet-zoom-outline-mobile';
-		const header = document.createElement('header');
-		header.className = 'bullet-zoom-outline-header';
-		const headerButton = document.createElement('button');
-		header.append(headerButton);
-		const list = document.createElement('div');
-		list.className = 'bullet-zoom-outline-mobile-list';
+		document.body.classList.add('is-mobile');
+		const sidebar = document.createElement('div');
+		sidebar.className = 'bullet-zoom-outline-sidebar';
+		const body = document.createElement('div');
+		body.className = 'bullet-zoom-outline-sidebar-body';
+		const row = document.createElement('div');
+		row.className = 'bullet-zoom-outline-sidebar-row is-depth-6';
+		const disclosure = document.createElement('button');
+		disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
 		const label = document.createElement('button');
-		label.className = 'bullet-zoom-outline-label';
-		const children = document.createElement('button');
-		children.className = 'bullet-zoom-outline-children';
-		list.append(label, children);
-		dialog.append(header, list);
-		layer.append(dialog);
-		document.body.append(layer);
+		label.className = 'bullet-zoom-outline-sidebar-label';
+		row.append(disclosure, label);
+		body.append(row);
+		sidebar.append(body);
+		document.body.append(sidebar);
 
-		const layerStyle = getComputedStyle(layer);
-		const dialogStyle = getComputedStyle(dialog);
-		const listStyle = getComputedStyle(list);
-		expect(layerStyle.position).toBe('fixed');
-		expect(layerStyle.alignItems).toBe('flex-end');
-		expect(dialogStyle.width).toBe('100%');
-		expect(dialogStyle.maxWidth).toBe('100%');
-		expect(dialogStyle.overflow).toBe('hidden');
-		expect(listStyle.overflowX).toBe('hidden');
-		expect(listStyle.overflowY).toBe('auto');
-		for (const control of [headerButton, label, children]) {
-			expect(getComputedStyle(control).minHeight).toBe('44px');
-		}
-		expect(getComputedStyle(headerButton).minWidth).toBe('44px');
-		expect(getComputedStyle(children).minWidth).toBe('44px');
-		expect(readProjectFile('styles.css')).toContain('max-height: min(72%, 34rem)');
+		expect(getComputedStyle(sidebar).width).toBe('100%');
+		expect(getComputedStyle(sidebar).overflow).toBe('hidden');
+		expect(getComputedStyle(body).overflowX).toBe('hidden');
+		expect(getComputedStyle(body).overflowY).toBe('auto');
+		expect(getComputedStyle(disclosure).minHeight).toBe('44px');
+		expect(getComputedStyle(disclosure).minWidth).toBe('44px');
+		expect(getComputedStyle(label).minHeight).toBe('44px');
+		expect(getComputedStyle(row).paddingInlineStart).toBe('48px');
+		expect(readProjectFile('styles.css')).not.toContain(
+			'.bullet-zoom-outline-layer',
+		);
+		expect(readProjectFile('styles.css')).not.toContain('visualViewport');
 	});
 
 	it.each(['theme-light', 'theme-dark'])(
@@ -303,31 +287,26 @@ describe('mobile-compatible plugin bundle contract', () => {
 			line.textContent = 'Bullet';
 			const breadcrumbs = document.createElement('nav');
 			breadcrumbs.className = 'bullet-zoom-breadcrumbs';
-			const layer = document.createElement('div');
-			layer.className =
-				'bullet-zoom-outline-layer is-desktop-presentation';
-			const dialog = document.createElement('div');
-			dialog.className =
-				'bullet-zoom-outline-dialog bullet-zoom-outline-desktop';
+			const sidebar = document.createElement('div');
+			sidebar.className = 'bullet-zoom-outline-sidebar';
 			const row = document.createElement('div');
-			row.className = 'bullet-zoom-outline-row is-current';
-			dialog.append(row);
-			layer.append(dialog);
-			document.body.append(line, breadcrumbs, layer);
+			row.className = 'bullet-zoom-outline-sidebar-row is-current';
+			sidebar.append(row);
+			document.body.append(line, breadcrumbs, sidebar);
 
 			const lineHeightBefore = getComputedStyle(line).lineHeight;
 			const breadcrumbHeightBefore = getComputedStyle(breadcrumbs).minHeight;
-			expect(getComputedStyle(layer).position).toBe('fixed');
+			expect(getComputedStyle(sidebar).position).not.toBe('fixed');
 			const rules = Array.from(style.sheet?.cssRules ?? []).filter(
 				(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
 			);
-			const dialogRule = rules.find(
-				(rule) => rule.selectorText === '.bullet-zoom-outline-dialog',
+			const sidebarRule = rules.find(
+				(rule) => rule.selectorText === '.bullet-zoom-outline-sidebar',
 			);
-			expect(dialogRule?.style.background).toBe('var(--background-primary)');
-			expect(dialogRule?.style.color).toBe('var(--text-normal)');
+			expect(sidebarRule?.style.background).toBe('var(--background-primary)');
+			expect(sidebarRule?.style.color).toBe('var(--text-normal)');
 			expect(readProjectFile('styles.css')).toMatch(
-				/\.bullet-zoom-outline-row\.is-current\s*\{[^}]*var\(--interactive-accent\)/s,
+				/\.bullet-zoom-outline-sidebar-row\.is-current\s*\{[^}]*var\(--interactive-accent\)/s,
 			);
 			expect(getComputedStyle(line).lineHeight).toBe(lineHeightBefore);
 			expect(getComputedStyle(breadcrumbs).minHeight).toBe(

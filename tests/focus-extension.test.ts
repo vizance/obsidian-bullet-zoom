@@ -41,6 +41,7 @@ function createState(
 	isPhone = false,
 	isMobile = isPhone,
 ): EditorState {
+	void isMobile;
 	return EditorState.create({
 		doc: document,
 		extensions: [
@@ -48,7 +49,7 @@ function createState(
 			focusFilePath.of(filePath),
 			focusNoteTitle.of(filePath.replace(/\.md$/, '')),
 			focusLivePreview.of(true),
-			createFocusExtension({ isPhone, isMobile }),
+			createFocusExtension({ isPhone }),
 			additionalExtensions,
 		],
 	});
@@ -137,7 +138,7 @@ describe('per-editor focus state', () => {
 				fileCompartment.of(focusFilePath.of('Ideas.md')),
 				focusNoteTitle.of('Ideas'),
 				focusLivePreview.of(true),
-				createFocusExtension({ isPhone: false, isMobile: false }),
+				createFocusExtension({ isPhone: false }),
 			],
 		});
 		const focused = focus(state, state.doc.line(2).from);
@@ -1087,7 +1088,7 @@ describe('plugin commands and safe failures', () => {
 				focusFilePath.of('Ideas.md'),
 				focusNoteTitle.of('Ideas'),
 					focusLivePreview.of(livePreview),
-					createFocusExtension({ isPhone: false, isMobile: false }),
+					createFocusExtension({ isPhone: false }),
 					additionalExtensions,
 			],
 		});
@@ -1309,12 +1310,7 @@ describe('per-editor breadcrumb panel', () => {
 		]);
 		expect(parent.querySelector('.bullet-zoom-back')).toBeNull();
 		expect(parent.querySelector('.bullet-zoom-menu-trigger')).toBeNull();
-		const switcher = parent.querySelector<HTMLButtonElement>(
-			'.bullet-zoom-outline-trigger',
-		);
-		expect(switcher?.tagName).toBe('BUTTON');
-		expect(switcher?.getAttribute('aria-label')).toBe('切換 Bullet');
-		expect(switcher?.title).toBe('切換 Bullet');
+		expect(parent.querySelector('.bullet-zoom-outline-trigger')).toBeNull();
 		expect(document.body.querySelector('.bullet-zoom-hierarchy-menu')).toBeNull();
 		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
 		expect(
@@ -1322,7 +1318,7 @@ describe('per-editor breadcrumb panel', () => {
 		).toBeNull();
 		expect(
 			parent.querySelector('.bullet-zoom-breadcrumbs')?.textContent,
-		).toBe('Ideas›Parent›Child›Grandchild☷');
+		).toBe('Ideas›Parent›Child›Grandchild');
 		view.destroy();
 		parent.remove();
 	});
@@ -1386,7 +1382,7 @@ describe('per-editor breadcrumb panel', () => {
 		parent.remove();
 	});
 
-	it('keeps breadcrumb hover free of descendant triggers and hierarchy menus', () => {
+	it('keeps breadcrumb hover passive without rendering an outline action', () => {
 		const { parent, view } = createView(
 			[
 				'- Parent A',
@@ -1395,6 +1391,9 @@ describe('per-editor breadcrumb panel', () => {
 				'  - Child A2',
 				'- Parent B',
 			].join('\n'),
+			[],
+			false,
+			false,
 		);
 		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(3).from) });
 		const breadcrumbs = Array.from(
@@ -1406,10 +1405,7 @@ describe('per-editor breadcrumb panel', () => {
 			'Child A1',
 			'Grandchild A1',
 		]);
-		const switcher = parent.querySelector<HTMLButtonElement>(
-			'.bullet-zoom-outline-trigger',
-		);
-		expect(switcher).not.toBeNull();
+		expect(parent.querySelector('.bullet-zoom-outline-trigger')).toBeNull();
 		for (const breadcrumb of breadcrumbs) {
 			breadcrumb.dispatchEvent(
 				new MouseEvent('mouseover', { bubbles: true }),
@@ -1420,81 +1416,10 @@ describe('per-editor breadcrumb panel', () => {
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
 			'Grandchild A1',
 		);
-		switcher?.click();
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).not.toBeNull();
+		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
 			'Grandchild A1',
 		);
-		view.destroy();
-		parent.remove();
-	});
-
-	it('uses the shared fold-aware transition only after an outline label is activated', () => {
-		const source = [
-			'- Parent',
-			'  - Child',
-			'    - Grandchild',
-			'      - Great grandchild',
-			'- Current',
-		].join('\n');
-		const { parent, view } = createView(source, codeFolding());
-		view.dispatch({
-			effects: focusAtEffect.of(view.state.doc.line(5).from),
-		});
-		const descendantFold = foldLine(view, 3);
-		foldLine(view, 2);
-		foldLine(view, 1);
-		const selectionBefore = view.state.selection;
-		const foldsBefore = activeFoldRanges(view);
-
-		parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		const parentAnchor = view.state.doc.line(1).from;
-		document
-			.querySelector<HTMLButtonElement>(
-				`[data-anchor="${parentAnchor}"] .bullet-zoom-outline-children`,
-			)
-			?.click();
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
-			'Current',
-		);
-		expect(view.state.selection).toBe(selectionBefore);
-		expect(activeFoldRanges(view)).toEqual(foldsBefore);
-		expect(view.state.doc.toString()).toBe(source);
-
-		const childAnchor = view.state.doc.line(2).from + 2;
-		document
-			.querySelector<HTMLButtonElement>(
-				`[data-anchor="${childAnchor}"] .bullet-zoom-outline-label`,
-			)
-			?.click();
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
-		expect(activeFoldRanges(view)).toEqual([descendantFold]);
-		expect(view.state.selection.main.head).toBe(view.state.doc.line(2).to);
-		expect(view.state.doc.toString()).toBe(source);
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
-		view.destroy();
-		parent.remove();
-	});
-
-	it('returns to the complete note from the switcher without moving selection', () => {
-		const { parent, view } = createView('- Parent\n  - Child');
-		view.dispatch({
-			selection: { anchor: view.state.doc.line(2).to },
-			effects: focusAtEffect.of(view.state.doc.line(2).from),
-		});
-		const selectionBefore = view.state.selection;
-		parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		document
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-root')
-			?.click();
-
-		expect(getFocusSession(view.state)).toBeNull();
-		expect(view.state.selection).toBe(selectionBefore);
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
 		view.destroy();
 		parent.remove();
 	});
@@ -1517,88 +1442,6 @@ describe('per-editor breadcrumb panel', () => {
 		second.view.destroy();
 		first.parent.remove();
 		second.parent.remove();
-	});
-
-	it('closes only the owning switcher when its document or focus session changes', () => {
-		const first = createView('- First\n  - Child');
-		const second = createView('- Second\n  - Child');
-		first.view.dispatch({
-			effects: focusAtEffect.of(first.view.state.doc.line(2).from),
-		});
-		second.view.dispatch({
-			effects: focusAtEffect.of(second.view.state.doc.line(2).from),
-		});
-		first.parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		second.parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		expect(document.body.querySelectorAll('.bullet-zoom-outline-layer')).toHaveLength(
-			2,
-		);
-
-		first.view.dispatch({ changes: { from: 0, insert: 'Updated\n' } });
-		expect(document.body.querySelectorAll('.bullet-zoom-outline-layer')).toHaveLength(
-			1,
-		);
-		expect(
-			document.body.querySelector('.bullet-zoom-outline-layer')?.getAttribute(
-				'data-bullet-zoom-outline-owner',
-			),
-		).toBe('Ideas.md');
-
-		second.view.dispatch({ effects: clearFocusEffect.of() });
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
-		first.view.destroy();
-		second.view.destroy();
-		first.parent.remove();
-		second.parent.remove();
-	});
-
-	it('removes an open switcher when its EditorView is destroyed', () => {
-		const { parent, view } = createView('- Parent');
-		view.dispatch({ effects: focusAtEffect.of(0) });
-		parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).not.toBeNull();
-
-		view.destroy();
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
-		parent.remove();
-	});
-
-	it('reopens from a freshly recomputed outline after a structural edit', () => {
-		const { parent, view } = createView('- Parent\n  - Child');
-		view.dispatch({ effects: focusAtEffect.of(view.state.doc.line(2).from) });
-		parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		expect(
-			Array.from(document.body.querySelectorAll('.bullet-zoom-outline-label')).map(
-				(element) => element.textContent,
-			),
-		).toEqual(['Parent', 'Child']);
-
-		view.dispatch({
-			changes: {
-				from: view.state.doc.length,
-				insert: '\n  - New sibling',
-			},
-		});
-		expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
-		parent
-			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-			?.click();
-		expect(
-			Array.from(document.body.querySelectorAll('.bullet-zoom-outline-label')).map(
-				(element) => element.textContent,
-			),
-		).toEqual(['Parent', 'Child', 'New sibling']);
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
-		view.destroy();
-		parent.remove();
 	});
 
 	it('renders the phone breadcrumb inside the padded CodeMirror scroll content', () => {
@@ -1904,11 +1747,12 @@ describe('per-editor breadcrumb panel', () => {
 		}
 	});
 
-	it('uses Bike-inspired phone navigation inside the block widget', () => {
+	it('renders Bike-inspired phone navigation without an outline action', () => {
 		document.body.classList.add('is-phone', 'is-mobile');
 		const { parent, view } = createView(
 			'- Parent\n  - Child\n    - Grandchild',
 			[],
+			true,
 			true,
 		);
 
@@ -1936,14 +1780,10 @@ describe('per-editor breadcrumb panel', () => {
 				{ label: 'Grandchild', tag: 'SPAN' },
 			]);
 			expect(mobileNavigation?.querySelector('.bullet-zoom-back')).toBeNull();
-			const switcher = mobileNavigation?.querySelector<HTMLButtonElement>(
-				'.bullet-zoom-outline-trigger',
-			);
-			expect(switcher?.getAttribute('aria-label')).toBe('切換 Bullet');
-			switcher?.click();
 			expect(
-				document.body.querySelector('.bullet-zoom-outline-mobile'),
-			).not.toBeNull();
+				mobileNavigation?.querySelector('.bullet-zoom-outline-trigger'),
+			).toBeNull();
+			expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
 			expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
 				'Grandchild',
 			);
@@ -1962,7 +1802,7 @@ describe('per-editor breadcrumb panel', () => {
 		}
 	});
 
-	it('uses the mobile bottom sheet on a tablet while retaining the desktop breadcrumb panel', () => {
+	it('retains the desktop breadcrumb panel on a tablet without an outline action', () => {
 		document.body.classList.add('is-mobile');
 		const { parent, view } = createView(
 			'- Parent\n  - Child',
@@ -1978,15 +1818,8 @@ describe('per-editor breadcrumb panel', () => {
 			expect(
 				parent.querySelector('.cm-panels-top .bullet-zoom-breadcrumbs'),
 			).not.toBeNull();
-			parent
-				.querySelector<HTMLButtonElement>('.bullet-zoom-outline-trigger')
-				?.click();
-			expect(
-				document.body.querySelector('.bullet-zoom-outline-mobile'),
-			).not.toBeNull();
-			expect(
-				document.body.querySelector('.bullet-zoom-outline-desktop'),
-			).toBeNull();
+			expect(parent.querySelector('.bullet-zoom-outline-trigger')).toBeNull();
+			expect(document.body.querySelector('.bullet-zoom-outline-layer')).toBeNull();
 		} finally {
 			view.destroy();
 			parent.remove();

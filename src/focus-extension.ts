@@ -27,10 +27,6 @@ import {
 	type Breadcrumb,
 	type BranchRange,
 } from './list-structure';
-import {
-	closeOutlineSwitcher,
-	openOutlineSwitcher,
-} from './outline-switcher';
 
 export const LIVE_PREVIEW_REQUIRED_NOTICE =
 	'Bullet Zoom 第一版只支援即時預覽模式。';
@@ -63,10 +59,6 @@ export const focusLivePreview = Facet.define<boolean, boolean>({
 });
 
 const focusPhoneMode = Facet.define<boolean, boolean>({
-	combine: (values) => values[values.length - 1] ?? false,
-});
-
-const focusMobileMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
@@ -518,29 +510,6 @@ const focusedPanePresentationPlugin = ViewPlugin.fromClass(
 	FocusedPanePresentationPlugin,
 );
 
-class OutlineSwitcherLifecyclePlugin implements PluginValue {
-	constructor(private readonly view: EditorView) {}
-
-	update(update: ViewUpdate): void {
-		if (
-			update.docChanged ||
-			update.startState.facet(focusFilePath) !==
-				update.state.facet(focusFilePath) ||
-			getFocusSession(update.startState) !== getFocusSession(update.state)
-		) {
-			closeOutlineSwitcher(update.view, false);
-		}
-	}
-
-	destroy(): void {
-		closeOutlineSwitcher(this.view, false);
-	}
-}
-
-const outlineSwitcherLifecyclePlugin = ViewPlugin.fromClass(
-	OutlineSwitcherLifecyclePlugin,
-);
-
 function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 	container.replaceChildren();
 	const session = getFocusSession(view.state);
@@ -607,41 +576,6 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 		container.append(button);
 	}
 
-	const switcher = container.ownerDocument.createElement('button');
-	switcher.type = 'button';
-	switcher.className = 'bullet-zoom-outline-trigger';
-	switcher.title = '切換 Bullet';
-	switcher.setAttribute('aria-label', '切換 Bullet');
-	const switcherIcon = container.ownerDocument.createElement('span');
-	switcherIcon.className = 'bullet-zoom-outline-trigger-icon';
-	switcherIcon.setAttribute('aria-hidden', 'true');
-	switcherIcon.textContent = '☷';
-	switcher.append(switcherIcon);
-	switcher.addEventListener('click', () => {
-		const capturedSession = getFocusSession(view.state);
-		if (capturedSession === null) {
-			return;
-		}
-		openOutlineSwitcher({
-			view,
-			trigger: switcher,
-			currentAnchor: capturedSession.anchor,
-			noteTitle: capturedSession.breadcrumbs[0]?.label ?? '未命名筆記',
-			filePath: capturedSession.filePath,
-			getFilePath: () => view.state.facet(focusFilePath) ?? '',
-			isMobile: view.state.facet(focusMobileMode),
-			isContextValid: () => {
-				const currentSession = getFocusSession(view.state);
-				return (
-					currentSession?.filePath === capturedSession.filePath &&
-					currentSession.anchor === capturedSession.anchor
-				);
-			},
-			onFocus: (anchor) => enterFocusAt(view, anchor, true),
-			onExit: () => exitFocus(view),
-		});
-	});
-	container.append(switcher);
 }
 
 function createBreadcrumbContainer(
@@ -898,11 +832,24 @@ export function runParentCommand(
 
 export function createFocusExtension({
 	isPhone,
-	isMobile,
-}: Readonly<{ isPhone: boolean; isMobile: boolean }>): Extension {
+	onEditorReady,
+	onEditorUpdate,
+	onEditorDestroy,
+}: Readonly<{
+	isPhone: boolean;
+	onEditorReady?: (view: EditorView) => void;
+	onEditorUpdate?: (update: ViewUpdate) => void;
+	onEditorDestroy?: (view: EditorView) => void;
+}>): Extension {
+	const sidebarBridge = ViewPlugin.define((view) => {
+		onEditorReady?.(view);
+		return {
+			update: (update: ViewUpdate) => onEditorUpdate?.(update),
+			destroy: () => onEditorDestroy?.(view),
+		};
+	});
 	return [
 		focusPhoneMode.of(isPhone),
-		focusMobileMode.of(isMobile),
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
@@ -910,7 +857,7 @@ export function createFocusExtension({
 		bulletMarkerPlugin,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
-		outlineSwitcherLifecyclePlugin,
+		sidebarBridge,
 		breadcrumbPanelExtension,
 	];
 }

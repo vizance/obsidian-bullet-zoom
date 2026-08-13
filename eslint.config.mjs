@@ -30,7 +30,11 @@ export default defineConfig(
 	},
 	...obsidianmd.configs.recommended,
 	{
-		files: ['src/main.ts', 'src/focus-extension.ts'],
+		files: [
+			'src/main.ts',
+			'src/focus-extension.ts',
+			'src/outline-sidebar-view.ts',
+		],
 		rules: {
 			// Spectra fixes these public command IDs and Traditional Chinese labels.
 			'obsidianmd/commands/no-plugin-id-in-command-id': 'off',
