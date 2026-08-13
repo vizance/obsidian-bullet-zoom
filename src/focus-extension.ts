@@ -36,6 +36,7 @@ export const EDITOR_VIEW_UNAVAILABLE_NOTICE =
 	'無法取得目前的 Obsidian 編輯畫面。';
 
 const MOBILE_BREADCRUMB_SCROLL_MARGIN = 52;
+const MOBILE_MARKER_TARGET_SIZE = 28;
 
 export type NoticeHandler = (message: string) => void;
 
@@ -88,36 +89,6 @@ const activeRowControlViews = new WeakSet<EditorView>();
 const ROW_CONTROLS_ALWAYS_CLASS =
 	'bullet-zoom-row-controls-always-visible';
 const ROW_CONTROLS_HOVER_CLASS = 'bullet-zoom-row-controls-hover-only';
-const ROW_CONTROL_TOUCH_ACTIVE_CLASS =
-	'bullet-zoom-row-control-touch-active';
-
-const setTouchActiveRowEffect = StateEffect.define<number | null>();
-
-const touchActiveRowField = StateField.define<number | null>({
-	create: () => null,
-	update: (current, transaction) => {
-		let next = current;
-		for (const effect of transaction.effects) {
-			if (effect.is(setTouchActiveRowEffect)) {
-				next = effect.value;
-			} else if (
-				effect.is(setRowControlsAlwaysVisibleEffect) &&
-				effect.value
-			) {
-				next = null;
-			}
-		}
-
-		if (next === null) {
-			return null;
-		}
-		const mapped = transaction.docChanged
-			? transaction.changes.mapPos(next, 1)
-			: next;
-		const bullet = findSupportedBullet(transaction.state, mapped);
-		return bullet?.markerFrom === mapped ? mapped : null;
-	},
-});
 
 class RowControlVisibilityPlugin implements PluginValue {
 	constructor(private readonly view: EditorView) {
@@ -141,63 +112,6 @@ const rowControlVisibilityAttributes = EditorView.editorAttributes.compute(
 			: ROW_CONTROLS_HOVER_CLASS,
 	}),
 );
-
-const touchActiveRowDecoration = Decoration.line({
-	class: ROW_CONTROL_TOUCH_ACTIVE_CLASS,
-});
-
-const touchActiveRowDecorations = EditorView.decorations.compute(
-	[touchActiveRowField, rowControlsAlwaysVisibleField, focusMobileMode],
-	(state) => {
-		const anchor = state.field(touchActiveRowField);
-		if (
-			anchor === null ||
-			!state.facet(focusMobileMode) ||
-			state.field(rowControlsAlwaysVisibleField)
-		) {
-			return Decoration.none;
-		}
-		const bullet = findSupportedBullet(state, anchor);
-		return bullet?.markerFrom === anchor
-			? Decoration.set([
-					touchActiveRowDecoration.range(bullet.lineFrom),
-				])
-			: Decoration.none;
-	},
-);
-
-const touchRowPointerHandler = EditorView.domEventHandlers({
-	pointerdown: (event, view) => {
-		if (
-			event.pointerType !== 'touch' ||
-			!view.state.facet(focusMobileMode) ||
-			view.state.field(rowControlsAlwaysVisibleField)
-		) {
-			return false;
-		}
-		const HTMLElementConstructor =
-			view.dom.ownerDocument.defaultView?.HTMLElement;
-		if (
-			HTMLElementConstructor === undefined ||
-			!(event.target instanceof HTMLElementConstructor) ||
-			event.target.closest('.bullet-zoom-row-control') !== null ||
-			event.target.closest('.collapse-indicator') !== null
-		) {
-			return false;
-		}
-
-		const line = event.target.closest<HTMLElement>('.cm-line');
-		let nextAnchor: number | null = null;
-		if (line !== null && view.dom.contains(line)) {
-			const bullet = findSupportedBullet(view.state, view.posAtDOM(line));
-			nextAnchor = bullet?.markerFrom ?? null;
-		}
-		if (view.state.field(touchActiveRowField) !== nextAnchor) {
-			view.dispatch({ effects: setTouchActiveRowEffect.of(nextAnchor) });
-		}
-		return false;
-	},
-});
 
 export function setRowControlsAlwaysVisible(
 	view: EditorView,
@@ -445,6 +359,7 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 	const folds = getActiveFoldRanges(view.state);
 	const focusSession = getFocusSession(view.state);
 	const focusAnchor = focusSession?.anchor ?? null;
+	const isMobile = view.state.facet(focusMobileMode);
 	const previousLevelLabel =
 		focusSession?.breadcrumbs.at(-2)?.label ?? null;
 	const visitedLines = new Set<number>();
@@ -461,18 +376,20 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 					ranges.push(
 						markerDecoration.range(bullet.markerFrom, bullet.markerTo),
 					);
-					ranges.push(
-						Decoration.widget({
-							widget: new BulletRowControlWidget(
-								bullet.label,
-								bullet.markerFrom === focusAnchor ? 'parent' : 'enter',
-								bullet.markerFrom === focusAnchor
-									? previousLevelLabel
-									: null,
-							),
-							side: 1,
-						}).range(bullet.lineTo),
-					);
+					if (!isMobile) {
+						ranges.push(
+							Decoration.widget({
+								widget: new BulletRowControlWidget(
+									bullet.label,
+									bullet.markerFrom === focusAnchor ? 'parent' : 'enter',
+									bullet.markerFrom === focusAnchor
+										? previousLevelLabel
+										: null,
+								),
+								side: 1,
+							}).range(bullet.lineTo),
+						);
+					}
 				}
 			}
 			if (line.number >= view.state.doc.lines) {
@@ -604,6 +521,150 @@ function activateBulletRowControl(
 	return enterFocusAt(view, position, true);
 }
 
+function activateBulletMarker(view: EditorView, position: number): boolean {
+	const bullet = findSupportedBullet(view.state, position);
+	if (bullet === null) {
+		return false;
+	}
+
+	if (
+		view.state.facet(focusMobileMode) &&
+		getFocusSession(view.state)?.anchor === bullet.markerFrom
+	) {
+		return focusParent(view);
+	}
+
+	return enterFocusAt(view, bullet.markerFrom, true);
+}
+
+type MarkerTargetRect = Readonly<{
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}>;
+
+function isValidMarkerTargetRect(rect: MarkerTargetRect): boolean {
+	return (
+		Number.isFinite(rect.left) &&
+		Number.isFinite(rect.right) &&
+		Number.isFinite(rect.top) &&
+		Number.isFinite(rect.bottom) &&
+		rect.right > rect.left &&
+		rect.bottom > rect.top
+	);
+}
+
+function resolveExactBulletMarker(
+	view: EditorView,
+	marker: HTMLElement | null,
+): number | null {
+	if (marker === null || !marker.isConnected || !view.dom.contains(marker)) {
+		return null;
+	}
+	const line = marker.closest<HTMLElement>('.cm-line');
+	if (line === null || line === marker) {
+		return null;
+	}
+	const markers = line.querySelectorAll<HTMLElement>('.bullet-zoom-marker');
+	if (markers.length !== 1 || markers[0] !== marker) {
+		return null;
+	}
+
+	try {
+		const markerPosition = view.posAtDOM(marker);
+		const bullet = findSupportedBullet(view.state, markerPosition);
+		return bullet?.markerFrom === markerPosition ? markerPosition : null;
+	} catch {
+		return null;
+	}
+}
+
+function resolveExpandedMobileMarker(
+	view: EditorView,
+	event: MouseEvent,
+	target: HTMLElement,
+): number | null {
+	if (
+		!view.state.facet(focusMobileMode) ||
+		!Number.isFinite(event.clientX) ||
+		!Number.isFinite(event.clientY)
+	) {
+		return null;
+	}
+
+	const line = target.closest<HTMLElement>('.cm-line');
+	if (line === null || !line.isConnected || !view.dom.contains(line)) {
+		return null;
+	}
+	const markers = line.querySelectorAll<HTMLElement>('.bullet-zoom-marker');
+	if (markers.length !== 1) {
+		return null;
+	}
+	const marker = markers[0];
+	if (marker === undefined || !marker.isConnected || !line.contains(marker)) {
+		return null;
+	}
+
+	try {
+		const markerPosition = view.posAtDOM(marker);
+		const bullet = findSupportedBullet(view.state, markerPosition);
+		if (bullet === null || bullet.markerFrom !== markerPosition) {
+			return null;
+		}
+		const lineRect = line.getBoundingClientRect();
+		const markerRect = marker.getBoundingClientRect();
+		const contentRect = view.coordsAtPos(bullet.contentFrom);
+		if (
+			!isValidMarkerTargetRect(lineRect) ||
+			!isValidMarkerTargetRect(markerRect) ||
+			contentRect === null ||
+			!Number.isFinite(contentRect.left) ||
+			!Number.isFinite(contentRect.right)
+		) {
+			return null;
+		}
+
+		const halfTarget = MOBILE_MARKER_TARGET_SIZE / 2;
+		const markerCenterX = (markerRect.left + markerRect.right) / 2;
+		const markerCenterY = (markerRect.top + markerRect.bottom) / 2;
+		const contentX = (contentRect.left + contentRect.right) / 2;
+		if (markerCenterX === contentX) {
+			return null;
+		}
+
+		let targetLeft = Math.max(lineRect.left, markerCenterX - halfTarget);
+		let targetRight = Math.min(lineRect.right, markerCenterX + halfTarget);
+		const targetTop = Math.max(lineRect.top, markerCenterY - halfTarget);
+		const targetBottom = Math.min(lineRect.bottom, markerCenterY + halfTarget);
+		const markerPrecedesContent = markerCenterX < contentX;
+		if (markerPrecedesContent) {
+			targetRight = Math.min(targetRight, contentX);
+		} else {
+			targetLeft = Math.max(targetLeft, contentX);
+		}
+
+		const insideHorizontalTarget =
+			event.clientX >= targetLeft && event.clientX <= targetRight;
+		const beforeEditableContent = markerPrecedesContent
+			? event.clientX < contentX
+			: event.clientX > contentX;
+		if (
+			targetRight <= targetLeft ||
+			targetBottom <= targetTop ||
+			!insideHorizontalTarget ||
+			!beforeEditableContent ||
+			event.clientY < targetTop ||
+			event.clientY > targetBottom
+		) {
+			return null;
+		}
+		return bullet.markerFrom;
+	} catch {
+		return null;
+	}
+}
+
 const markerClickHandler = EditorView.domEventHandlers({
 	click: (event, view) => {
 		const elementConstructor = view.dom.ownerDocument.defaultView?.HTMLElement;
@@ -620,18 +681,15 @@ const markerClickHandler = EditorView.domEventHandlers({
 		if (event.target.closest('.bullet-zoom-row-control') !== null) {
 			return false;
 		}
-		if (
-			view.state.facet(focusMobileMode) &&
-			!view.state.field(rowControlsAlwaysVisibleField)
-		) {
-			return false;
-		}
 		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
-		if (marker === null || !view.dom.contains(marker)) {
+		const exactPosition = resolveExactBulletMarker(view, marker);
+		const position =
+			exactPosition ?? resolveExpandedMobileMarker(view, event, event.target);
+		if (position === null) {
 			return false;
 		}
 
-		if (!enterFocusAt(view, view.posAtDOM(marker), true)) {
+		if (!activateBulletMarker(view, position)) {
 			return false;
 		}
 
@@ -1024,16 +1082,13 @@ export function createFocusExtension({
 		focusMobileMode.of(isMobile),
 		rowControlsAlwaysVisible.of(alwaysShowRowControls),
 		rowControlsAlwaysVisibleField,
-		touchActiveRowField,
 		rowControlVisibilityAttributes,
-		touchActiveRowDecorations,
 		rowControlVisibilityPlugin,
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
 		mobileBreadcrumbDecorations,
 		bulletMarkerPlugin,
-		touchRowPointerHandler,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
 		sidebarBridge,

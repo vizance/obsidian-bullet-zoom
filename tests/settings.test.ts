@@ -43,6 +43,7 @@ describe('Bullet Zoom settings', () => {
 		expect(definitions).toHaveLength(1);
 		expect(definitions[0]).toMatchObject({
 			name: '永遠顯示行尾縮放箭頭',
+			desc: '只影響桌面版。開啟時固定顯示行尾箭頭；關閉後只在 hover 或鍵盤聚焦時顯示。手機與平板固定使用左側 Bullet 圓點縮放。',
 			control: {
 				type: 'toggle',
 				key: 'alwaysShowRowControls',

@@ -53,10 +53,7 @@ button.bullet-zoom-row-control:focus-visible {
 }
 
 .bullet-zoom-row-controls-hover-only
-	button.bullet-zoom-row-control:focus-visible,
-.bullet-zoom-row-controls-hover-only
-	.bullet-zoom-row-control-touch-active
-	button.bullet-zoom-row-control {
+	button.bullet-zoom-row-control:focus-visible {
 	opacity: 1;
 	pointer-events: auto;
 }
