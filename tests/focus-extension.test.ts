@@ -157,84 +157,42 @@ describe('row-control visibility state', () => {
 		parent.remove();
 	});
 
-	it('starts touch platforms with every hover-only row hidden', () => {
+	it('keeps touch platforms free of row-end controls in hover-only mode', () => {
 		const { parent, view } = createVisibilityView(false, true);
 		expect(view.dom.classList).toContain(
 			'bullet-zoom-row-controls-hover-only',
 		);
-		expect(view.dom.classList).not.toContain(
-			'bullet-zoom-row-controls-touch',
-		);
 		expect(
-			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
-		).toBeNull();
+			view.dom.querySelectorAll('button.bullet-zoom-row-control'),
+		).toHaveLength(0);
 		view.destroy();
 		parent.remove();
 	});
 
-	it('reveals only the touched mobile Bullet without consuming the first tap', () => {
+	it('leaves ordinary mobile row taps available without activating a row control', () => {
 		const { parent, view } = createVisibilityView(
 			false,
 			true,
 			'- Parent\n  - Child\nParagraph',
 		);
 		const lines = Array.from(view.dom.querySelectorAll<HTMLElement>('.cm-line'));
-		const parentLine = lines[0];
 		const childLine = lines[1];
-		const paragraphLine = lines[2];
-		if (
-			parentLine === undefined ||
-			childLine === undefined ||
-			paragraphLine === undefined
-		) {
+		if (childLine === undefined) {
 			throw new Error('Expected three rendered editor lines');
 		}
-		const touch = (target: HTMLElement): PointerEvent => {
-			const event = new Event('pointerdown', {
-				bubbles: true,
-				cancelable: true,
-			}) as PointerEvent;
-			Object.defineProperty(event, 'pointerType', { value: 'touch' });
-			target.dispatchEvent(event);
-			return event;
-		};
-
-		const firstTap = touch(parentLine);
+		const firstTap = new Event('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+		}) as PointerEvent;
+		Object.defineProperty(firstTap, 'pointerType', { value: 'touch' });
+		childLine.dispatchEvent(firstTap);
 		expect(firstTap.defaultPrevented).toBe(false);
 		expect(getFocusSession(view.state)).toBeNull();
-		expect(parentLine.classList).toContain(
-			'bullet-zoom-row-control-touch-active',
-		);
 		expect(childLine.classList).not.toContain(
 			'bullet-zoom-row-control-touch-active',
 		);
-		parentLine
-			.querySelector<HTMLElement>('.bullet-zoom-marker')
-			?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-		expect(getFocusSession(view.state)).toBeNull();
-
-		touch(childLine);
-		expect(parentLine.classList).not.toContain(
-			'bullet-zoom-row-control-touch-active',
-		);
-		expect(childLine.classList).toContain(
-			'bullet-zoom-row-control-touch-active',
-		);
-
-		touch(paragraphLine);
-		expect(
-			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
-		).toBeNull();
-		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.dom.querySelectorAll('.bullet-zoom-row-control')).toHaveLength(0);
 		expect(view.state.doc.toString()).toBe('- Parent\n  - Child\nParagraph');
-
-		touch(childLine);
-		childLine
-			.querySelector<HTMLButtonElement>('.bullet-zoom-row-control')
-			?.click();
-		expect(getFocusSession(view.state)?.anchor).toBe(
-			view.state.doc.line(2).from + 2,
-		);
 		view.destroy();
 		parent.remove();
 	});
@@ -255,27 +213,13 @@ describe('row-control visibility state', () => {
 		second.parent.remove();
 	});
 
-	it('clears a touch-revealed row when always-visible mode is enabled', () => {
+	it('does not add mobile row controls when the desktop setting changes', () => {
 		const { parent, view } = createVisibilityView(false, true);
-		const line = view.dom.querySelector<HTMLElement>('.cm-line');
-		if (line === null) {
-			throw new Error('Expected a rendered Bullet line');
-		}
-		const touch = new Event('pointerdown', {
-			bubbles: true,
-			cancelable: true,
-		}) as PointerEvent;
-		Object.defineProperty(touch, 'pointerType', { value: 'touch' });
-		line.dispatchEvent(touch);
-		expect(line.classList).toContain('bullet-zoom-row-control-touch-active');
-
 		expect(setRowControlsAlwaysVisible(view, true)).toBe(true);
 		expect(view.dom.classList).toContain(
 			'bullet-zoom-row-controls-always-visible',
 		);
-		expect(
-			view.dom.querySelector('.bullet-zoom-row-control-touch-active'),
-		).toBeNull();
+		expect(view.dom.querySelectorAll('.bullet-zoom-row-control')).toHaveLength(0);
 		view.destroy();
 		parent.remove();
 	});
@@ -598,6 +542,7 @@ describe('bullet marker interaction', () => {
 		additionalExtensions: Extension = [],
 		isPhone = false,
 		isMobile = isPhone,
+		alwaysShowRowControls = true,
 	): { parent: HTMLDivElement; view: EditorView } {
 		const parent = document.createElement('div');
 		document.body.append(parent);
@@ -611,6 +556,7 @@ describe('bullet marker interaction', () => {
 					additionalExtensions,
 					isPhone,
 					isMobile,
+					alwaysShowRowControls,
 				),
 			}),
 		};
@@ -624,6 +570,368 @@ describe('bullet marker interaction', () => {
 		markers[1]?.click();
 		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
 		expect(view.state.selection.main.head).toBe(view.state.doc.line(2).to);
+		view.destroy();
+		parent.remove();
+	});
+
+	it.each([
+		{ platform: 'phone', isPhone: true, isMobile: true },
+		{ platform: 'tablet', isPhone: false, isMobile: true },
+	])(
+		'uses the current $platform marker to move outward one level at a time',
+		({ isPhone, isMobile }) => {
+			const source = '- Parent\n  - Child\n    - Grandchild';
+			const { parent, view } = createView(
+				source,
+				[],
+				isPhone,
+				isMobile,
+			);
+			const markerAt = (anchor: number): HTMLElement | undefined =>
+				Array.from(
+					view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-marker'),
+				).find((marker) => view.posAtDOM(marker) === anchor);
+			const grandchildAnchor = view.state.doc.line(3).from + 4;
+			const childAnchor = view.state.doc.line(2).from + 2;
+			const parentAnchor = view.state.doc.line(1).from;
+			const requestMeasureSpy = vi.spyOn(view, 'requestMeasure');
+
+			markerAt(grandchildAnchor)?.click();
+			expect(getFocusSession(view.state)?.anchor).toBe(grandchildAnchor);
+			const retainedSelection = view.state.selection;
+			markerAt(grandchildAnchor)?.click();
+			expect(getFocusSession(view.state)?.anchor).toBe(childAnchor);
+			expect(view.state.selection.eq(retainedSelection)).toBe(true);
+			markerAt(childAnchor)?.click();
+			expect(getFocusSession(view.state)?.anchor).toBe(parentAnchor);
+			expect(view.state.selection.eq(retainedSelection)).toBe(true);
+			markerAt(parentAnchor)?.click();
+			expect(getFocusSession(view.state)).toBeNull();
+			expect(view.state.selection.eq(retainedSelection)).toBe(true);
+			expect(view.state.doc.toString()).toBe(source);
+			if (isPhone) {
+				expect(
+					requestMeasureSpy.mock.calls.some(
+						([request]) => request !== undefined,
+					),
+				).toBe(true);
+			}
+			view.destroy();
+			parent.remove();
+		},
+	);
+
+	it('keeps a desktop current-marker click on the existing refocus route', () => {
+		const { parent, view } = createView('- Parent\n  - Child');
+		const childAnchor = view.state.doc.line(2).from + 2;
+		const childMarker = Array.from(
+			view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-marker'),
+		).find((marker) => view.posAtDOM(marker) === childAnchor);
+
+		childMarker?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(childAnchor);
+		childMarker?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(childAnchor);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('enters a different phone marker instead of returning from the current focus', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child A\n  - Child B',
+			[],
+			true,
+			true,
+		);
+		const childB = view.state.doc.line(3).from + 2;
+		const markerAt = (anchor: number): HTMLElement | undefined =>
+			Array.from(
+				view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-marker'),
+			).find((marker) => view.posAtDOM(marker) === anchor);
+
+		markerAt(0)?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		markerAt(childB)?.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(childB);
+		view.destroy();
+		parent.remove();
+	});
+
+	it.each([
+		{
+			direction: 'LTR',
+			markerLeft: 26,
+			markerRight: 34,
+			contentX: 50,
+			acceptedX: 40,
+			rejectedTextX: 50,
+		},
+		{
+			direction: 'RTL',
+			markerLeft: 90,
+			markerRight: 98,
+			contentX: 70,
+			acceptedX: 84,
+			rejectedTextX: 70,
+		},
+	])(
+		'accepts only the bounded $direction marker gutter before editable content',
+		({ markerLeft, markerRight, contentX, acceptedX, rejectedTextX }) => {
+			const createGeometryView = () => {
+				const { parent, view } = createView('- Parent', [], true, true);
+				const line = view.contentDOM.querySelector<HTMLElement>('.cm-line');
+				const marker = line?.querySelector<HTMLElement>('.bullet-zoom-marker');
+				if (line === null || marker == null) {
+					throw new Error('Expected a rendered mobile Bullet marker');
+				}
+				vi.spyOn(line, 'getBoundingClientRect').mockReturnValue({
+					left: 0,
+					right: 120,
+					top: 10,
+					bottom: 38,
+					width: 120,
+					height: 28,
+					x: 0,
+					y: 10,
+					toJSON: () => ({}),
+				});
+				vi.spyOn(marker, 'getBoundingClientRect').mockReturnValue({
+					left: markerLeft,
+					right: markerRight,
+					top: 18,
+					bottom: 26,
+					width: markerRight - markerLeft,
+					height: 8,
+					x: markerLeft,
+					y: 18,
+					toJSON: () => ({}),
+				});
+				vi.spyOn(view, 'coordsAtPos').mockReturnValue({
+					left: contentX,
+					right: contentX,
+					top: 18,
+					bottom: 26,
+				});
+				const requestMeasureSpy = vi
+					.spyOn(view, 'requestMeasure')
+					.mockImplementation(() => {});
+				return { parent, view, line, requestMeasureSpy };
+			};
+			const dispatchAt = (line: HTMLElement, x: number): MouseEvent => {
+				const event = new MouseEvent('click', {
+					bubbles: true,
+					cancelable: true,
+					clientX: x,
+					clientY: 22,
+				});
+				line.dispatchEvent(event);
+				return event;
+			};
+
+			const accepted = createGeometryView();
+			const acceptedSource = accepted.view.state.doc.toString();
+			const acceptedEvent = dispatchAt(accepted.line, acceptedX);
+			expect(acceptedEvent.defaultPrevented).toBe(true);
+			expect(getFocusSession(accepted.view.state)?.anchor).toBe(0);
+			expect(accepted.view.state.selection.main.head).toBe(
+				accepted.view.state.doc.line(1).to,
+			);
+			expect(accepted.view.state.doc.toString()).toBe(acceptedSource);
+			expect(
+				accepted.requestMeasureSpy.mock.calls.some(
+					([request]) => request !== undefined,
+				),
+			).toBe(true);
+			accepted.view.destroy();
+			accepted.parent.remove();
+
+			const rejected = createGeometryView();
+			const rejectedSource = rejected.view.state.doc.toString();
+			const selection = rejected.view.state.selection;
+			const rejectedEvent = dispatchAt(rejected.line, rejectedTextX);
+			expect(rejectedEvent.defaultPrevented).toBe(false);
+			expect(getFocusSession(rejected.view.state)).toBeNull();
+			expect(rejected.view.state.selection.eq(selection)).toBe(true);
+			expect(rejected.view.state.doc.toString()).toBe(rejectedSource);
+			rejected.view.destroy();
+			rejected.parent.remove();
+		},
+	);
+
+	it('caps the expanded phone marker target at 28 pixels and the current line', () => {
+		const { parent, view } = createView('- Parent', [], true, true);
+		const line = view.contentDOM.querySelector<HTMLElement>('.cm-line');
+		const marker = line?.querySelector<HTMLElement>('.bullet-zoom-marker');
+		if (line === null || marker == null) {
+			throw new Error('Expected a rendered mobile Bullet marker');
+		}
+		vi.spyOn(line, 'getBoundingClientRect').mockReturnValue({
+			left: 0,
+			right: 120,
+			top: 10,
+			bottom: 38,
+			width: 120,
+			height: 28,
+			x: 0,
+			y: 10,
+			toJSON: () => ({}),
+		});
+		vi.spyOn(marker, 'getBoundingClientRect').mockReturnValue({
+			left: 36,
+			right: 44,
+			top: 18,
+			bottom: 26,
+			width: 8,
+			height: 8,
+			x: 36,
+			y: 18,
+			toJSON: () => ({}),
+		});
+		vi.spyOn(view, 'coordsAtPos').mockReturnValue({
+			left: 72,
+			right: 72,
+			top: 18,
+			bottom: 26,
+		});
+
+		const outsideHorizontal = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 25,
+			clientY: 22,
+		});
+		line.dispatchEvent(outsideHorizontal);
+		expect(outsideHorizontal.defaultPrevented).toBe(false);
+		const outsideLine = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 40,
+			clientY: 39,
+		});
+		line.dispatchEvent(outsideLine);
+		expect(outsideLine.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('fails expanded mobile activation closed when geometry is unavailable', () => {
+		const { parent, view } = createView('- Parent', [], true, true);
+		const line = view.contentDOM.querySelector<HTMLElement>('.cm-line');
+		const marker = line?.querySelector<HTMLElement>('.bullet-zoom-marker');
+		if (line === null || marker == null) {
+			throw new Error('Expected a rendered mobile Bullet marker');
+		}
+		const gutterEvent = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 10,
+			clientY: 10,
+		});
+		line.dispatchEvent(gutterEvent);
+		expect(gutterEvent.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+
+		marker.click();
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('rejects stale mobile marker DOM after its Bullet becomes unsupported', () => {
+		const { parent, view } = createView('- Parent', [], true, true);
+		const marker = view.contentDOM.querySelector<HTMLElement>(
+			'.bullet-zoom-marker',
+		);
+		if (marker === null) {
+			throw new Error('Expected a rendered mobile Bullet marker');
+		}
+		view.dispatch({ changes: { from: 0, to: 1, insert: '1.' } });
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(marker.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		expect(view.dom.querySelectorAll('.bullet-zoom-marker')).toHaveLength(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('rejects a mobile descendant marker after its row is folded away', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			codeFolding(),
+			true,
+			true,
+		);
+		const childMarker = Array.from(
+			view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-marker'),
+		).find((marker) => view.posAtDOM(marker) === view.state.doc.line(2).from + 2);
+		if (childMarker === undefined) {
+			throw new Error('Expected the child mobile marker');
+		}
+		foldLine(view, 1);
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(childMarker.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('rejects a retained mobile marker after its editor view is destroyed', () => {
+		const { parent, view } = createView('- Parent', [], true, true);
+		const marker = view.contentDOM.querySelector<HTMLElement>(
+			'.bullet-zoom-marker',
+		);
+		if (marker === null) {
+			throw new Error('Expected a rendered mobile Bullet marker');
+		}
+		view.destroy();
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(() => marker.dispatchEvent(event)).not.toThrow();
+		expect(event.defaultPrevented).toBe(false);
+		parent.remove();
+	});
+
+	it('rejects foreign same-class mobile marker and line DOM', () => {
+		const { parent, view } = createView('- Parent', [], true, true);
+		const line = view.contentDOM.querySelector<HTMLElement>('.cm-line');
+		if (line === null) {
+			throw new Error('Expected a rendered mobile Bullet line');
+		}
+		const foreignMarker = document.createElement('span');
+		foreignMarker.className = 'bullet-zoom-marker';
+		line.append(foreignMarker);
+		const foreignClick = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(foreignMarker.dispatchEvent(foreignClick)).toBe(true);
+		expect(foreignClick.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
+
+		foreignMarker.remove();
+		line.classList.add('bullet-zoom-marker');
+		const lineClick = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+		expect(line.dispatchEvent(lineClick)).toBe(true);
+		expect(lineClick.defaultPrevented).toBe(false);
+		expect(getFocusSession(view.state)).toBeNull();
 		view.destroy();
 		parent.remove();
 	});
@@ -671,6 +979,31 @@ describe('bullet marker interaction', () => {
 		view.destroy();
 		parent.remove();
 	});
+
+	it.each([
+		{ platform: 'phone', isPhone: true, isMobile: true },
+		{ platform: 'tablet', isPhone: false, isMobile: true },
+	])(
+		'omits $platform row-end controls in both desktop visibility setting states',
+		({ isPhone, isMobile }) => {
+			for (const alwaysShowRowControls of [true, false]) {
+				const { parent, view } = createView(
+					'- Parent\n  - Child',
+					[],
+					isPhone,
+					isMobile,
+					alwaysShowRowControls,
+				);
+
+				expect(
+					view.dom.querySelectorAll('button.bullet-zoom-row-control'),
+				).toHaveLength(0);
+				expect(view.dom.querySelectorAll('.bullet-zoom-marker')).toHaveLength(2);
+				view.destroy();
+				parent.remove();
+			}
+		},
+	);
 
 	it('unfolds a folded target before entering focus without projecting hidden descendant controls', () => {
 		const source = '- Parent\n  - Child A\n  - Child B\n- Sibling';
@@ -906,18 +1239,9 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it.each([
-		{ platform: 'desktop', isPhone: false, isMobile: false },
-		{ platform: 'phone', isPhone: true, isMobile: true },
-		{ platform: 'tablet', isPhone: false, isMobile: true },
-	])(
-		'moves the $platform row-end reverse control outward one level at a time',
-		({ isPhone, isMobile }) => {
+	it('keeps the desktop row-end reverse control moving outward one level at a time', () => {
 			const { parent, view } = createView(
 				'- Parent\n  - Child\n    - Grandchild',
-				[],
-				isPhone,
-				isMobile,
 			);
 			const source = view.state.doc.toString();
 			expect(enterFocusAt(view, view.state.doc.line(3).from, true)).toBe(true);
@@ -943,53 +1267,10 @@ describe('bullet marker interaction', () => {
 			expect(view.state.doc.toString()).toBe(source);
 			view.destroy();
 			parent.remove();
-		},
-	);
-
-	it('activates a tablet row-end control without editor-container click bubbling', () => {
-		const { parent, view } = createView(
-			'- Parent\n  - Child',
-			[],
-			false,
-			true,
-		);
-		const control = view.contentDOM.querySelector<HTMLButtonElement>(
-			'button.bullet-zoom-enter-control[aria-label="聚焦「Child」"]',
-		);
-		const click = new MouseEvent('click', {
-			bubbles: false,
-			cancelable: true,
-		});
-		view.contentDOM
-			.querySelectorAll('.bullet-zoom-marker')[1]
-			?.classList.remove('bullet-zoom-marker');
-
-		expect(control).not.toBeNull();
-		expect(control?.dispatchEvent(click)).toBe(false);
-		expect(click.defaultPrevented).toBe(true);
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe('Child');
-
-		const parentControl = view.contentDOM.querySelector<HTMLButtonElement>(
-			'button.bullet-zoom-parent-control[aria-label="回到上一層「Parent」"]',
-		);
-		const reverseClick = new MouseEvent('click', {
-			bubbles: false,
-			cancelable: true,
-		});
-		expect(parentControl?.dispatchEvent(reverseClick)).toBe(false);
-		expect(reverseClick.defaultPrevented).toBe(true);
-		expect(getFocusSession(view.state)?.breadcrumbs.at(-1)?.label).toBe(
-			'Parent',
-		);
-		expect(
-			view.contentDOM.querySelectorAll('button.bullet-zoom-row-control'),
-		).toHaveLength(2);
-		view.destroy();
-		parent.remove();
 	});
 
 	it('rejects a detached stale row-end control without changing focus', () => {
-		const { parent, view } = createView('- Parent\n  - Child', [], false, true);
+		const { parent, view } = createView('- Parent\n  - Child');
 		const control = view.contentDOM.querySelector<HTMLButtonElement>(
 			'button.bullet-zoom-enter-control[aria-label="聚焦「Child」"]',
 		);
@@ -1008,7 +1289,7 @@ describe('bullet marker interaction', () => {
 	});
 
 	it('rejects a retained row-end control after its editor view is destroyed', () => {
-		const { parent, view } = createView('- Parent\n  - Child', [], false, true);
+		const { parent, view } = createView('- Parent\n  - Child');
 		const control = view.contentDOM.querySelector<HTMLButtonElement>(
 			'button.bullet-zoom-enter-control[aria-label="聚焦「Child」"]',
 		);
@@ -1024,17 +1305,9 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it.each([
-		{ platform: 'desktop', isPhone: false },
-		{ platform: 'phone', isPhone: true },
-		{ platform: 'tablet', isPhone: false },
-	])(
-		'renders every $platform inline Zoom control without active-line state',
-		({ isPhone }) => {
+	it('renders every desktop inline Zoom control without active-line state', () => {
 			const { parent, view } = createView(
 				'- Parent\n  - Child',
-				[],
-				isPhone,
 			);
 			const controlLabels = (): Array<string | null> =>
 				Array.from(
@@ -1050,8 +1323,7 @@ describe('bullet marker interaction', () => {
 			expect(view.dom.querySelectorAll('.is-mobile-active')).toHaveLength(0);
 			view.destroy();
 			parent.remove();
-		},
-	);
+	});
 
 	it('uses inline Zoom activation without changing Markdown or collapsed state', () => {
 		const { parent, view } = createView(
@@ -1183,6 +1455,43 @@ describe('bullet marker interaction', () => {
 		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
 		expect(getFocusSession(view.state)).toBeNull();
 		expect(view.state.selection.eq(selection)).toBe(true);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('leaves the native phone fold transition in control during focus', () => {
+		const source = '- Parent\n  - Child';
+		const { parent, view } = createView(
+			source,
+			[codeFolding(), foldIndicatorExtension()],
+			true,
+			true,
+		);
+		const parentLine = view.state.doc.line(1);
+		const range = foldable(view.state, parentLine.from, parentLine.to);
+		const collapseIndicator = view.contentDOM.querySelector<HTMLElement>(
+			'.collapse-indicator',
+		);
+		if (range === null || collapseIndicator === null) {
+			throw new Error('Expected a native fold range and collapse indicator');
+		}
+		expect(enterFocusAt(view, parentLine.from, true)).toBe(true);
+		const session = getFocusSession(view.state);
+		const selection = view.state.selection;
+		collapseIndicator.addEventListener('click', () => {
+			view.dispatch({ effects: foldEffect.of(range) });
+		});
+		const event = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+		});
+
+		expect(collapseIndicator.dispatchEvent(event)).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
+		expect(activeFoldRanges(view)).toEqual([range]);
+		expect(getFocusSession(view.state)?.anchor).toBe(session?.anchor);
+		expect(view.state.selection.eq(selection)).toBe(true);
+		expect(view.state.doc.toString()).toBe(source);
 		view.destroy();
 		parent.remove();
 	});

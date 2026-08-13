@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.20');
+		expect(manifest.version).toBe('0.1.21');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.20');
-		expect(packageLock.version).toBe('0.1.20');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.20');
+		expect(packageManifest.version).toBe('0.1.21');
+		expect(packageLock.version).toBe('0.1.21');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.21');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -68,7 +68,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.17']).toBe('1.11.7');
 		expect(versions['0.1.18']).toBe('1.11.7');
 		expect(versions['0.1.19']).toBe('1.11.7');
-		expect(versions['0.1.20']).toBe('1.11.7');
+		expect(versions['0.1.21']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -367,7 +367,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		},
 	);
 
-	it('supports persistent, desktop hover-only, and touch-safe row controls', () => {
+	it('supports persistent and hover-only desktop row controls', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
@@ -396,17 +396,12 @@ describe('mobile-compatible plugin bundle contract', () => {
 		line.classList.add('cm-activeLine');
 		expect(getComputedStyle(control).opacity).toBe('0');
 		line.classList.remove('cm-activeLine');
-		line.classList.add('bullet-zoom-row-control-touch-active');
-		expect(getComputedStyle(control).display).toBe('inline-flex');
-		expect(getComputedStyle(control).visibility).toBe('visible');
-		expect(getComputedStyle(control).opacity).toBe('1');
-		expect(getComputedStyle(control).pointerEvents).toBe('auto');
 
 		const selectors = Array.from(style.sheet?.cssRules ?? [])
 			.filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
 			.map((rule) => rule.selectorText)
 			.join('\n');
-		expect(selectors).toContain(
+		expect(selectors).not.toContain(
 			'.bullet-zoom-row-control-touch-active',
 		);
 		expect(readProjectFile('styles.css')).toMatch(
@@ -441,14 +436,13 @@ describe('mobile-compatible plugin bundle contract', () => {
 		{ theme: 'light', faintColor: 'rgb(218, 218, 218)' },
 		{ theme: 'dark', faintColor: 'rgb(82, 82, 82)' },
 	])(
-		'keeps the real phone glyph within text geometry in the $theme theme',
+		'keeps the real desktop glyph within text geometry in the $theme theme',
 		({ theme, faintColor }) => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = `${readProjectFile('styles.css')}\n.bullet-zoom-test-editor-line { font-size: 20px; line-height: 28px; }`;
 		document.head.append(style);
-		document.body.classList.add('is-mobile', 'is-phone');
-		document.documentElement.classList.add(`theme-${theme}`);
+			document.documentElement.classList.add(`theme-${theme}`);
 			document.documentElement.style.setProperty('--text-faint', faintColor);
 			document.documentElement.style.setProperty(
 				'--text-muted',
@@ -520,4 +514,12 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(selectors).not.toContain('.bullet-zoom-row-control::before');
 		},
 	);
+
+	it('keeps phone and tablet row-end control activation out of production code', () => {
+		const source = readProjectFile('src/focus-extension.ts');
+		const css = readProjectFile('styles.css');
+		expect(source).toContain('if (!isMobile)');
+		expect(source).not.toContain('bullet-zoom-row-control-touch-active');
+		expect(css).not.toContain('bullet-zoom-row-control-touch-active');
+	});
 });
