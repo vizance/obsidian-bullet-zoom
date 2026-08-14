@@ -405,6 +405,29 @@ describe('native outline sidebar rendering', () => {
 		expect(container.querySelector(`#${controlledId}`)).not.toBeNull();
 	});
 
+	it('renders an icon-only Home action for the complete note', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		renderOutlineSidebar(container, model(), handlers);
+
+		const root = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-root',
+		);
+		expect(root?.textContent).toBe('');
+		expect(root?.getAttribute('aria-label')).toBe('回到全文');
+		expect(root?.title).toBe('回到全文');
+		const icon = root?.querySelector('svg.bullet-zoom-home-icon');
+		expect(icon?.getAttribute('viewBox')).toBe('0 0 24 24');
+		expect(icon?.getAttribute('aria-hidden')).toBe('true');
+		expect(
+			Array.from(icon?.querySelectorAll('path') ?? [], (path) =>
+				path.getAttribute('d'),
+			),
+		).toEqual(['m3 11 9-8 9 8', 'M5 10v10h14V10M9 20v-6h6v6']);
+		root?.click();
+		expect(handlers.onExit).toHaveBeenCalledWith(1);
+	});
+
 	it('renders hostile and empty Markdown labels only as text', () => {
 		const container = document.createElement('div');
 		renderOutlineSidebar(
@@ -630,6 +653,61 @@ describe('native outline sidebar rendering', () => {
 			anchor: 7,
 			revision: 1,
 		});
+	});
+
+	it.each(['Enter', ' '])(
+		'keeps one native click action for the %s keyboard activation path',
+		(key) => {
+			const container = document.createElement('div');
+			const handlers = actions();
+			renderOutlineSidebar(
+				container,
+				model({
+					outline: Object.freeze([
+						Object.freeze({
+							label: 'Parent',
+							anchor: 0,
+							children: Object.freeze([]),
+						}),
+					]),
+				}),
+				handlers,
+			);
+			const label = container.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-outline-sidebar-label',
+			);
+			label?.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key }));
+			expect(handlers.onSelect).not.toHaveBeenCalled();
+			label?.click();
+			expect(handlers.onSelect).toHaveBeenCalledOnce();
+			expect(handlers.onSelect).toHaveBeenCalledWith({ anchor: 0, revision: 1 });
+		},
+	);
+
+	it('keeps one native click action after the mobile touch path', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		renderOutlineSidebar(
+			container,
+			model({
+				isMobile: true,
+				outline: Object.freeze([
+					Object.freeze({
+						label: 'Parent',
+						anchor: 0,
+						children: Object.freeze([]),
+					}),
+				]),
+			}),
+			handlers,
+		);
+		const label = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		label?.dispatchEvent(new Event('touchend', { bubbles: true }));
+		expect(handlers.onSelect).not.toHaveBeenCalled();
+		label?.click();
+		expect(handlers.onSelect).toHaveBeenCalledOnce();
 	});
 
 	it('shows non-actionable empty and pending states with an explicit pending retry', () => {
@@ -895,7 +973,7 @@ describe('native outline sidebar coordinator', () => {
 			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
 				'.bullet-zoom-outline-sidebar-disclosure',
 			)?.disabled,
-		).toBe(true);
+		).toBe(false);
 		fixture.sidebarView.contentEl
 			.querySelector<HTMLButtonElement>(`[data-anchor="${grandchild}"] .bullet-zoom-outline-sidebar-label`)
 			?.click();
@@ -905,6 +983,210 @@ describe('native outline sidebar coordinator', () => {
 		expect(fixture.focusEditor).toHaveBeenCalled();
 		expect(fixture.setActiveLeaf).not.toHaveBeenCalled();
 		expect(fixture.sidebarView.contentEl.textContent).toContain('Grandchild');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('keeps a current-path ancestor collapsed until the editor current Bullet changes', async () => {
+		const fixture = await createCoordinatorFixture(
+			'- Parent\n  - Child\n    - Grandchild\n- Other\n  - Other child',
+		);
+		const grandchild = fixture.editorView.state.doc.line(3).from + 4;
+		expect(enterFocusAt(fixture.editorView, grandchild)).toBe(true);
+		fixture.setCurrentAnchor(grandchild);
+		await Promise.resolve();
+		const editorStateBeforeToggle = fixture.editorView.state;
+
+		const parentDisclosure = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+		);
+		expect(parentDisclosure?.getAttribute('aria-expanded')).toBe('true');
+		parentDisclosure?.click();
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('Grandchild');
+		expect(fixture.editorView.state).toBe(editorStateBeforeToggle);
+		expect(getFocusSession(fixture.editorView.state)?.anchor).toBe(grandchild);
+
+		fixture.coordinator.notifyEditorReady(fixture.editorView);
+		await Promise.resolve();
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('Grandchild');
+		expect(fixture.onFocus).not.toHaveBeenCalled();
+		expect(getFocusSession(fixture.editorView.state)?.anchor).toBe(grandchild);
+
+		const other = fixture.editorView.state.doc.line(4).from;
+		fixture.setCurrentAnchor(other);
+		await Promise.resolve();
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)?.getAttribute('aria-expanded'),
+		).toBe('false');
+
+		fixture.setCurrentAnchor(grandchild);
+		await Promise.resolve();
+		expect(fixture.sidebarView.contentEl.textContent).toContain('Grandchild');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('maps a manual ancestor collapse through edits and clears it for a new file context', async () => {
+		const fixture = await createCoordinatorFixture(
+			'- Parent\n  - Child\n    - Grandchild',
+			false,
+			[],
+			buildBulletOutline,
+			true,
+		);
+		fixture.editorView.dispatch({
+			selection: { anchor: fixture.editorView.state.doc.line(3).to },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 50));
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)
+			?.click();
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('Grandchild');
+
+		fixture.editorView.dispatch({ changes: { from: 0, insert: '- Intro\n' } });
+		await new Promise((resolve) => window.setTimeout(resolve, 90));
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'[data-anchor="8"] .bullet-zoom-outline-sidebar-disclosure',
+			)?.getAttribute('aria-expanded'),
+		).toBe('false');
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('Grandchild');
+
+		fixture.setFilePath('Other.md');
+		fixture.emit('file-open');
+		await Promise.resolve();
+		expect(fixture.sidebarView.contentEl.textContent).toContain('Grandchild');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('clears a manual ancestor collapse when the current Bullet is deleted into a sibling position', async () => {
+		const fixture = await createCoordinatorFixture(
+			'- Parent\n  - A\n  - B',
+			false,
+			[],
+			buildBulletOutline,
+			true,
+		);
+		fixture.editorView.dispatch({
+			selection: { anchor: fixture.editorView.state.doc.line(2).to },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 50));
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)
+			?.click();
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('B');
+
+		fixture.editorView.dispatch({
+			changes: {
+				from: fixture.editorView.state.doc.line(2).from + 2,
+				to: fixture.editorView.state.doc.line(3).from + 2,
+				insert: '',
+			},
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 90));
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)?.getAttribute('aria-expanded'),
+		).toBe('true');
+		expect(fixture.sidebarView.contentEl.textContent).toContain('B');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('keeps a mapped manual collapse authoritative when removed branches merge anchors', async () => {
+		const source = [
+			'- A',
+			'  - A child',
+			'- B',
+			'  - B child',
+			'    - B grandchild',
+		].join('\n');
+		const fixture = await createCoordinatorFixture(
+			source,
+			false,
+			[],
+			buildBulletOutline,
+			true,
+		);
+		fixture.editorView.dispatch({
+			selection: { anchor: fixture.editorView.state.doc.line(5).to },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 50));
+		const secondRoot = fixture.editorView.state.doc.line(3).from;
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)
+			?.click();
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				`[data-anchor="${secondRoot}"] .bullet-zoom-outline-sidebar-disclosure`,
+			)
+			?.click();
+
+		fixture.editorView.dispatch({
+			changes: { from: 0, to: secondRoot, insert: '' },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 90));
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)?.getAttribute('aria-expanded'),
+		).toBe('false');
+		expect(fixture.sidebarView.contentEl.textContent).not.toContain('B child');
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('drops a deleted manual collapse instead of hiding the surviving current path', async () => {
+		const source = [
+			'- A',
+			'  - A child',
+			'- B',
+			'  - B child',
+			'    - B grandchild',
+		].join('\n');
+		const fixture = await createCoordinatorFixture(
+			source,
+			false,
+			[],
+			buildBulletOutline,
+			true,
+		);
+		fixture.editorView.dispatch({
+			selection: { anchor: fixture.editorView.state.doc.line(5).to },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 50));
+		const secondRoot = fixture.editorView.state.doc.line(3).from;
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)
+			?.click();
+		fixture.sidebarView.contentEl
+			.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)
+			?.click();
+
+		fixture.editorView.dispatch({
+			changes: { from: 0, to: secondRoot, insert: '' },
+		});
+		await new Promise((resolve) => window.setTimeout(resolve, 90));
+		expect(
+			fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-disclosure',
+			)?.getAttribute('aria-expanded'),
+		).toBe('true');
+		expect(fixture.sidebarView.contentEl.textContent).toContain('B grandchild');
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
@@ -1779,6 +2061,33 @@ describe('native outline sidebar coordinator', () => {
 			?.click();
 		expect(scrollIntoView).not.toHaveBeenCalled();
 		delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('keeps the pressed native label alive and navigates once when the sidebar activates before click', async () => {
+		const fixture = await createCoordinatorFixture('- Parent\n  - Child');
+		const label = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		expect(label).not.toBeNull();
+
+		label?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+		fixture.emit('active-leaf-change', fixture.sidebarLeaf);
+		await Promise.resolve();
+
+		expect(label?.isConnected).toBe(true);
+		expect(
+			fixture.sidebarView.contentEl.querySelector(
+				'.bullet-zoom-outline-sidebar-label',
+			),
+		).toBe(label);
+		label?.click();
+		await Promise.resolve();
+		expect(fixture.onFocus).toHaveBeenCalledOnce();
+		expect(fixture.onFocus).toHaveBeenCalledWith(fixture.editorView, 0);
+		expect(getFocusSession(fixture.editorView.state)?.anchor).toBe(0);
+
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});

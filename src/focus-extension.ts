@@ -7,6 +7,7 @@ import {
 	type Extension,
 } from '@codemirror/state';
 import { foldedRanges, unfoldEffect } from '@codemirror/language';
+import { isolateHistory } from '@codemirror/commands';
 import {
 	Decoration,
 	type DecorationSet,
@@ -22,11 +23,12 @@ import {
 import {
 	buildBreadcrumbs,
 	computeBranchRange,
-	displayBulletLabel,
 	findSupportedBullet,
+	planAppendChildInsertion,
 	type Breadcrumb,
 	type BranchRange,
 } from './list-structure';
+import { appendHomeIcon } from './home-icon';
 
 export const LIVE_PREVIEW_REQUIRED_NOTICE =
 	'Bullet Zoom 第一版只支援即時預覽模式。';
@@ -34,8 +36,10 @@ export const SUPPORTED_BULLET_REQUIRED_NOTICE =
 	'請先把游標放在一般 Bullet Point 裡。';
 export const EDITOR_VIEW_UNAVAILABLE_NOTICE =
 	'無法取得目前的 Obsidian 編輯畫面。';
+export const ADD_CHILD_UNAVAILABLE_NOTICE =
+	'目前無法新增子 Bullet，請稍後再試。';
 
-const MOBILE_BREADCRUMB_SCROLL_MARGIN = 52;
+const MOBILE_BREADCRUMB_SCROLL_MARGIN = 164;
 const MOBILE_MARKER_TARGET_SIZE = 28;
 
 export type NoticeHandler = (message: string) => void;
@@ -67,75 +71,9 @@ const focusMobileMode = Facet.define<boolean, boolean>({
 	combine: (values) => values[values.length - 1] ?? false,
 });
 
-const rowControlsAlwaysVisible = Facet.define<boolean, boolean>({
-	combine: (values) => values[values.length - 1] ?? true,
+const focusNoticeHandler = Facet.define<NoticeHandler, NoticeHandler>({
+	combine: (values) => values[values.length - 1] ?? (() => undefined),
 });
-
-const setRowControlsAlwaysVisibleEffect = StateEffect.define<boolean>();
-
-const rowControlsAlwaysVisibleField = StateField.define<boolean>({
-	create: (state) => state.facet(rowControlsAlwaysVisible),
-	update: (current, transaction) => {
-		for (const effect of transaction.effects) {
-			if (effect.is(setRowControlsAlwaysVisibleEffect)) {
-				return effect.value;
-			}
-		}
-		return current;
-	},
-});
-
-const activeRowControlViews = new WeakSet<EditorView>();
-const ROW_CONTROLS_ALWAYS_CLASS =
-	'bullet-zoom-row-controls-always-visible';
-const ROW_CONTROLS_HOVER_CLASS = 'bullet-zoom-row-controls-hover-only';
-
-class RowControlVisibilityPlugin implements PluginValue {
-	constructor(private readonly view: EditorView) {
-		activeRowControlViews.add(view);
-	}
-
-	destroy(): void {
-		activeRowControlViews.delete(this.view);
-	}
-}
-
-const rowControlVisibilityPlugin = ViewPlugin.fromClass(
-	RowControlVisibilityPlugin,
-);
-
-const rowControlVisibilityAttributes = EditorView.editorAttributes.compute(
-	[rowControlsAlwaysVisibleField],
-	(state) => ({
-		class: state.field(rowControlsAlwaysVisibleField)
-			? ROW_CONTROLS_ALWAYS_CLASS
-			: ROW_CONTROLS_HOVER_CLASS,
-	}),
-);
-
-export function setRowControlsAlwaysVisible(
-	view: EditorView,
-	value: boolean,
-): boolean {
-	if (!activeRowControlViews.has(view)) {
-		return false;
-	}
-	view.dispatch({ effects: setRowControlsAlwaysVisibleEffect.of(value) });
-	return true;
-}
-
-export function setRowControlsAlwaysVisibleForViews(
-	views: Iterable<EditorView | null>,
-	value: boolean,
-): number {
-	let updated = 0;
-	for (const view of views) {
-		if (view !== null && setRowControlsAlwaysVisible(view, value)) {
-			updated += 1;
-		}
-	}
-	return updated;
-}
 
 export const focusAtEffect = StateEffect.define<number>();
 export const clearFocusEffect = StateEffect.define<void>();
@@ -275,12 +213,6 @@ const focusDecorations = EditorView.decorations.compute(
 );
 
 const markerDecoration = Decoration.mark({ class: 'bullet-zoom-marker' });
-type BulletRowControlMode = 'enter' | 'parent';
-type BulletRowControlOwner = Readonly<{
-	view: EditorView;
-	mode: BulletRowControlMode;
-}>;
-const rowControlOwners = new WeakMap<HTMLElement, BulletRowControlOwner>();
 
 type ActiveFoldRange = Readonly<{ from: number; to: number }>;
 
@@ -299,57 +231,6 @@ function isPositionReplacedByFold(
 	return folds.some(({ from, to }) => from <= position && position < to);
 }
 
-class BulletRowControlWidget extends WidgetType {
-	constructor(
-		private readonly label: string,
-		private readonly mode: BulletRowControlMode,
-		private readonly previousLevelLabel: string | null,
-	) {
-		super();
-	}
-
-	eq(other: BulletRowControlWidget): boolean {
-		return (
-			this.label === other.label &&
-			this.mode === other.mode &&
-			this.previousLevelLabel === other.previousLevelLabel
-		);
-	}
-
-	ignoreEvent(): boolean {
-		return true;
-	}
-
-	toDOM(view: EditorView): HTMLElement {
-		const button = view.dom.ownerDocument.createElement('button');
-		const label = displayBulletLabel(this.label);
-		button.type = 'button';
-		button.className = `bullet-zoom-row-control bullet-zoom-${this.mode}-control`;
-		rowControlOwners.set(button, { view, mode: this.mode });
-		const accessibleLabel =
-			this.mode === 'parent'
-				? `回到上一層「${this.previousLevelLabel ?? '全文'}」`
-				: `聚焦「${label}」`;
-		button.title = accessibleLabel;
-		button.setAttribute('aria-label', accessibleLabel);
-		button.addEventListener('click', (event) => {
-			if (!activateBulletRowControl(view, button, this.mode)) {
-				return;
-			}
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			view.focus();
-		});
-
-		const icon = button.ownerDocument.createElement('span');
-		icon.className = 'bullet-zoom-row-icon';
-		icon.setAttribute('aria-hidden', 'true');
-		icon.textContent = this.mode === 'parent' ? '↖' : '↘';
-		button.append(icon);
-		return button;
-	}
-}
-
 function buildMarkerDecorations(view: EditorView): DecorationSet {
 	if (!view.state.facet(focusLivePreview)) {
 		return Decoration.none;
@@ -357,11 +238,6 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 
 	const ranges = [];
 	const folds = getActiveFoldRanges(view.state);
-	const focusSession = getFocusSession(view.state);
-	const focusAnchor = focusSession?.anchor ?? null;
-	const isMobile = view.state.facet(focusMobileMode);
-	const previousLevelLabel =
-		focusSession?.breadcrumbs.at(-2)?.label ?? null;
 	const visitedLines = new Set<number>();
 	for (const visibleRange of view.visibleRanges) {
 		let line = view.state.doc.lineAt(visibleRange.from);
@@ -369,28 +245,14 @@ function buildMarkerDecorations(view: EditorView): DecorationSet {
 			if (!visitedLines.has(line.number)) {
 				visitedLines.add(line.number);
 				const bullet = findSupportedBullet(view.state, line.from);
-					if (
+				if (
 						bullet !== null &&
 						!isPositionReplacedByFold(bullet.markerFrom, folds)
 					) {
 					ranges.push(
 						markerDecoration.range(bullet.markerFrom, bullet.markerTo),
 					);
-					if (!isMobile) {
-						ranges.push(
-							Decoration.widget({
-								widget: new BulletRowControlWidget(
-									bullet.label,
-									bullet.markerFrom === focusAnchor ? 'parent' : 'enter',
-									bullet.markerFrom === focusAnchor
-										? previousLevelLabel
-										: null,
-								),
-								side: 1,
-							}).range(bullet.lineTo),
-						);
 					}
-				}
 			}
 			if (line.number >= view.state.doc.lines) {
 				break;
@@ -410,10 +272,10 @@ class BulletMarkerPlugin implements PluginValue {
 
 	update(update: ViewUpdate): void {
 		if (
-				update.docChanged ||
-				update.viewportChanged ||
-				foldedRanges(update.startState) !== foldedRanges(update.state) ||
-				getFocusSession(update.startState) !== getFocusSession(update.state) ||
+			update.docChanged ||
+			update.viewportChanged ||
+			foldedRanges(update.startState) !== foldedRanges(update.state) ||
+			getFocusSession(update.startState) !== getFocusSession(update.state) ||
 			update.startState.facet(focusLivePreview) !==
 				update.state.facet(focusLivePreview)
 		) {
@@ -491,46 +353,13 @@ export function enterFocusAt(
 	return true;
 }
 
-function activateBulletRowControl(
-	view: EditorView,
-	control: HTMLElement,
-	mode: BulletRowControlMode,
-): boolean {
-	const owner = rowControlOwners.get(control);
-	if (
-		owner?.view !== view ||
-		owner.mode !== mode ||
-		!control.isConnected ||
-		!view.dom.contains(control)
-	) {
-		return false;
-	}
-
-	const position = view.posAtDOM(control);
-	if (mode === 'parent') {
-		const session = getFocusSession(view.state);
-		const bullet = findSupportedBullet(view.state, position);
-		return (
-			session !== null &&
-			bullet !== null &&
-			bullet.markerFrom === session.anchor &&
-			focusParent(view)
-		);
-	}
-
-	return enterFocusAt(view, position, true);
-}
-
 function activateBulletMarker(view: EditorView, position: number): boolean {
 	const bullet = findSupportedBullet(view.state, position);
 	if (bullet === null) {
 		return false;
 	}
 
-	if (
-		view.state.facet(focusMobileMode) &&
-		getFocusSession(view.state)?.anchor === bullet.markerFrom
-	) {
+	if (getFocusSession(view.state)?.anchor === bullet.markerFrom) {
 		return focusParent(view);
 	}
 
@@ -678,9 +507,6 @@ const markerClickHandler = EditorView.domEventHandlers({
 			return false;
 		}
 
-		if (event.target.closest('.bullet-zoom-row-control') !== null) {
-			return false;
-		}
 		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
 		const exactPosition = resolveExactBulletMarker(view, marker);
 		const position =
@@ -761,7 +587,6 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 			item.className = 'bullet-zoom-breadcrumb';
 			if (isNote) {
 				item.classList.add('is-note');
-				item.dataset.mobileLabel = '全文';
 			}
 			if (isAncestor) {
 				item.classList.add('is-ancestor');
@@ -770,12 +595,18 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 				item.classList.add('is-parent');
 			}
 
-			const label = container.ownerDocument.createElement('span');
-			label.className = 'bullet-zoom-breadcrumb-label';
-			label.textContent = breadcrumb.label;
-			item.append(label);
-			item.title = breadcrumb.label;
-			item.setAttribute('aria-label', breadcrumb.label);
+			if (isNote) {
+				appendHomeIcon(item);
+				item.title = '回到全文';
+				item.setAttribute('aria-label', '回到全文');
+			} else {
+				const label = container.ownerDocument.createElement('span');
+				label.className = 'bullet-zoom-breadcrumb-label';
+				label.textContent = breadcrumb.label;
+				item.append(label);
+				item.title = breadcrumb.label;
+				item.setAttribute('aria-label', breadcrumb.label);
+			}
 			item.dataset.breadcrumbIndex = String(index);
 		};
 		if (isCurrent) {
@@ -826,6 +657,62 @@ class MobileBreadcrumbWidget extends WidgetType {
 	}
 }
 
+class EmptyFocusRootWidget extends WidgetType {
+	eq(other: EmptyFocusRootWidget): boolean {
+		return other instanceof EmptyFocusRootWidget;
+	}
+
+	toDOM(view: EditorView): HTMLElement {
+		const placeholder = view.dom.ownerDocument.createElement('span');
+		placeholder.className = 'bullet-zoom-focus-root-placeholder';
+		placeholder.textContent = '（空白節點）';
+		return placeholder;
+	}
+}
+
+class FocusPageFooterWidget extends WidgetType {
+	constructor(
+		private readonly anchor: number,
+		private readonly label: string,
+	) {
+		super();
+	}
+
+	eq(other: FocusPageFooterWidget): boolean {
+		return other.anchor === this.anchor && other.label === this.label;
+	}
+
+	toDOM(view: EditorView): HTMLElement {
+		const document = view.dom.ownerDocument;
+		const footer = document.createElement('section');
+		footer.className = 'bullet-zoom-focus-page-footer';
+		footer.dataset.focusAnchor = String(this.anchor);
+
+		const addChild = document.createElement('button');
+		addChild.className = 'bullet-zoom-add-child';
+		addChild.type = 'button';
+		addChild.textContent = '＋';
+		addChild.title = `在「${this.label}」新增子 Bullet`;
+		addChild.setAttribute(
+			'aria-label',
+			`在「${this.label}」新增子 Bullet`,
+		);
+		addChild.addEventListener('click', () => {
+			if (
+				!addChild.isConnected ||
+				getFocusSession(view.state)?.anchor !== this.anchor
+			) {
+				view.state.facet(focusNoticeHandler)(ADD_CHILD_UNAVAILABLE_NOTICE);
+				return;
+			}
+			appendDirectChild(view, view.state.facet(focusNoticeHandler));
+		});
+
+		footer.append(addChild);
+		return footer;
+	}
+}
+
 const mobileBreadcrumbDecorations = EditorView.decorations.compute(
 	[focusStateField, focusPhoneMode],
 	(state) => {
@@ -838,9 +725,48 @@ const mobileBreadcrumbDecorations = EditorView.decorations.compute(
 			Decoration.widget({
 				widget: new MobileBreadcrumbWidget(),
 				block: true,
-				side: -1,
+				side: -2,
 			}).range(session.branch.from),
 		]);
+	},
+);
+
+const focusRootLineDecoration = Decoration.line({
+	class: 'bullet-zoom-focus-root-line',
+});
+const hiddenFocusRootPrefix = Decoration.replace({});
+
+const focusPageDecorations = EditorView.decorations.compute(
+	[focusStateField],
+	(state) => {
+		const session = state.field(focusStateField);
+		if (session === null) {
+			return Decoration.none;
+		}
+
+		const bullet = findSupportedBullet(state, session.anchor);
+		if (bullet === null) {
+			return Decoration.none;
+		}
+		const label = session.breadcrumbs.at(-1)?.label ?? '（空白節點）';
+		const ranges = [
+			focusRootLineDecoration.range(bullet.lineFrom),
+			hiddenFocusRootPrefix.range(bullet.lineFrom, bullet.contentFrom),
+			Decoration.widget({
+				widget: new FocusPageFooterWidget(session.anchor, label),
+				block: true,
+				side: 1,
+			}).range(session.branch.to),
+		];
+		if (bullet.label.length === 0) {
+			ranges.push(
+				Decoration.widget({
+					widget: new EmptyFocusRootWidget(),
+					side: 1,
+				}).range(bullet.lineTo),
+			);
+		}
+		return Decoration.set(ranges, true);
 	},
 );
 
@@ -1005,6 +931,35 @@ export function focusParent(view: EditorView): boolean {
 		: enterFocusAt(view, parent.anchor);
 }
 
+export function appendDirectChild(
+	view: EditorView,
+	notify: NoticeHandler,
+): boolean {
+	const session = getFocusSession(view.state);
+	if (
+		!view.dom.isConnected ||
+		session === null ||
+		view.state.facet(focusFilePath) !== session.filePath
+	) {
+		notify(ADD_CHILD_UNAVAILABLE_NOTICE);
+		return false;
+	}
+
+	const plan = planAppendChildInsertion(view.state, session.anchor);
+	if (plan.status !== 'ready') {
+		notify(ADD_CHILD_UNAVAILABLE_NOTICE);
+		return false;
+	}
+
+	view.dispatch({
+		changes: { from: plan.insertAt, insert: plan.insertText },
+		selection: EditorSelection.cursor(plan.cursorAt),
+		annotations: isolateHistory.of('full'),
+	});
+	view.focus();
+	return true;
+}
+
 export function resolveCodeMirrorView(candidate: unknown): EditorView | null {
 	return candidate instanceof EditorView ? candidate : null;
 }
@@ -1058,17 +1013,17 @@ export function runParentCommand(
 export function createFocusExtension({
 	isPhone,
 	isMobile,
-	alwaysShowRowControls = true,
 	onEditorReady,
 	onEditorUpdate,
 	onEditorDestroy,
+	notify = () => undefined,
 }: Readonly<{
 	isPhone: boolean;
 	isMobile: boolean;
-	alwaysShowRowControls?: boolean;
 	onEditorReady?: (view: EditorView) => void;
 	onEditorUpdate?: (update: ViewUpdate) => void;
 	onEditorDestroy?: (view: EditorView) => void;
+	notify?: NoticeHandler;
 }>): Extension {
 	const sidebarBridge = ViewPlugin.define((view) => {
 		onEditorReady?.(view);
@@ -1080,14 +1035,12 @@ export function createFocusExtension({
 	return [
 		focusPhoneMode.of(isPhone),
 		focusMobileMode.of(isMobile),
-		rowControlsAlwaysVisible.of(alwaysShowRowControls),
-		rowControlsAlwaysVisibleField,
-		rowControlVisibilityAttributes,
-		rowControlVisibilityPlugin,
+		focusNoticeHandler.of(notify),
 		focusStateField,
 		...(isPhone ? [mobileFocusScrollPlugin] : []),
 		focusDecorations,
 		mobileBreadcrumbDecorations,
+		focusPageDecorations,
 		bulletMarkerPlugin,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
