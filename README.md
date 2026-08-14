@@ -37,7 +37,7 @@ Bullet Zoom 是一款支援 Obsidian 桌面版、手機與平板的第三方插�
 
 聚焦後，上方 Breadcrumb 會以 Home icon 代表完整筆記，並顯示目前所在路徑。編輯區會把目前 Bullet 的原始可編輯文字直接呈現成頁面標題，不會在下方重複顯示同一個 Bullet；標題下面會直接接續它的子節點。
 
-聚焦內容最下方的淡色 `＋` 可以新增一個空白子 Bullet。新節點會接在既有子節點與其後代之後，並和既有直接子節點維持相同層級。新增後可直接輸入，一次 Undo 就能撤銷新增動作。
+聚焦內容最下方的淡色 `＋` 可以新增一個空白子 Bullet。新節點會接在既有子節點與其後代之後，並依目前 Obsidian／Outliner 的空白或 Tab 縮排設定，建立成目前節點的下一層直接子節點。新增後可直接輸入，一次 Undo 就能撤銷新增動作。
 
 ### 返回上一層
 
@@ -114,7 +114,7 @@ Bullet Zoom 不提供預設快捷鍵，以免和 Outliner 或你的 Vault 設定
 
 ### 點擊 Obsidian 收合箭頭卻沒有 Zoom
 
-這是預期行為。Obsidian 的收合箭頭只負責 fold／unfold。要 Zoom，請點擊 Bullet 圓點或使用聚焦命令。
+這是預期行為。Obsidian 的獨立收合箭頭只負責 fold／unfold；即使 Bullet 本身可以收合，點擊 Bullet 圓點仍會直接 Zoom。也可以使用聚焦命令進入 Zoom。
 
 ### 命令沒有作用
 
