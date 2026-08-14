@@ -2201,6 +2201,24 @@ describe('native outline sidebar coordinator', () => {
 		fixture.editorView.destroy();
 	});
 
+	it('renders the mobile outline while the native drawer split is collapsed', async () => {
+		const fixture = await createCoordinatorFixture('- Parent\n  - Child', true);
+		fixture.setRightSidebarCollapsed(true);
+		fixture.sidebarView.clear();
+
+		await fixture.coordinator.openForEditor(fixture.editorView);
+		await Promise.resolve();
+
+		expect(fixture.sidebarView.contentEl.textContent).toContain('Parent');
+		expect(
+			fixture.sidebarView.contentEl.querySelectorAll(
+				'.bullet-zoom-outline-sidebar-row',
+			),
+		).toHaveLength(1);
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
 	it('retains manual expansion when switching same-file editor panes', async () => {
 		const fixture = await createCoordinatorFixture('- Parent\n  - Child');
 		fixture.sidebarView.contentEl
