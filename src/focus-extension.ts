@@ -503,12 +503,14 @@ const markerClickHandler = EditorView.domEventHandlers({
 		) {
 			return false;
 		}
-		if (event.target.closest('.collapse-indicator') !== null) {
-			return false;
-		}
-
 		const marker = event.target.closest<HTMLElement>('.bullet-zoom-marker');
 		const exactPosition = resolveExactBulletMarker(view, marker);
+		if (
+			exactPosition === null &&
+			event.target.closest('.collapse-indicator') !== null
+		) {
+			return false;
+		}
 		const position =
 			exactPosition ?? resolveExpandedMobileMarker(view, event, event.target);
 		if (position === null) {
