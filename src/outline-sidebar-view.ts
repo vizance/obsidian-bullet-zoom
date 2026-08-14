@@ -110,6 +110,31 @@ function createButton(
 	return button;
 }
 
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+
+function createDisclosureIcon(
+	document: Document,
+	isExpanded: boolean,
+): SVGSVGElement {
+	const icon = document.createElementNS(SVG_NAMESPACE, 'svg');
+	icon.classList.add('bullet-zoom-outline-sidebar-disclosure-icon');
+	icon.setAttribute('viewBox', '0 0 16 16');
+	icon.setAttribute('aria-hidden', 'true');
+	icon.setAttribute('focusable', 'false');
+	const path = document.createElementNS(SVG_NAMESPACE, 'path');
+	path.setAttribute(
+		'd',
+		isExpanded ? 'M3.5 5.5 8 10.5 12.5 5.5' : 'M5 3.5 10.5 8 5 12.5',
+	);
+	path.setAttribute('fill', 'none');
+	path.setAttribute('stroke', 'currentColor');
+	path.setAttribute('stroke-linecap', 'round');
+	path.setAttribute('stroke-linejoin', 'round');
+	path.setAttribute('stroke-width', '1.5');
+	icon.append(path);
+	return icon;
+}
+
 export function syncOutlineLabelOverflow(container: HTMLElement): void {
 	const rows = Array.from(
 		container.querySelectorAll<HTMLElement>(
@@ -284,7 +309,7 @@ export function renderOutlineSidebar(
 		parent: HTMLUListElement,
 		depth: number,
 	): void => {
-		for (const node of nodes) {
+		for (const [index, node] of nodes.entries()) {
 			const item = document.createElement('li');
 			item.className = 'bullet-zoom-outline-sidebar-item';
 			item.dataset.anchor = String(node.anchor);
@@ -298,12 +323,19 @@ export function renderOutlineSidebar(
 			}
 			item.append(row);
 
+			const indexLabel = document.createElement('span');
+			indexLabel.className = 'bullet-zoom-outline-sidebar-index';
+			indexLabel.textContent = `${index + 1}.`;
+			indexLabel.setAttribute('aria-hidden', 'true');
+			row.append(indexLabel);
+
 			if (hasChildren) {
 				const disclosure = createButton(
 					document,
 					'bullet-zoom-outline-sidebar-disclosure',
-					isExpanded ? '⌄' : '›',
+					'',
 				);
+				disclosure.append(createDisclosureIcon(document, isExpanded));
 				const nodeLabel = displayBulletLabel(node.label);
 				const childGroupId = `bullet-zoom-outline-children-${model.revision}-${node.anchor}`;
 				disclosure.setAttribute('aria-expanded', String(isExpanded));
