@@ -7,7 +7,7 @@ import {
 } from '@codemirror/language';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import type { Workspace, WorkspaceLeaf } from 'obsidian';
+import { Modal, type Workspace, type WorkspaceLeaf } from 'obsidian';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -688,6 +688,16 @@ describe('native outline sidebar rendering', () => {
 
 describe('native outline sidebar coordinator', () => {
 	it('opens a validated mobile full-text preview without changing editor state', async () => {
+		let openedModal: Modal | null = null;
+		const captureOpenedModal = (modal: Modal): void => {
+			openedModal = modal;
+		};
+		vi.spyOn(Modal.prototype, 'open').mockImplementation(function (this: Modal) {
+			captureOpenedModal(this);
+			document.body.append(this.containerEl);
+			void this.onOpen();
+		});
+		const nativeClose = vi.spyOn(Modal.prototype, 'close');
 		const fixture = await createCoordinatorFixture(
 			'- This is a long **plain** Bullet label',
 			true,
@@ -725,11 +735,53 @@ describe('native outline sidebar coordinator', () => {
 			expect(fixture.setActiveLeaf).not.toHaveBeenCalled();
 			expect(fixture.editorView.state.doc.toString()).toBe(beforeDoc);
 			expect(fixture.editorView.state.selection).toEqual(beforeSelection);
-			document.body
-				.querySelector<HTMLButtonElement>('.bullet-zoom-outline-preview-close')
-				?.click();
+			const close = document.body.querySelector<HTMLButtonElement>(
+				'.bullet-zoom-outline-preview-close',
+			);
+			const modalElement = close?.parentElement?.parentElement;
+			close?.click();
+			close?.click();
+			expect(modalElement?.hidden).toBe(true);
+			expect(nativeClose).toHaveBeenCalledTimes(1);
 			expect(document.activeElement).toBe(preview);
 		}
+		expect(openedModal).not.toBeNull();
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('uses the same immediate close path and skips focus for a disconnected trigger', async () => {
+		let openedModal: Modal | null = null;
+		const captureOpenedModal = (modal: Modal): void => {
+			openedModal = modal;
+		};
+		vi.spyOn(Modal.prototype, 'open').mockImplementation(function (this: Modal) {
+			captureOpenedModal(this);
+			document.body.append(this.containerEl);
+			void this.onOpen();
+		});
+		const nativeClose = vi.spyOn(Modal.prototype, 'close');
+		const fixture = await createCoordinatorFixture('- Long **preview** label', true);
+		const preview = fixture.sidebarView.contentEl.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(preview).not.toBeNull();
+		preview?.click();
+		const modalElement = document.body.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-preview-close',
+		)?.parentElement?.parentElement;
+		const focus = preview === null ? null : vi.spyOn(preview, 'focus');
+		preview?.remove();
+		const modal = openedModal as Modal | null;
+		expect(modal).not.toBeNull();
+		if (modal === null) {
+			throw new Error('Expected the preview modal to open');
+		}
+		modal.close();
+		modal.close();
+		expect(modalElement?.hidden).toBe(true);
+		expect(nativeClose).toHaveBeenCalledTimes(1);
+		expect(focus).not.toHaveBeenCalled();
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});

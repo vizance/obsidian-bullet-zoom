@@ -150,6 +150,33 @@ describe('outlinePlainTextLabel', () => {
 			state.doc.line(2).from,
 		]);
 	});
+
+	it('uses the same semantic plain text for breadcrumbs', () => {
+		const source =
+			'- **粗體** *斜體* ~~刪除~~ `程式碼` [連結](https://example.com) ![圖片](image.png) [[目標|別名]]';
+		const state = createState(source);
+		expect(buildBreadcrumbs(state, 0, 'Ideas')?.map(({ label }) => label)).toEqual([
+			'Ideas',
+			'粗體 斜體 刪除 程式碼 連結 圖片 別名',
+		]);
+	});
+
+	it('removes balanced HyperMD formatting fallback marks without stripping literal punctuation', () => {
+		const state = createState(
+			'- **粗體含 *斜體*** ~~刪除~~ `程式碼` [連結](https://example.com/a_(b)) ![圖片](image.png) ![[附件|別名]] \\*星號 2 * 3 unmatched **',
+		);
+		const bullet = findSupportedBullet(state, 0);
+		expect(bullet).not.toBeNull();
+		if (bullet === null) {
+			return;
+		}
+		const outline = buildHyperMdBulletOutline([
+			{ level: 1, bullet, hasListMarker: true, nonBlank: true },
+		]);
+		expect(outline[0]?.label).toBe(
+			'粗體含 斜體 刪除 程式碼 連結 圖片 別名 *星號 2 * 3 unmatched **',
+		);
+	});
 });
 
 describe('computeBranchRange', () => {

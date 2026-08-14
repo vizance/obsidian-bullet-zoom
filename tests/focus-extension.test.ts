@@ -1758,6 +1758,33 @@ describe('plugin commands and safe failures', () => {
 });
 
 describe('per-editor breadcrumb panel', () => {
+	it('renders semantic plain text for visible, accessible, and tooltip labels', () => {
+		const { parent, view } = createView(
+			'- **Parent**\n  - **Child** [link](https://example.com)',
+		);
+		expect(enterFocusAt(view, view.state.doc.line(2).from)).toBe(true);
+		const items = Array.from(
+			parent.querySelectorAll<HTMLElement>('.bullet-zoom-breadcrumb'),
+		);
+		expect(items.map(({ textContent }) => textContent)).toEqual([
+			'Ideas',
+			'Parent',
+			'Child link',
+		]);
+		expect(items.map(({ title }) => title)).toEqual([
+			'Ideas',
+			'Parent',
+			'Child link',
+		]);
+		expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
+			'Ideas',
+			'Parent',
+			'Child link',
+		]);
+		view.destroy();
+		parent.remove();
+	});
+
 	function createView(
 		documentText: string,
 		additionalExtensions: Extension = [],

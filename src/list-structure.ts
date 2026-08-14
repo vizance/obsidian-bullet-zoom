@@ -268,6 +268,51 @@ export function displayBulletLabel(label: string): string {
 	return label.length === 0 ? '（空白節點）' : label;
 }
 
+function plainTextFallbackLabel(label: string): string {
+	const protectedEscapes: string[] = [];
+	let escapeTokenPrefix = '\uE000BZE';
+	while (label.includes(escapeTokenPrefix)) {
+		escapeTokenPrefix += 'Z';
+	}
+	let result = label.replace(
+		/\\([\\`*_[\]{}()#+.!~>-])/g,
+		(_match, literal: string) => {
+			const index = protectedEscapes.push(literal) - 1;
+			return `${escapeTokenPrefix}${index}\uE001`;
+		},
+	);
+
+	result = result.replace(
+		/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+		(_match, target: string, alias: string | undefined) => alias ?? target,
+	);
+	result = result.replace(
+		/!\[([^\]]*)\]\((?:[^()\n]|\([^()\n]*\))*\)/g,
+		'$1',
+	);
+	result = result.replace(
+		/\[([^\]]+)\]\((?:[^()\n]|\([^()\n]*\))*\)/g,
+		'$1',
+	);
+	result = result.replace(/\*\*(\S(?:[^\n]*?\S)?)\*\*/g, '$1');
+	result = result.replace(/__(\S(?:[^\n]*?\S)?)__/g, '$1');
+	result = result.replace(/~~(\S(?:[^\n]*?\S)?)~~/g, '$1');
+	result = result.replace(/(`+)(\S(?:[^`\n]*?\S)?)\1/g, '$2');
+	result = result.replace(
+		/(^|[\s([{'">])\*(?!\*)(\S(?:[^*\n]*?\S)?)\*(?!\*)/g,
+		'$1$2',
+	);
+	result = result.replace(
+		/(^|[\s([{'">])_(?!_)(\S(?:[^_\n]*?\S)?)_(?!_)/g,
+		'$1$2',
+	);
+
+	for (const [index, literal] of protectedEscapes.entries()) {
+		result = result.replace(`${escapeTokenPrefix}${index}\uE001`, literal);
+	}
+	return displayBulletLabel(result.trim());
+}
+
 type LabelEdit = Readonly<{
 	from: number;
 	to: number;
@@ -335,12 +380,6 @@ function outlinePlainTextLabel(
 			].includes(node.name)
 		) {
 			edits.push({ from: node.from, to: node.to, replacement: '' });
-		} else if (node.name === 'Escape') {
-			edits.push({
-				from: node.from,
-				to: node.to,
-				replacement: state.sliceDoc(node.from, node.to).slice(1),
-			});
 		}
 	},
 	});
@@ -380,7 +419,7 @@ function outlinePlainTextLabel(
 		const to = edit.to - rawFrom;
 		result = result.slice(0, from) + edit.replacement + result.slice(to);
 	}
-	return displayBulletLabel(result.trim());
+	return plainTextFallbackLabel(result);
 }
 
 type MutableBulletOutlineNode = {
@@ -499,7 +538,7 @@ export function buildHyperMdBulletOutline(
 			throw new BulletOutlineLimitError();
 		}
 		const node: MutableBulletOutlineNode = {
-			label: displayBulletLabel(entry.bullet.label),
+			label: plainTextFallbackLabel(entry.bullet.label),
 			anchor: entry.bullet.markerFrom,
 			children: [],
 		};
@@ -747,6 +786,8 @@ export function buildBreadcrumbs(
 	if (targetTree !== null && targetTree.length >= state.doc.length) {
 		completeSyntaxTreeCache.set(state, targetTree);
 	}
+	const labelTree =
+		completeSyntaxTreeCache.get(state) ?? targetTree ?? syntaxTree(state);
 
 	const reversedAncestors = supportedBulletAncestors(state, target);
 
@@ -759,14 +800,14 @@ export function buildBreadcrumbs(
 	for (const ancestor of [...reversedAncestors].reverse()) {
 		breadcrumbs.push(
 			Object.freeze({
-				label: displayBulletLabel(ancestor.label),
+				label: outlinePlainTextLabel(state, ancestor, labelTree),
 				anchor: ancestor.lineFrom,
 			}),
 		);
 	}
 	breadcrumbs.push(
 		Object.freeze({
-			label: displayBulletLabel(target.label),
+			label: outlinePlainTextLabel(state, target, labelTree),
 			anchor: target.lineFrom,
 		}),
 	);
