@@ -64,6 +64,8 @@ Obsidian 左側的原生收合箭頭只負責收合或展開 Bullet thread，不
 - 點擊 Bullet 文字：單擊一次就會 Zoom 到該 Bullet。
 - 點擊最上方的 Home icon：離開 Zoom，回到完整筆記。
 - 文字游標移到支援的 Bullet 時，側邊欄會同步展開路徑並標示目前節點，但不會自行 Zoom。
+- 每個同層節點前會顯示 `1.`、`2.`、`3.` 的順序編號；子層會從 `1.` 重新開始，編號只顯示在大綱中，不會改寫 Markdown。
+- 收合／展開按鈕使用固定尺寸的置中圖示，桌面版、手機與平板都保留原本的獨立操作與點擊範圍。
 
 手機與平板沿用 Obsidian 原生右側 drawer。開啟時只自動展開目前 Bullet 所在路徑；每個節點固定維持一列，左側 disclosure、中間文字與需要時才顯示的 `…` 不會拆成額外空白行。成功 Zoom 後會自動回到原本的筆記。
 
@@ -125,6 +127,11 @@ Bullet Zoom 不提供預設快捷鍵，以免和 Outliner 或你的 Vault 設定
 先開啟一份即時預覽模式的 Markdown 筆記，再重新執行 `Bullet Zoom: 開啟 Bullet 大綱`。
 
 ## 版本紀錄與回報
+
+### `0.1.29`
+
+- Bullet 大綱顯示每個同層節點的 `1.`、`2.`、`3.` 順序編號，巢狀層級各自從 `1.` 開始。
+- 收合／展開圖示改用固定 `16 × 16` 幾何，降低手機版 fold／unfold 切換時的視覺位移。
 
 - [最新版本與 Release Notes](https://github.com/vizance/obsidian-bullet-zoom/releases/latest)
 - [所有歷史版本](https://github.com/vizance/obsidian-bullet-zoom/releases)

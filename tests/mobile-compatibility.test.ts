@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.26');
+		expect(manifest.version).toBe('0.1.29');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.26');
-		expect(packageLock.version).toBe('0.1.26');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.26');
+		expect(packageManifest.version).toBe('0.1.29');
+		expect(packageLock.version).toBe('0.1.29');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.29');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -298,8 +298,14 @@ describe('mobile-compatible plugin bundle contract', () => {
 		body.className = 'bullet-zoom-outline-sidebar-body';
 		const row = document.createElement('div');
 		row.className = 'bullet-zoom-outline-sidebar-row is-depth-6';
+		const index = document.createElement('span');
+		index.className = 'bullet-zoom-outline-sidebar-index';
+		index.textContent = '1.';
 		const disclosure = document.createElement('button');
 		disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
+		const disclosureIcon = document.createElement('span');
+		disclosureIcon.className = 'bullet-zoom-outline-sidebar-disclosure-icon';
+		disclosure.append(disclosureIcon);
 		const label = document.createElement('button');
 		label.className = 'bullet-zoom-outline-sidebar-label';
 		const labelText = document.createElement('span');
@@ -309,7 +315,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		const preview = document.createElement('button');
 		preview.className = 'bullet-zoom-outline-sidebar-preview';
 		preview.textContent = '…';
-		row.append(disclosure, label, preview);
+		row.append(index, disclosure, label, preview);
 		body.append(row);
 		sidebar.append(body);
 		document.body.append(sidebar);
@@ -318,18 +324,26 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(getComputedStyle(sidebar).overflow).toBe('hidden');
 		expect(getComputedStyle(body).overflowX).toBe('hidden');
 		expect(getComputedStyle(body).overflowY).toBe('auto');
+		expect(getComputedStyle(index).minHeight).toBe('44px');
 		expect(getComputedStyle(disclosure).minHeight).toBe('44px');
 		expect(getComputedStyle(disclosure).minWidth).toBe('44px');
+		expect(getComputedStyle(disclosure).alignItems).toBe('center');
+		expect(getComputedStyle(disclosure).justifyContent).toBe('center');
+		expect(getComputedStyle(disclosure).lineHeight).toBe('0');
+		expect(getComputedStyle(disclosureIcon).display).toBe('block');
+		expect(getComputedStyle(disclosureIcon).width).toBe('16px');
+		expect(getComputedStyle(disclosureIcon).height).toBe('16px');
 		expect(getComputedStyle(label).minHeight).toBe('44px');
 		expect(getComputedStyle(preview).minHeight).toBe('44px');
 		expect(getComputedStyle(preview).minWidth).toBe('44px');
 		expect(getComputedStyle(row).gridTemplateColumns).toBe(
-			'44px minmax(0, 1fr) auto',
+			'max-content 44px minmax(0, 1fr) auto',
 		);
 		expect(getComputedStyle(row).gridTemplateAreas).toBe(
-			"'disclosure label preview'",
+			"'index disclosure label preview'",
 		);
 		expect(getComputedStyle(row).gridAutoRows).toBe('minmax(44px, auto)');
+		expect(getComputedStyle(index).gridArea).toBe('index');
 		expect(getComputedStyle(disclosure).gridArea).toBe('disclosure');
 		expect(getComputedStyle(label).gridArea).toBe('label');
 		expect(getComputedStyle(label).width).toBe('100%');
@@ -368,13 +382,16 @@ describe('mobile-compatible plugin bundle contract', () => {
 			sidebar.className = 'bullet-zoom-outline-sidebar';
 			const row = document.createElement('div');
 			row.className = 'bullet-zoom-outline-sidebar-row is-current';
+			const index = document.createElement('span');
+			index.className = 'bullet-zoom-outline-sidebar-index';
+			index.textContent = '1.';
 			const disclosure = document.createElement('button');
 			disclosure.className = 'bullet-zoom-outline-sidebar-disclosure';
 			const label = document.createElement('button');
 			label.className = 'bullet-zoom-outline-sidebar-label';
 			const preview = document.createElement('button');
 			preview.className = 'bullet-zoom-outline-sidebar-preview';
-			row.append(disclosure, label, preview);
+			row.append(index, disclosure, label, preview);
 			sidebar.append(row);
 			document.body.append(line, breadcrumbs, sidebar);
 

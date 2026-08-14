@@ -348,6 +348,54 @@ describe('native outline sidebar rendering', () => {
 		).toBe('Level five');
 	});
 
+	it('renders one-based indexes for each sibling list without changing label actions', () => {
+		const container = document.createElement('div');
+		const outline = Object.freeze([
+			Object.freeze({
+				label: 'First',
+				anchor: 0,
+				children: Object.freeze([
+					Object.freeze({ label: 'Child A', anchor: 10, children: Object.freeze([]) }),
+					Object.freeze({ label: 'Child B', anchor: 20, children: Object.freeze([]) }),
+				]),
+			}),
+			Object.freeze({
+				label: 'Second',
+				anchor: 30,
+				children: Object.freeze([
+					Object.freeze({ label: 'Child C', anchor: 40, children: Object.freeze([]) }),
+				]),
+			}),
+		]);
+		renderOutlineSidebar(
+			container,
+			model({ outline, expandedAnchors: new Set([0, 30]) }),
+			actions(),
+		);
+
+		const indexFor = (anchor: number): HTMLElement | null =>
+			container.querySelector<HTMLElement>(
+				`[data-anchor="${anchor}"] > .bullet-zoom-outline-sidebar-row > .bullet-zoom-outline-sidebar-index`,
+			);
+		expect(indexFor(0)?.textContent).toBe('1.');
+		expect(indexFor(30)?.textContent).toBe('2.');
+		expect(indexFor(10)?.textContent).toBe('1.');
+		expect(indexFor(20)?.textContent).toBe('2.');
+		expect(indexFor(40)?.textContent).toBe('1.');
+		expect(indexFor(0)?.getAttribute('aria-hidden')).toBe('true');
+		expect(
+			container.querySelector<HTMLButtonElement>(
+				'[data-anchor="0"] .bullet-zoom-outline-sidebar-label',
+			)?.getAttribute('aria-label'),
+		).toBe('聚焦「First」');
+		expect(
+			Array.from(
+				container.querySelectorAll('.bullet-zoom-outline-sidebar-index'),
+				({ textContent }) => textContent,
+			),
+		).toEqual(['1.', '1.', '2.', '2.', '1.']);
+	});
+
 	it('keeps disclosure and focus as separate native actions', () => {
 		const container = document.createElement('div');
 		const handlers = actions();
@@ -380,6 +428,25 @@ describe('native outline sidebar rendering', () => {
 			'.bullet-zoom-outline-sidebar-disclosure',
 		);
 		expect(collapsedDisclosure?.hasAttribute('aria-controls')).toBe(false);
+		expect(collapsedDisclosure?.getAttribute('aria-expanded')).toBe('false');
+		expect(collapsedDisclosure?.textContent).toBe('');
+		expect(
+			collapsedDisclosure
+				?.querySelector<SVGSVGElement>(
+					'.bullet-zoom-outline-sidebar-disclosure-icon',
+				)
+				?.getAttribute('viewBox'),
+		).toBe('0 0 16 16');
+		expect(
+			collapsedDisclosure
+				?.querySelector<SVGSVGElement>(
+					'.bullet-zoom-outline-sidebar-disclosure-icon',
+				)
+				?.getAttribute('aria-hidden'),
+		).toBe('true');
+		expect(
+			collapsedDisclosure?.querySelector('path')?.getAttribute('d'),
+		).toBe('M5 3.5 10.5 8 5 12.5');
 
 		renderOutlineSidebar(
 			container,
@@ -402,7 +469,17 @@ describe('native outline sidebar rendering', () => {
 		);
 		const controlledId = expandedDisclosure?.getAttribute('aria-controls');
 		expect(controlledId).not.toBeNull();
+		expect(expandedDisclosure?.getAttribute('aria-expanded')).toBe('true');
 		expect(container.querySelector(`#${controlledId}`)).not.toBeNull();
+		expect(expandedDisclosure?.textContent).toBe('');
+		expect(
+			expandedDisclosure?.querySelector<SVGSVGElement>(
+				'.bullet-zoom-outline-sidebar-disclosure-icon',
+			)?.getAttribute('viewBox'),
+		).toBe('0 0 16 16');
+		expect(expandedDisclosure?.querySelector('path')?.getAttribute('d')).toBe(
+			'M3.5 5.5 8 10.5 12.5 5.5',
+		);
 	});
 
 	it('renders an icon-only Home action for the complete note', () => {
@@ -573,6 +650,9 @@ describe('native outline sidebar rendering', () => {
 		const row = container.querySelector<HTMLElement>(
 			'.bullet-zoom-outline-sidebar-row',
 		);
+		const index = row?.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-index',
+		);
 		const disclosure = row?.querySelector<HTMLButtonElement>(
 			'.bullet-zoom-outline-sidebar-disclosure',
 		);
@@ -587,10 +667,14 @@ describe('native outline sidebar rendering', () => {
 		);
 
 		expect(Array.from(row?.children ?? []).map(({ className }) => className)).toEqual([
+			'bullet-zoom-outline-sidebar-index',
 			'bullet-zoom-outline-sidebar-disclosure',
 			'bullet-zoom-outline-sidebar-label',
 			'bullet-zoom-outline-sidebar-preview',
 		]);
+		expect(index?.textContent).toBe('1.');
+		expect(index?.getAttribute('aria-hidden')).toBe('true');
+		expect(index?.parentElement).toBe(row);
 		expect(disclosure?.parentElement).toBe(row);
 		expect(label?.parentElement).toBe(row);
 		expect(preview?.parentElement).toBe(row);
