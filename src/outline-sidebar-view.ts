@@ -143,6 +143,8 @@ export function syncOutlineLabelOverflow(container: HTMLElement): void {
 }
 
 class BulletLabelPreviewModal extends Modal {
+	private closing = false;
+
 	constructor(
 		app: BulletOutlineSidebarView['app'],
 		private readonly label: string,
@@ -163,6 +165,15 @@ class BulletLabelPreviewModal extends Modal {
 		);
 		close.addEventListener('click', () => this.close());
 		this.contentEl.replaceChildren(text, close);
+	}
+
+	override close(): void {
+		if (this.closing) {
+			return;
+		}
+		this.closing = true;
+		this.modalEl.hidden = true;
+		super.close();
 	}
 
 	onClose(): void {
