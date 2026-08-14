@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.21');
+		expect(manifest.version).toBe('0.1.22');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.21');
-		expect(packageLock.version).toBe('0.1.21');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.21');
+		expect(packageManifest.version).toBe('0.1.22');
+		expect(packageLock.version).toBe('0.1.22');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.22');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -69,6 +69,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(versions['0.1.18']).toBe('1.11.7');
 		expect(versions['0.1.19']).toBe('1.11.7');
 		expect(versions['0.1.21']).toBe('1.11.7');
+		expect(versions['0.1.22']).toBe('1.11.7');
 	});
 
 	it('keeps Node.js and Electron imports out of runtime source', () => {
@@ -354,8 +355,12 @@ describe('mobile-compatible plugin bundle contract', () => {
 			expect(getComputedStyle(label).minHeight).toBe('44px');
 			expect(getComputedStyle(preview).minWidth).toBe('44px');
 			expect(getComputedStyle(preview).minHeight).toBe('44px');
-			expect(readProjectFile('styles.css')).toMatch(
-				/\.bullet-zoom-outline-sidebar-row\.is-current\s*\{[^}]*var\(--interactive-accent\)/s,
+			const projectStyles = readProjectFile('styles.css');
+			expect(projectStyles).not.toMatch(
+				/\.bullet-zoom-outline-sidebar-(?:root|row)\.is-current\s*\{[^}]*(?:box-shadow|border|background)/s,
+			);
+			expect(projectStyles).toMatch(
+				/\.bullet-zoom-outline-sidebar-label\[aria-current='true'\]\s*\{[^}]*font-weight:\s*var\(--font-semibold, 600\)/s,
 			);
 			expect(getComputedStyle(line).lineHeight).toBe(lineHeightBefore);
 			expect(getComputedStyle(breadcrumbs).minHeight).toBe(

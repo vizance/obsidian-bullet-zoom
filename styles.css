@@ -278,11 +278,6 @@ button.bullet-zoom-breadcrumb {
 	background: var(--background-modifier-hover);
 }
 
-.bullet-zoom-outline-sidebar-root.is-current,
-.bullet-zoom-outline-sidebar-row.is-current {
-	box-shadow: inset 3px 0 0 var(--interactive-accent);
-}
-
 .bullet-zoom-outline-sidebar-tree,
 .bullet-zoom-outline-sidebar-group {
 	min-width: 0;
