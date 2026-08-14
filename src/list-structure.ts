@@ -23,6 +23,30 @@ export type Breadcrumb = Readonly<{
 	anchor: number | null;
 }>;
 
+export type AppendChildInsertionPlan = Readonly<{
+	status: 'ready';
+	insertAt: number;
+	insertText: string;
+	cursorAt: number;
+}>;
+
+export type AppendChildInsertionFailure = Readonly<{
+	status: 'unsafe';
+	reason: 'unsupported-target' | 'incomplete-syntax' | 'unsafe-boundary';
+}>;
+
+export type AppendChildInsertionResult =
+	| AppendChildInsertionPlan
+	| AppendChildInsertionFailure;
+
+export type HyperMdInsertionEntry = Readonly<{
+	lineFrom: number;
+	lineTo: number;
+	level: number | null;
+	hasListMarker: boolean;
+	nonBlank: boolean;
+}>;
+
 export type BulletOutlineNode = Readonly<{
 	label: string;
 	anchor: number;
@@ -262,6 +286,152 @@ export function computeBranchRange(
 		from: target.lineFrom,
 		to: lastIncludedLine.to,
 	});
+}
+
+function unsafeAppendChildInsertion(
+	reason: AppendChildInsertionFailure['reason'],
+): AppendChildInsertionFailure {
+	return Object.freeze({ status: 'unsafe', reason });
+}
+
+function childIndentText(state: EditorState, target: SupportedBullet): string {
+	const contentColumn = countColumn(
+		state.sliceDoc(target.lineFrom, target.contentFrom),
+		state.tabSize,
+	);
+	return ' '.repeat(contentColumn);
+}
+
+function readyAppendChildInsertion(
+	insertAt: number,
+	indentText: string,
+): AppendChildInsertionPlan {
+	const newline = String.fromCharCode(10);
+	const insertText = newline + indentText + '- ';
+	return Object.freeze({
+		status: 'ready',
+		insertAt,
+		insertText,
+		cursorAt: insertAt + indentText.length + 3,
+	});
+}
+
+function enclosingListItem(node: SyntaxNode | null): SyntaxNode | null {
+	let current = node;
+	while (current !== null) {
+		if (current.name === 'ListItem') {
+			return current;
+		}
+		current = current.parent;
+	}
+	return null;
+}
+
+function planStandardAppendChildInsertion(
+	state: EditorState,
+	target: SupportedBullet,
+	tree: Tree,
+): AppendChildInsertionResult {
+	const ownListItem = enclosingListItem(
+		tree.resolveInner(target.markerFrom, 1),
+	);
+	if (
+		ownListItem === null ||
+		ownListItem.to < target.lineTo ||
+		ownListItem.to > state.doc.length
+	) {
+		return unsafeAppendChildInsertion('unsafe-boundary');
+	}
+	return readyAppendChildInsertion(
+		ownListItem.to,
+		childIndentText(state, target),
+	);
+}
+
+export function planHyperMdAppendChildInsertion(
+	target: SupportedBullet,
+	targetLevel: number,
+	entries: readonly HyperMdInsertionEntry[],
+	indentText: string,
+): AppendChildInsertionResult {
+	let lastOwnedTo = target.lineTo;
+	let hasDirectChild = false;
+	for (const entry of entries) {
+		if (!entry.nonBlank) {
+			continue;
+		}
+		if (
+			entry.level === null ||
+			entry.level < targetLevel ||
+			(entry.hasListMarker && entry.level === targetLevel)
+		) {
+			break;
+		}
+		if (entry.hasListMarker && entry.level === targetLevel + 1) {
+			hasDirectChild = true;
+		} else if (
+			entry.hasListMarker &&
+			entry.level > targetLevel + 1 &&
+			!hasDirectChild
+		) {
+			return unsafeAppendChildInsertion('unsafe-boundary');
+		}
+		lastOwnedTo = entry.lineTo;
+	}
+	return readyAppendChildInsertion(lastOwnedTo, indentText);
+}
+
+export function planAppendChildInsertion(
+	state: EditorState,
+	position: number,
+): AppendChildInsertionResult {
+	const target = findSupportedBullet(state, position);
+	if (target === null) {
+		return unsafeAppendChildInsertion('unsupported-target');
+	}
+	const tree = ensureSyntaxTree(state, state.doc.length, 50);
+	if (tree === null || tree.length < state.doc.length) {
+		return unsafeAppendChildInsertion('incomplete-syntax');
+	}
+	completeSyntaxTreeCache.set(state, tree);
+
+	const markerNode = tree.resolveInner(target.markerFrom, 1);
+	if (enclosingListItem(markerNode) !== null) {
+		return planStandardAppendChildInsertion(state, target, tree);
+	}
+	const targetLevel = hyperMdListLevel(markerNode);
+	if (targetLevel === null) {
+		return unsafeAppendChildInsertion('unsafe-boundary');
+	}
+	const entries: HyperMdInsertionEntry[] = [];
+	for (
+		let lineNumber = target.lineNumber + 1;
+		lineNumber <= state.doc.lines;
+		lineNumber += 1
+	) {
+		const line = state.doc.line(lineNumber);
+		const firstContentOffset = /^[\t ]*/.exec(line.text)?.[0].length ?? 0;
+		entries.push(
+			Object.freeze({
+				lineFrom: line.from,
+				lineTo: line.to,
+				level: hyperMdListLevel(
+					tree.resolveInner(
+						Math.min(line.to, line.from + firstContentOffset),
+						1,
+					),
+				),
+				hasListMarker: ANY_LIST_MARKER_PATTERN.test(line.text),
+				nonBlank: line.text.trim().length > 0,
+			}),
+		);
+	}
+	return planHyperMdAppendChildInsertion(
+		target,
+		targetLevel,
+		entries,
+		childIndentText(state, target),
+	);
 }
 
 export function displayBulletLabel(label: string): string {
