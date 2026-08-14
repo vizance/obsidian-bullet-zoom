@@ -5,6 +5,7 @@ import {
 	foldEffect,
 	foldable,
 	foldedRanges,
+	indentUnit,
 } from '@codemirror/language';
 import {
 	Compartment,
@@ -760,13 +761,16 @@ describe('bullet marker interaction', () => {
 		}
 		const foreignMarker = document.createElement('span');
 		foreignMarker.className = 'bullet-zoom-marker';
+		const foreignCollapseIndicator = document.createElement('span');
+		foreignCollapseIndicator.className = 'collapse-indicator';
+		foreignMarker.append(foreignCollapseIndicator);
 		line.append(foreignMarker);
 		const foreignClick = new MouseEvent('click', {
 			bubbles: true,
 			cancelable: true,
 		});
 
-		expect(foreignMarker.dispatchEvent(foreignClick)).toBe(true);
+		expect(foreignCollapseIndicator.dispatchEvent(foreignClick)).toBe(true);
 		expect(foreignClick.defaultPrevented).toBe(false);
 		expect(getFocusSession(view.state)).toBeNull();
 
@@ -1053,8 +1057,13 @@ describe('bullet marker interaction', () => {
 		parent.remove();
 	});
 
-	it('passes a collapse indicator nested inside a marker through', () => {
-		const { parent, view } = createView('- Parent\n  - Child');
+	it('gives an exact marker click precedence over a nested collapse indicator', () => {
+		const { parent, view } = createView(
+			'- Parent\n  - Child',
+			codeFolding(),
+		);
+		foldLine(view, 1);
+		expect(activeFoldRanges(view)).toHaveLength(1);
 		const marker = view.contentDOM.querySelector<HTMLElement>(
 			'.bullet-zoom-marker',
 		);
@@ -1062,18 +1071,18 @@ describe('bullet marker interaction', () => {
 		collapseIndicator.className = 'collapse-indicator collapse-icon';
 		marker?.append(collapseIndicator);
 		const nativeClickHandler = vi.fn();
-		collapseIndicator.addEventListener('click', nativeClickHandler);
-		const selection = view.state.selection;
+		view.contentDOM.addEventListener('click', nativeClickHandler);
 		const event = new MouseEvent('click', {
 			bubbles: true,
 			cancelable: true,
 		});
 
-		expect(collapseIndicator.dispatchEvent(event)).toBe(true);
-		expect(event.defaultPrevented).toBe(false);
-		expect(nativeClickHandler).toHaveBeenCalledTimes(1);
-		expect(getFocusSession(view.state)).toBeNull();
-		expect(view.state.selection.eq(selection)).toBe(true);
+		expect(collapseIndicator.dispatchEvent(event)).toBe(false);
+		expect(event.defaultPrevented).toBe(true);
+		expect(nativeClickHandler).not.toHaveBeenCalled();
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(1).to);
+		expect(activeFoldRanges(view)).toEqual([]);
 		view.destroy();
 		parent.remove();
 	});
@@ -1433,6 +1442,27 @@ describe('per-editor breadcrumb panel', () => {
 		expect(undo(view)).toBe(true);
 		expect(view.state.doc.toString()).toBe(source);
 		expect(undo(view)).toBe(false);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('uses the configured Outliner indentation unit for the appended child', () => {
+		const source = '- Fundraising video';
+		const { parent, view } = createView(
+			source,
+			[history(), indentUnit.of('    ')],
+		);
+		expect(enterFocusAt(view, 0)).toBe(true);
+
+		parent.querySelector<HTMLButtonElement>('.bullet-zoom-add-child')?.click();
+
+		expect(view.state.doc.toString()).toBe('- Fundraising video\n    - ');
+		const child = findSupportedBullet(view.state, view.state.doc.line(2).from);
+		expect(child?.indent).toBe(4);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(2).to);
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		expect(undo(view)).toBe(true);
+		expect(view.state.doc.toString()).toBe(source);
 		view.destroy();
 		parent.remove();
 	});
