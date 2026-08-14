@@ -1,4 +1,4 @@
-import type { Text } from '@codemirror/state';
+import { MapMode, type Text } from '@codemirror/state';
 import { EditorView, type ViewUpdate } from '@codemirror/view';
 import {
 	ItemView,
@@ -17,6 +17,7 @@ import {
 	findSupportedBullet,
 	type BulletOutlineNode,
 } from './list-structure';
+import { appendHomeIcon } from './home-icon';
 
 export const BULLET_OUTLINE_VIEW_TYPE = 'bullet-zoom-outline';
 export const BULLET_OUTLINE_VIEW_NAME = 'Bullet 大綱';
@@ -240,12 +241,10 @@ export function renderOutlineSidebar(
 		return;
 	}
 
-	const root = createButton(
-		document,
-		'bullet-zoom-outline-sidebar-root',
-		'全文',
-	);
-	root.setAttribute('aria-label', `顯示「${model.noteTitle}」全文`);
+	const root = createButton(document, 'bullet-zoom-outline-sidebar-root', '');
+	appendHomeIcon(root);
+	root.title = '回到全文';
+	root.setAttribute('aria-label', '回到全文');
 	if (model.currentAnchor === null) {
 		root.classList.add('is-current');
 		root.setAttribute('aria-current', 'true');
@@ -280,14 +279,6 @@ export function renderOutlineSidebar(
 	tree.className = 'bullet-zoom-outline-sidebar-tree';
 	tree.setAttribute('aria-label', `${model.noteTitle} Bullet 大綱`);
 	body.append(tree);
-	const currentPath =
-		model.currentAnchor === null
-			? null
-			: findOutlinePath(model.outline, model.currentAnchor);
-	const lockedPathAnchors = new Set(
-		currentPath?.slice(0, -1).map(({ anchor }) => anchor) ?? [],
-	);
-
 	const renderNodes = (
 		nodes: readonly BulletOutlineNode[],
 		parent: HTMLUListElement,
@@ -314,7 +305,6 @@ export function renderOutlineSidebar(
 					isExpanded ? '⌄' : '›',
 				);
 				const nodeLabel = displayBulletLabel(node.label);
-				const isLockedPath = lockedPathAnchors.has(node.anchor);
 				const childGroupId = `bullet-zoom-outline-children-${model.revision}-${node.anchor}`;
 				disclosure.setAttribute('aria-expanded', String(isExpanded));
 				if (isExpanded) {
@@ -322,14 +312,8 @@ export function renderOutlineSidebar(
 				}
 				disclosure.setAttribute(
 					'aria-label',
-					isLockedPath
-						? `目前路徑「${nodeLabel}」已展開`
-						: `${isExpanded ? '收合' : '展開'}「${nodeLabel}」的子節點`,
+					`${isExpanded ? '收合' : '展開'}「${nodeLabel}」的子節點`,
 				);
-				if (isLockedPath) {
-					disclosure.disabled = true;
-					disclosure.classList.add('is-path-locked');
-				}
 				disclosure.addEventListener('click', () =>
 					actions.onToggle(
 						Object.freeze({ anchor: node.anchor, revision: model.revision }),
@@ -535,6 +519,7 @@ export class BulletOutlineSidebarCoordinator {
 	private source: SourceContext | null = null;
 	private sidebarView: BulletOutlineSidebarView | null = null;
 	private readonly expandedAnchors = new Set<number>();
+	private readonly manuallyCollapsedAnchors = new Set<number>();
 	private readonly eventRefs: EventRef[] = [];
 	private refreshQueued = false;
 	private refreshTimer: number | null = null;
@@ -663,12 +648,23 @@ export class BulletOutlineSidebarCoordinator {
 			return;
 		}
 		if (update.docChanged) {
-			const mapped = Array.from(this.expandedAnchors, (anchor) =>
-				update.changes.mapPos(anchor, 1),
+			const mapSurvivingAnchors = (anchors: ReadonlySet<number>): number[] =>
+				Array.from(anchors).flatMap((anchor) => {
+					const mapped = update.changes.mapPos(anchor, 1, MapMode.TrackAfter);
+					return mapped === null ? [] : [mapped];
+				});
+			const mapped = mapSurvivingAnchors(this.expandedAnchors);
+			const mappedCollapsed = mapSurvivingAnchors(
+				this.manuallyCollapsedAnchors,
 			);
 			this.expandedAnchors.clear();
 			for (const anchor of mapped) {
 				this.expandedAnchors.add(anchor);
+			}
+			this.manuallyCollapsedAnchors.clear();
+			for (const anchor of mappedCollapsed) {
+				this.manuallyCollapsedAnchors.add(anchor);
+				this.expandedAnchors.delete(anchor);
 			}
 		}
 		const source = this.source;
@@ -677,11 +673,11 @@ export class BulletOutlineSidebarCoordinator {
 		const currentAnchor = this.options.getCurrentAnchor(update.view);
 		const mappedFocusAnchor =
 			update.docChanged && source.focusAnchor !== null
-				? update.changes.mapPos(source.focusAnchor, 1)
+				? update.changes.mapPos(source.focusAnchor, 1, MapMode.TrackAfter)
 				: source.focusAnchor;
 		const mappedCurrentAnchor =
 			update.docChanged && source.currentAnchor !== null
-				? update.changes.mapPos(source.currentAnchor, 1)
+				? update.changes.mapPos(source.currentAnchor, 1, MapMode.TrackAfter)
 				: source.currentAnchor;
 		const noteTitle = this.options.getNoteTitle(update.view);
 		const eligibilityChanged = !this.options.isEditorEligible(update.view);
@@ -724,8 +720,10 @@ export class BulletOutlineSidebarCoordinator {
 		}
 		if (this.expandedAnchors.has(anchor)) {
 			this.expandedAnchors.delete(anchor);
+			this.manuallyCollapsedAnchors.add(anchor);
 		} else {
 			this.expandedAnchors.add(anchor);
+			this.manuallyCollapsedAnchors.delete(anchor);
 		}
 		this.refreshNow();
 	}
@@ -790,7 +788,6 @@ export class BulletOutlineSidebarCoordinator {
 			return;
 		}
 		if (leaf === this.sidebarView?.leaf) {
-			this.scheduleRefresh();
 			return;
 		}
 		const view = this.options.resolveEditorView(leaf);
@@ -890,6 +887,9 @@ export class BulletOutlineSidebarCoordinator {
 		});
 		if (changedFile) {
 			this.expandedAnchors.clear();
+		}
+		if (changedFile || changedEditor || changedCurrentIdentity) {
+			this.manuallyCollapsedAnchors.clear();
 		}
 		if (changedDocument) {
 			this.clearOutlineCache();
@@ -1005,13 +1005,23 @@ export class BulletOutlineSidebarCoordinator {
 					this.expandedAnchors.delete(anchor);
 				}
 			}
+			for (const anchor of Array.from(this.manuallyCollapsedAnchors)) {
+				if (!validAnchors.has(anchor)) {
+					this.manuallyCollapsedAnchors.delete(anchor);
+				}
+			}
 		}
 		const currentAnchor = this.options.getCurrentAnchor(source.view);
 		const focusAnchor = this.options.getFocusAnchor(source.view);
+		if (currentAnchor !== source.currentAnchor) {
+			this.manuallyCollapsedAnchors.clear();
+		}
 		if (currentAnchor !== null) {
 			const path = findOutlinePath(outline, currentAnchor);
 			for (const ancestor of path?.slice(0, -1) ?? []) {
-				this.expandedAnchors.add(ancestor.anchor);
+				if (!this.manuallyCollapsedAnchors.has(ancestor.anchor)) {
+					this.expandedAnchors.add(ancestor.anchor);
+				}
 			}
 		}
 
@@ -1107,6 +1117,7 @@ export class BulletOutlineSidebarCoordinator {
 		this.cancelScheduledRefresh();
 		this.source = null;
 		this.expandedAnchors.clear();
+		this.manuallyCollapsedAnchors.clear();
 		this.lastRenderedContext = null;
 		this.forceRevealCurrent = false;
 		this.clearOutlineCache();
