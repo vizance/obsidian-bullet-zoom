@@ -1,4 +1,9 @@
-import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
+import {
+	ensureSyntaxTree,
+	getIndentUnit,
+	indentString,
+	syntaxTree,
+} from '@codemirror/language';
 import { countColumn, EditorState } from '@codemirror/state';
 import type { SyntaxNode, Tree } from '@lezer/common';
 
@@ -299,7 +304,10 @@ function childIndentText(state: EditorState, target: SupportedBullet): string {
 		state.sliceDoc(target.lineFrom, target.contentFrom),
 		state.tabSize,
 	);
-	return ' '.repeat(contentColumn);
+	return indentString(
+		state,
+		Math.max(contentColumn, target.indent + getIndentUnit(state)),
+	);
 }
 
 function readyAppendChildInsertion(

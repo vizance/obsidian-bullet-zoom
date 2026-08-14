@@ -1,4 +1,5 @@
 import { markdown } from '@codemirror/lang-markdown';
+import { indentUnit } from '@codemirror/language';
 import { EditorState } from '@codemirror/state';
 import type { SyntaxNode } from '@lezer/common';
 import { describe, expect, it } from 'vitest';
@@ -17,10 +18,18 @@ import {
 	planHyperMdAppendChildInsertion,
 } from '../src/list-structure';
 
-function createState(document: string, tabSize = 4): EditorState {
+function createState(
+	document: string,
+	tabSize = 4,
+	configuredIndent = '  ',
+): EditorState {
 	return EditorState.create({
 		doc: document,
-		extensions: [markdown(), EditorState.tabSize.of(tabSize)],
+		extensions: [
+			markdown(),
+			EditorState.tabSize.of(tabSize),
+			indentUnit.of(configuredIndent),
+		],
 	});
 }
 
@@ -272,6 +281,49 @@ describe('planAppendChildInsertion', () => {
 		expect(next.doc.toString()).toBe(expected);
 		expect(next.selection.main.empty).toBe(true);
 		expect(next.selection.main.head).toBe(plan.cursorAt);
+	});
+
+	it('uses one configured four-space indentation unit below a root marker', () => {
+		const state = createState('- Fundraising video', 4, '    ');
+		const plan = planAppendChildInsertion(state, 0);
+		expect(plan).toEqual({
+			status: 'ready',
+			insertAt: state.doc.length,
+			insertText: '\n    - ',
+			cursorAt: state.doc.length + 7,
+		});
+		if (plan.status !== 'ready') {
+			return;
+		}
+		const next = state.update({
+			changes: { from: plan.insertAt, insert: plan.insertText },
+		}).state;
+		expect(findSupportedBullet(next, next.doc.line(2).from)?.indent).toBe(4);
+		expect(
+			buildBreadcrumbs(next, next.doc.line(2).from, 'Ideas')?.map(
+				({ label }) => label,
+			),
+		).toEqual(['Ideas', 'Fundraising video', '（空白節點）']);
+	});
+
+	it('uses one configured tab indentation unit below a nested marker', () => {
+		const state = createState('- Parent\n\t- Child', 4, '\t');
+		const target = state.doc.line(2);
+		const plan = planAppendChildInsertion(state, target.from);
+		expect(plan.status).toBe('ready');
+		if (plan.status !== 'ready') {
+			return;
+		}
+		expect(plan.insertText).toBe('\n\t\t- ');
+		const next = state.update({
+			changes: { from: plan.insertAt, insert: plan.insertText },
+		}).state;
+		expect(findSupportedBullet(next, next.doc.line(3).from)?.indent).toBe(8);
+		expect(
+			buildBreadcrumbs(next, next.doc.line(3).from, 'Ideas')?.map(
+				({ label }) => label,
+			),
+		).toEqual(['Ideas', 'Parent', 'Child', '（空白節點）']);
 	});
 
 	it.each([
