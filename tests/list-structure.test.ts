@@ -13,6 +13,8 @@ import {
 	findSupportedBullet,
 	isSupportedBulletSyntaxNode,
 	hyperMdListLevel,
+	planAppendChildInsertion,
+	planHyperMdAppendChildInsertion,
 } from '../src/list-structure';
 
 function createState(document: string, tabSize = 4): EditorState {
@@ -236,6 +238,135 @@ describe('computeBranchRange', () => {
 		expect(state.sliceDoc(range?.from, range?.to)).toBe(
 			'- Parent\ncontinuation\n  - Child',
 		);
+	});
+});
+
+describe('planAppendChildInsertion', () => {
+	it.each([
+		{
+			name: 'dash marker',
+			source: '- Parent\n  - Child A\n    - Grandchild\n  - Child B',
+			expected: '- Parent\n  - Child A\n    - Grandchild\n  - Child B\n  - ',
+		},
+		{
+			name: 'wide marker spacing',
+			source: '-   Parent\n    - Child',
+			expected: '-   Parent\n    - Child\n    - ',
+		},
+		{
+			name: 'plus marker',
+			source: '+ Parent\n  + Child',
+			expected: '+ Parent\n  + Child\n  - ',
+		},
+	])('appends a direct child after existing descendants for $name', ({ source, expected }) => {
+		const state = createState(source);
+		const plan = planAppendChildInsertion(state, 0);
+		expect(plan.status).toBe('ready');
+		if (plan.status !== 'ready') {
+			return;
+		}
+		const next = state.update({
+			changes: { from: plan.insertAt, insert: plan.insertText },
+			selection: { anchor: plan.cursorAt },
+		}).state;
+		expect(next.doc.toString()).toBe(expected);
+		expect(next.selection.main.empty).toBe(true);
+		expect(next.selection.main.head).toBe(plan.cursorAt);
+	});
+
+	it.each([
+		'- Parent',
+		'- Parent\n  continuation',
+		'- Parent\ncontinuation',
+	])('inserts after syntax-owned parent content in %s', (source) => {
+		const state = createState(source);
+		const plan = planAppendChildInsertion(state, 0);
+		expect(plan.status).toBe('ready');
+		if (plan.status !== 'ready') {
+			return;
+		}
+		const next = state.update({
+			changes: { from: plan.insertAt, insert: plan.insertText },
+		}).state;
+		expect(next.doc.toString()).toBe(`${source}\n  - `);
+	});
+
+	it('appends after an unsupported direct list child', () => {
+		const source = '- Parent\n  - [ ] Task\n  - Child';
+		const state = createState(source);
+		const plan = planAppendChildInsertion(state, 0);
+		expect(plan.status).toBe('ready');
+		if (plan.status !== 'ready') {
+			return;
+		}
+		expect(
+			state.update({
+				changes: { from: plan.insertAt, insert: plan.insertText },
+			}).state.doc.toString(),
+		).toBe('- Parent\n  - [ ] Task\n  - Child\n  - ');
+	});
+
+	it('fails closed outside a supported Bullet', () => {
+		const state = createState('Paragraph');
+		expect(planAppendChildInsertion(state, 0)).toEqual({
+			status: 'unsafe',
+			reason: 'unsupported-target',
+		});
+	});
+
+	it('plans a HyperMD child after the complete descendant branch', () => {
+		const state = createState('- Parent\n  - Child');
+		const target = findSupportedBullet(state, 0);
+		expect(target).not.toBeNull();
+		if (target === null) {
+			return;
+		}
+		expect(
+			planHyperMdAppendChildInsertion(
+				target,
+				1,
+				[
+					{
+						lineFrom: state.doc.line(2).from,
+						lineTo: state.doc.line(2).to,
+						level: 2,
+						hasListMarker: true,
+						nonBlank: true,
+					},
+				],
+				'  ',
+			),
+		).toEqual({
+			status: 'ready',
+			insertAt: state.doc.line(2).to,
+			insertText: '\n  - ',
+			cursorAt: state.doc.line(2).to + 5,
+		});
+	});
+
+	it('fails closed for a HyperMD level gap before a direct child', () => {
+		const state = createState('- Parent\n    - Too deep');
+		const target = findSupportedBullet(state, 0);
+		expect(target).not.toBeNull();
+		if (target === null) {
+			return;
+		}
+		expect(
+			planHyperMdAppendChildInsertion(
+				target,
+				1,
+				[
+					{
+						lineFrom: state.doc.line(2).from,
+						lineTo: state.doc.line(2).to,
+						level: 3,
+						hasListMarker: true,
+						nonBlank: true,
+					},
+				],
+				'  ',
+			),
+		).toEqual({ status: 'unsafe', reason: 'unsafe-boundary' });
 	});
 });
 
