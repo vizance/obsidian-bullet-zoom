@@ -197,13 +197,17 @@ describe('focus decorations and document integrity', () => {
 			'- Parent\n  - Child A\n    - Grandchild\n  - Child B\nAfter list',
 		);
 		const focused = focus(state, state.doc.line(2).from);
-		expect(decorationRanges(focused)).toEqual([
+		const sortedRanges = decorationRanges(focused).sort(
+			(left, right) => left.from - right.from,
+		);
+		expect(sortedRanges).toEqual([
 			{ from: 0, to: state.doc.line(2).from - 1 },
-			{ from: state.doc.line(3).to + 1, to: state.doc.length },
 			{
 				from: state.doc.line(2).from,
 				to: findSupportedBullet(state, state.doc.line(2).from)?.contentFrom ?? -1,
 			},
+			{ from: state.doc.line(3).from, to: state.doc.line(3).from + 4 },
+			{ from: state.doc.line(3).to + 1, to: state.doc.length },
 		]);
 	});
 
@@ -231,7 +235,10 @@ describe('focus decorations and document integrity', () => {
 
 		expect(edited.doc.toString()).toBe('- Parent\n  - Child A\n    - Child B');
 		expect(getFocusSession(edited)?.branch.to).toBe(edited.doc.length);
-		expect(decorationRanges(edited)).toEqual([
+		const sortedEditedRanges = decorationRanges(edited).sort(
+			(left, right) => left.from - right.from,
+		);
+		expect(sortedEditedRanges).toEqual([
 			{ from: 0, to: edited.doc.line(2).from - 1 },
 			{
 				from: edited.doc.line(2).from,
@@ -239,6 +246,7 @@ describe('focus decorations and document integrity', () => {
 					findSupportedBullet(edited, edited.doc.line(2).from)?.contentFrom ??
 					-1,
 			},
+			{ from: edited.doc.line(3).from, to: edited.doc.line(3).from + 4 },
 		]);
 	});
 
@@ -1131,6 +1139,60 @@ describe('bullet marker interaction', () => {
 		expect(view.dom.querySelectorAll('.bullet-zoom-marker')).toHaveLength(0);
 		view.contentDOM.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 		expect(getFocusSession(view.state)).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+});
+
+describe('focus page rebase (0.1.36)', () => {
+	function createRebaseView(): { parent: HTMLDivElement; view: EditorView } {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState(
+				'- A\n  - B\n    - C 這是一段會折行的長文字\n      - D\n        - E',
+			),
+		});
+		return { parent, view };
+	}
+
+	it('rebases branch lines to relative depth while focused', () => {
+		const { parent, view } = createRebaseView();
+		const anchorC = view.state.doc.line(3).from + 4;
+		expect(enterFocusAt(view, anchorC)).toBe(true);
+		const rebased = Array.from(
+			view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-rebased-line'),
+		);
+		expect(rebased).toHaveLength(2);
+		expect(
+			rebased.map((line) =>
+				line.style.getPropertyValue('--bullet-zoom-relative-depth').trim(),
+			),
+		).toEqual(['1', '2']);
+		for (const line of rebased) {
+			expect(line.textContent?.startsWith(' ')).toBe(false);
+			expect(line.textContent?.startsWith('\t')).toBe(false);
+		}
+		const rootLine = view.contentDOM.querySelector('.bullet-zoom-focus-root-line');
+		expect(rootLine).not.toBeNull();
+		expect(exitFocus(view)).toBe(true);
+		expect(
+			view.contentDOM.querySelectorAll('.bullet-zoom-rebased-line'),
+		).toHaveLength(0);
+		expect(
+			view.contentDOM.querySelectorAll('.bullet-zoom-focus-root-line'),
+		).toHaveLength(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('keeps the document unchanged while hiding branch indentation', () => {
+		const { parent, view } = createRebaseView();
+		const source = view.state.doc.toString();
+		const anchorC = view.state.doc.line(3).from + 4;
+		expect(enterFocusAt(view, anchorC)).toBe(true);
+		expect(view.state.doc.toString()).toBe(source);
 		view.destroy();
 		parent.remove();
 	});

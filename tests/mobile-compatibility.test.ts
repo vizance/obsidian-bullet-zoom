@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.35');
+		expect(manifest.version).toBe('0.1.36');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.35');
-		expect(packageLock.version).toBe('0.1.35');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.35');
+		expect(packageManifest.version).toBe('0.1.36');
+		expect(packageLock.version).toBe('0.1.36');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.36');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -601,5 +601,55 @@ describe('phone fold hit-area confinement (0.1.33)', () => {
 				expect(selector).toContain('.HyperMD-list-line');
 			}
 		}
+	});
+});
+
+describe('focus page rebase CSS contract (0.1.36)', () => {
+	it('zeroes the focus root indent and rebases branch lines with importance', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+
+		const rootRule = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-focus-root-line',
+		);
+		expect(rootRule?.style.getPropertyValue('text-indent').trim()).toBe('0');
+		expect(rootRule?.style.getPropertyPriority('text-indent')).toBe('important');
+		expect(
+			rootRule?.style.getPropertyValue('padding-inline-start').trim(),
+		).toBe('0');
+		expect(rootRule?.style.getPropertyPriority('padding-inline-start')).toBe(
+			'important',
+		);
+
+		const rebasedRule = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-rebased-line',
+		);
+		expect(rebasedRule).toBeDefined();
+		expect(
+			rebasedRule?.style.getPropertyValue('padding-inline-start'),
+		).toContain('--bullet-zoom-relative-depth');
+		expect(rebasedRule?.style.getPropertyPriority('padding-inline-start')).toBe(
+			'important',
+		);
+		expect(rebasedRule?.style.getPropertyValue('text-indent')).toContain(
+			'--bullet-zoom-indent-unit',
+		);
+		expect(rebasedRule?.style.getPropertyPriority('text-indent')).toBe(
+			'important',
+		);
+
+		const phoneTitleRule = rules.find(
+			(rule) =>
+				rule.selectorText ===
+				'.bullet-zoom-phone-pane .bullet-zoom-focus-root-line',
+		);
+		expect(phoneTitleRule?.style.getPropertyValue('font-size')).toContain(
+			'clamp',
+		);
 	});
 });
