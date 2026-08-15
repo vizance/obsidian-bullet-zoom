@@ -87,7 +87,7 @@ button.bullet-zoom-breadcrumb {
 .is-mobile .bullet-zoom-breadcrumbs {
 	min-height: 44px;
 	gap: var(--size-2-1, 4px);
-	overflow-x: hidden;
+	overflow-x: auto;
 	overscroll-behavior-x: none;
 	padding: 0 var(--size-2-1, 4px);
 	font-family: var(--font-interface);
@@ -96,7 +96,9 @@ button.bullet-zoom-breadcrumb {
 }
 
 .is-mobile .bullet-zoom-breadcrumb-separator {
-	display: none;
+	display: inline-flex;
+	align-items: center;
+	color: var(--text-faint);
 }
 
 .is-mobile .bullet-zoom-breadcrumb {
@@ -108,15 +110,19 @@ button.bullet-zoom-breadcrumb {
 }
 
 .is-mobile .bullet-zoom-breadcrumb {
-	display: none;
-	max-width: none;
-	padding: 0 var(--size-4-2, 8px);
+	display: inline-flex;
+	max-width: 6.5em;
+	padding: 0 var(--size-4-1, 4px);
 }
 
-.is-mobile .bullet-zoom-breadcrumb.is-note,
-.is-mobile .bullet-zoom-breadcrumb.is-parent,
+.is-mobile .bullet-zoom-breadcrumb .bullet-zoom-breadcrumb-label {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
 .is-mobile .bullet-zoom-breadcrumb.is-current {
-	display: inline-flex;
+	max-width: none;
 }
 
 .bullet-zoom-focus-root-line {
@@ -334,15 +340,12 @@ button.bullet-zoom-breadcrumb {
 
 .bullet-zoom-outline-sidebar-index {
 	grid-area: index;
-	display: inline-flex;
-	align-items: center;
-	justify-content: flex-end;
-	min-width: 24px;
-	padding-inline-end: 4px;
-	color: var(--text-muted);
+	align-self: center;
+	justify-self: end;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller, 0.85em);
 	font-variant-numeric: tabular-nums;
-	line-height: 1;
-	user-select: none;
+	white-space: nowrap;
 }
 
 .bullet-zoom-outline-sidebar-disclosure,
@@ -495,27 +498,27 @@ button.bullet-zoom-breadcrumb {
 }
 
 .is-mobile .bullet-zoom-outline-sidebar-row.is-depth-1 {
-	padding-inline-start: 4px;
-}
-
-.is-mobile .bullet-zoom-outline-sidebar-row.is-depth-2 {
-	padding-inline-start: 8px;
-}
-
-.is-mobile .bullet-zoom-outline-sidebar-row.is-depth-3 {
 	padding-inline-start: 12px;
 }
 
+.is-mobile .bullet-zoom-outline-sidebar-row.is-depth-2 {
+	padding-inline-start: 24px;
+}
+
+.is-mobile .bullet-zoom-outline-sidebar-row.is-depth-3 {
+	padding-inline-start: 36px;
+}
+
 .is-mobile .bullet-zoom-outline-sidebar-row.is-depth-4 {
-	padding-inline-start: 16px;
+	padding-inline-start: 48px;
 }
 
 .is-mobile .bullet-zoom-outline-sidebar-row.is-depth-5 {
-	padding-inline-start: 20px;
+	padding-inline-start: 60px;
 }
 
 .is-mobile .bullet-zoom-outline-sidebar-row.is-depth-6 {
-	padding-inline-start: 24px;
+	padding-inline-start: 72px;
 }
 
 .markdown-source-view.bullet-zoom-pane-is-focused
@@ -569,4 +572,16 @@ button.bullet-zoom-breadcrumb {
 			var(--bullet-zoom-indent-unit, 1.2em)
 	) !important;
 	text-indent: calc(-1 * var(--bullet-zoom-indent-unit, 1.2em)) !important;
+}
+
+/* 0.1.39: Workflowy-style compact outline */
+.bullet-zoom-outline-sidebar-disclosure-spacer.is-dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	justify-self: end;
+	padding-inline-end: 6px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller, 0.85em);
+	line-height: 1;
 }

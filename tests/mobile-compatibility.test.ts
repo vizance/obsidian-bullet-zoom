@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.38');
+		expect(manifest.version).toBe('0.1.39');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.38');
-		expect(packageLock.version).toBe('0.1.38');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.38');
+		expect(packageManifest.version).toBe('0.1.39');
+		expect(packageLock.version).toBe('0.1.39');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.39');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -147,11 +147,11 @@ describe('mobile-compatible plugin bundle contract', () => {
 		);
 		expect(panelStyle.display).toBe('flex');
 		expect(panelStyle.maxWidth).toBe('100%');
-		expect(panelStyle.overflowX).toBe('hidden');
+		expect(panelStyle.overflowX).toBe('auto');
 		expect(panelStyle.overflowY).toBe('hidden');
 		expect(panelStyle.whiteSpace).toBe('nowrap');
 		expect(noteStyle.display).toBe('inline-flex');
-		expect(hiddenAncestorStyle.display).toBe('none');
+		expect(hiddenAncestorStyle.display).toBe('inline-flex');
 		expect(parentStyle.display).toBe('inline-flex');
 		expect(currentStyle.display).toBe('inline-flex');
 		expect(noteStyle.minWidth).toBe('44px');
@@ -367,7 +367,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(getComputedStyle(labelText).textOverflow).toBe('ellipsis');
 		expect(getComputedStyle(labelText).whiteSpace).toBe('nowrap');
 		expect(getComputedStyle(preview).gridArea).toBe('preview');
-		expect(getComputedStyle(row).paddingInlineStart).toBe('24px');
+		expect(getComputedStyle(row).paddingInlineStart).toBe('72px');
 		preview.hidden = true;
 		expect(getComputedStyle(preview).display).toBe('none');
 		expect(readProjectFile('styles.css')).not.toContain(

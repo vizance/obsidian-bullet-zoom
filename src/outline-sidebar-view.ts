@@ -364,7 +364,9 @@ export function renderOutlineSidebar(
 				row.append(disclosure);
 			} else {
 				const spacer = document.createElement('span');
-				spacer.className = 'bullet-zoom-outline-sidebar-disclosure-spacer';
+				spacer.className =
+					'bullet-zoom-outline-sidebar-disclosure-spacer is-dot';
+				spacer.textContent = '•';
 				spacer.setAttribute('aria-hidden', 'true');
 				row.append(spacer);
 			}

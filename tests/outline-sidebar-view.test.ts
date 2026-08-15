@@ -859,6 +859,39 @@ describe('native outline sidebar rendering', () => {
 	});
 });
 
+describe('compact outline rows (0.1.39)', () => {
+	it('renders a muted aria-hidden dot for leaf rows', () => {
+		const container = document.createElement('div');
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([
+					Object.freeze({
+						label: 'Parent',
+						anchor: 0,
+						children: Object.freeze([
+							Object.freeze({
+								label: 'Leaf',
+								anchor: 11,
+								children: Object.freeze([]),
+							}),
+						]),
+					}),
+				]),
+				expandedAnchors: new Set([0]),
+			}),
+			actions(),
+		);
+		const dot = container.querySelector(
+			'.bullet-zoom-outline-sidebar-disclosure-spacer.is-dot',
+		);
+		expect(dot).not.toBeNull();
+		expect(dot?.textContent).toBe('•');
+		expect(dot?.getAttribute('aria-hidden')).toBe('true');
+		expect(dot?.closest('li')?.dataset.anchor).toBe('11');
+	});
+});
+
 describe('native outline sidebar coordinator', () => {
 	it('opens a validated mobile full-text preview without changing editor state', async () => {
 		let openedModal: Modal | null = null;
