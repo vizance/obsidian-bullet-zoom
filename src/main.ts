@@ -12,6 +12,7 @@ import {
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { EditorView } from '@codemirror/view';
+import type { Extension } from '@codemirror/state';
 
 import {
 	EXIT_FOCUS_COMMAND,
@@ -76,6 +77,26 @@ class BulletZoomSettingTab extends PluginSettingTab {
 	display(): void {
 		this.containerEl.empty();
 		new Setting(this.containerEl)
+			.setName('Zoom 一般 Bullet')
+			.setDesc('偵測 - 開頭的無序清單項目，點圓點即可 Zoom。')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.zoomBullets)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ zoomBullets: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('Zoom 編號清單')
+			.setDesc('偵測 1.、2) 這類編號清單項目，讓編號也能 Zoom 並進入大綱。')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.zoomNumbered)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ zoomNumbered: value });
+					}),
+			);
+		new Setting(this.containerEl)
 			.setName('聚焦頁標題大小')
 			.setDesc('Zoom 進 Bullet 後，頁面標題的字級縮放比例（%）。')
 			.addSlider((slider) =>
@@ -124,13 +145,62 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
+	private readonly editorExtensions: Extension[] = [];
 	settings: BulletZoomSettings = DEFAULT_SETTINGS;
+
+	private buildEditorExtensions(
+		outlineCoordinator: BulletOutlineSidebarCoordinator,
+	): Extension[] {
+		return [
+			focusFilePath.compute([editorInfoField], (state) =>
+				state.field(editorInfoField, false)?.file?.path ?? null,
+			),
+			focusNoteTitle.compute([editorInfoField], (state) =>
+				state.field(editorInfoField, false)?.file?.basename ?? '未命名筆記',
+			),
+			focusLivePreview.compute([editorLivePreviewField], (state) =>
+				state.field(editorLivePreviewField, false) ?? false,
+			),
+			createFocusExtension({
+				isPhone: Platform.isPhone,
+				isMobile: Platform.isMobile,
+				markerDetection: {
+					bullets: this.settings.zoomBullets,
+					numbered: this.settings.zoomNumbered,
+				},
+				notify: showNotice,
+				onEditorReady: (view) => outlineCoordinator.notifyEditorReady(view),
+				onEditorUpdate: (update) =>
+					outlineCoordinator.notifyEditorUpdate(update),
+				onEditorDestroy: (view) =>
+					outlineCoordinator.notifyEditorDestroyed(view),
+			}),
+		];
+	}
+
+	private rebuildEditorExtensions(): void {
+		if (this.outlineCoordinator === null) {
+			return;
+		}
+		this.editorExtensions.length = 0;
+		this.editorExtensions.push(
+			...this.buildEditorExtensions(this.outlineCoordinator),
+		);
+		this.app.workspace.updateOptions();
+	}
 
 	async updateSettings(
 		partial: Partial<BulletZoomSettings>,
 	): Promise<void> {
+		const previous = this.settings;
 		this.settings = normalizeSettings({ ...this.settings, ...partial });
 		applyScaleVariables(document.body, this.settings);
+		if (
+			previous.zoomBullets !== this.settings.zoomBullets ||
+			previous.zoomNumbered !== this.settings.zoomNumbered
+		) {
+			this.rebuildEditorExtensions();
+		}
 		await this.saveData(this.settings);
 	}
 
@@ -167,27 +237,9 @@ export default class BulletZoomPlugin extends Plugin {
 			(leaf) => new BulletOutlineSidebarView(leaf, outlineCoordinator),
 		);
 		outlineCoordinator.start();
-		this.registerEditorExtension([
-			focusFilePath.compute([editorInfoField], (state) =>
-				state.field(editorInfoField, false)?.file?.path ?? null,
-			),
-			focusNoteTitle.compute([editorInfoField], (state) =>
-				state.field(editorInfoField, false)?.file?.basename ?? '未命名筆記',
-			),
-			focusLivePreview.compute([editorLivePreviewField], (state) =>
-				state.field(editorLivePreviewField, false) ?? false,
-			),
-			createFocusExtension({
-				isPhone: Platform.isPhone,
-				isMobile: Platform.isMobile,
-				notify: showNotice,
-				onEditorReady: (view) => outlineCoordinator.notifyEditorReady(view),
-				onEditorUpdate: (update) =>
-					outlineCoordinator.notifyEditorUpdate(update),
-				onEditorDestroy: (view) =>
-					outlineCoordinator.notifyEditorDestroyed(view),
-			}),
-		]);
+		this.editorExtensions.length = 0;
+		this.editorExtensions.push(...this.buildEditorExtensions(outlineCoordinator));
+		this.registerEditorExtension(this.editorExtensions);
 
 		this.addCommand({
 			id: 'open-outline',

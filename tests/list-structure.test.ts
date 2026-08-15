@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildBulletOutline,
 	buildOutlineHeadings,
+	markerDetectionFacet,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
@@ -949,5 +950,54 @@ describe('buildOutlineHeadings', () => {
 		const headings = buildOutlineHeadings(state);
 		expect(headings).toHaveLength(1);
 		expect(headings[0]?.label).toBe('Real');
+	});
+});
+
+describe('marker detection (0.1.42)', () => {
+	function stateWith(
+		document: string,
+		bullets: boolean,
+		numbered: boolean,
+	): EditorState {
+		return EditorState.create({
+			doc: document,
+			extensions: [
+				markdown(),
+				markerDetectionFacet.of({ bullets, numbered }),
+			],
+		});
+	}
+
+	it('resolves an ordered item when numbered detection is enabled', () => {
+		const state = stateWith('1. First\n2. Second', true, true);
+		const line2 = state.doc.line(2);
+		const bullet = findSupportedBullet(state, line2.from);
+		expect(bullet).not.toBeNull();
+		expect(bullet?.markerFrom).toBe(line2.from);
+		expect(bullet?.markerTo).toBe(line2.from + 2);
+		expect(bullet?.label).toBe('Second');
+	});
+
+	it('ignores plain bullets when bullets detection is disabled', () => {
+		const state = stateWith('- A\n1. B', false, true);
+		expect(findSupportedBullet(state, state.doc.line(1).from)).toBeNull();
+		const ordered = findSupportedBullet(state, state.doc.line(2).from);
+		expect(ordered?.label).toBe('B');
+	});
+
+	it('keeps the legacy ordered exclusion when numbered detection is disabled', () => {
+		const state = stateWith('1. First\n   - Nested', true, false);
+		expect(findSupportedBullet(state, state.doc.line(1).from)).toBeNull();
+		expect(findSupportedBullet(state, state.doc.line(2).from)).toBeNull();
+	});
+
+	it('includes ordered items in the outline when numbered detection is enabled', () => {
+		const state = stateWith('1. First\n2. Second\n- C', true, true);
+		const outline = buildBulletOutline(state);
+		expect(outline.map((node) => node.label)).toEqual([
+			'First',
+			'Second',
+			'C',
+		]);
 	});
 });

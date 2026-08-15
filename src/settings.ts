@@ -1,6 +1,8 @@
 export interface BulletZoomSettings {
 	readonly titleScale: number;
 	readonly outlineScale: number;
+	readonly zoomBullets: boolean;
+	readonly zoomNumbered: boolean;
 }
 
 export const SCALE_MIN = 60;
@@ -10,6 +12,8 @@ export const SCALE_STEP = 5;
 export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	titleScale: 100,
 	outlineScale: 100,
+	zoomBullets: true,
+	zoomNumbered: true,
 });
 
 export const TITLE_SCALE_PROPERTY = '--bullet-zoom-title-scale';
@@ -29,6 +33,10 @@ function normalizeScale(value: unknown, fallback: number): number {
 	return rounded;
 }
 
+function normalizeBoolean(value: unknown, fallback: boolean): boolean {
+	return typeof value === 'boolean' ? value : fallback;
+}
+
 export function normalizeSettings(raw: unknown): BulletZoomSettings {
 	const source =
 		typeof raw === 'object' && raw !== null
@@ -42,6 +50,14 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		outlineScale: normalizeScale(
 			source['outlineScale'],
 			DEFAULT_SETTINGS.outlineScale,
+		),
+		zoomBullets: normalizeBoolean(
+			source['zoomBullets'],
+			DEFAULT_SETTINGS.zoomBullets,
+		),
+		zoomNumbered: normalizeBoolean(
+			source['zoomNumbered'],
+			DEFAULT_SETTINGS.zoomNumbered,
 		),
 	});
 }
