@@ -1,0 +1,1020 @@
+# bullet-zoom-release-guard Specification
+
+## Purpose
+
+TBD - created by archiving change 'guard-bullet-zoom-release-target'. Update Purpose after archive.
+
+## Requirements
+
+### Requirement: The guard SHALL require and verify an explicit official repository
+
+The release preflight command MUST require a repository path and a patch version argument. It SHALL normalize HTTPS and SSH GitHub remote forms and SHALL accept only the repository identity `github.com/vizance/obsidian-bullet-zoom` from the `origin` remote.
+
+#### Scenario: Valid official repository arguments pass identity validation
+
+- **WHEN** the operator runs the guard with an existing repository path, a valid patch version, and an `origin` remote resolving to `github.com/vizance/obsidian-bullet-zoom`
+- **THEN** the identity check passes and the guard continues to checkout validation
+
+#### Scenario: The chi_agent repository is rejected
+
+- **WHEN** the operator runs the guard against a repository whose `origin` remote resolves to `github.com/vizance/chi_agent`
+- **THEN** the guard exits with validation failure and reports the expected official repository and the observed remote identity
+
+#### Scenario: Missing arguments produce a usage failure
+
+- **WHEN** the operator omits `--repo`, `--version`, or supplies a version that is not in `x.y.z` patch format
+- **THEN** the guard exits with usage code `2` and reports the required command shape
+
+
+<!-- @trace
+source: guard-bullet-zoom-release-target
+updated: 2026-08-15
+code:
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_raw.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_封面_v2.png
+  - 000_Agent/codex-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/claude-skills/long-video-fx/SKILL.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_1600x400.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_raw.wav
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_V4.0第二份成果版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_master.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_附去個人化_Prompt.md
+  - 000_Agent/skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP04_主持稿_只靠一張嘴工作_Codex與Typeless.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.ass
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_master.wav
+  - 000_Agent/skills/article-to-podcast-script/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/README.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/04_嘴巴Click修正_較強.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/地點核對與繪製規格.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/關聯圖_專案地圖.md
+  - 300_專案/_常態內容/每日策展/2026-08-10_寫作方法.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_提案.md
+  - 000_Agent/memory/daily/2026-08-12.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v3.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷製作計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C11_停頓_19m31.505-19m33.052.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-17_粗剪清單_真實時間碼對照.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_Gamma_逐字稿轉簡報_Prompt.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-28_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-14_提案.md
+  - 000_Agent/plans/2026-08-13-Bullet-Zoom手機大綱UIUX.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/08_測試設定原始錄音_MV7plus.wav
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷_文字定稿.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/01_自動剪輯_頭尾與響度.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_192k.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/編輯會議待辦與決策追蹤.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-10_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_preview-300.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/00_模型研究與製作說明.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_用5個問題整理閱讀心得_附Checklist.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.mjs
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-03_提案.md
+  - 000_Agent/skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/05_重錄原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI時代付費內容的實作價值_付費文.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/02_本機人聲增強.wav
+  - 300_專案/_常態內容/每日策展/2026-08-11_AI 知識工作流.md
+  - 000_Agent/skills/article-to-podcast-script/agents/openai.yaml
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C03_停頓_01m35.400-01m36.314.mp3
+  - 000_Agent/maps/000_Agent_工具箱地圖.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C10_停頓_16m27.446-16m28.660.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版_BigIdea與大綱.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_新版BigIdea與讀者定位草案.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/AGENTS.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C04_疑似贅詞_06m49.846-06m50.665.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C09_停頓_14m59.452-15m00.332.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-16_剪輯規劃_字卡與Broll.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_20組BigIdea候選.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-22_YouTube標題與敘述欄_提案.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_善用ChatGPT_Site建立個人線上課程網站_付費文.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-05_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP02_測試主持稿_把工作寫成SOP與Checklist.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-11_提案.md
+  - 000_Agent/memory/daily/2026-08-14.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_preview.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線_預覽.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI第一版成果落差診斷_Prompt.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C06_轉場_10m37.751-10m38.686.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C07_轉場_12m36.906-12m37.869.mp3
+  - 000_Agent/claude-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.test.mjs
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP06_主持稿_7年不斷更Facebook_三種內容生產方式.md
+  - .agents/skills/podcast-audio-editor
+  - .agents/skills/article-to-podcast-script
+  - 000_Agent/codex-skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/03_嘴巴Click修正_保守.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_使用說明.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/README.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_preview.mp3
+  - 000_Agent/codex-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C08_長停頓_14m44.898-14m51.145.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Top5評選與Top3完整包裝.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/07_重錄_強力MouthClick修正.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-12_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/關聯圖_專案地圖.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版調整計畫.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/01_原始逐字稿.srt
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/annotated-reference.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28-Big-Idea-Generator執行計畫.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/目前決策與待辦.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/南區檢查_v2.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C12_尾部_25m28.354-25m34.628.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-28_V4.1專業養成版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/00_製作說明.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C05_停頓_10m18.640-10m20.431.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-30_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v3.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_3000.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27-付費文Asset實用性準則計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_master.wav
+  - 000_Agent/claude-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-27_7章正文練習修訂規格.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI_Use_Case_實作驗證表.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_raw.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/影片索引.md
+  - 300_專案/_常態內容/每日付費文提案/_提案履歷.md
+  - 300_專案/_常態內容/每日策展/2026-08-07_復盤.md
+  - 300_專案/_常態內容/每日策展/_策展履歷.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/09_測試設定_只剪頭尾與響度.wav
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Big-Idea市場研究Brief.md
+  - AGENTS.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_通用學習網站開發_Prompt.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_raw.wav
+  - 000_Agent/memory/daily/2026-08-11.md
+  - 000_Agent/skills/podcast-audio-editor/agents/openai.yaml
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.svg
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_raw.wav
+  - CLAUDE.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/06_專案紀錄/從0到1建立騏心動念Podcast.md
+  - 000_Agent/maps/300專案_工作區地圖.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_提案.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_相近主題100本書籍命名研究.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-07_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP05_主持稿_跟著女兒一起睡之後重新安排工作與學習.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/EP01_每天手寫10個WritingIdeas_v3_短Hook版_192k.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-29_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP01_試播主持稿_每天手寫10個WritingIdeas.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面插圖.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/02_行銷與銷售/01_電子報與序列信/2026-07-29_課前提醒信3封_Kit草稿.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_pre-reading-reflection-guide_縮圖.png
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP03_主持稿_用5個問題整理閱讀心得.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/06_重錄_只剪頭尾與響度.wav
+  - 300_專案/_常態內容/日常YouTube_製作管理/Premiere專案模板.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C01_頭部_00m00.000-00m00.886.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-31_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/00_原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_master.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C02_轉場_00m26.249-00m29.299.mp3
+  - 000_Agent/memory/daily/2026-08-13.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查.png
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/00_設計說明.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/taipei-mrt-base.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2_預覽.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/音質與自動剪輯測試報告.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-13_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_一頁式重新提案核心.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_master.wav
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.srt
+  - 300_專案/_常態內容/Podcast_騏心動念/2026-08-05-Podcast試播專案一頁規劃.md
+-->
+
+---
+### Requirement: The guard SHALL require a release-ready main checkout
+
+The guard MUST require a clean Git worktree, the `main` branch, and a `HEAD` commit equal to `origin/main`. The guard SHALL perform these checks without modifying the repository.
+
+#### Scenario: A clean main checkout at origin main passes
+
+- **WHEN** the official repository has no porcelain status output, the current branch is `main`, and `HEAD` equals `origin/main`
+- **THEN** the checkout check passes and the guard continues to release metadata validation
+
+#### Scenario: A dirty or non-main checkout is rejected
+
+- **WHEN** the repository has uncommitted changes or the current branch is not `main`
+- **THEN** the guard exits with validation failure and identifies the checkout condition that failed
+
+#### Scenario: An unmerged commit is rejected
+
+- **WHEN** the current `HEAD` differs from `origin/main`
+- **THEN** the guard exits with validation failure and reports both commit identifiers
+
+
+<!-- @trace
+source: guard-bullet-zoom-release-target
+updated: 2026-08-15
+code:
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_raw.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_封面_v2.png
+  - 000_Agent/codex-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/claude-skills/long-video-fx/SKILL.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_1600x400.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_raw.wav
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_V4.0第二份成果版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_master.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_附去個人化_Prompt.md
+  - 000_Agent/skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP04_主持稿_只靠一張嘴工作_Codex與Typeless.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.ass
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_master.wav
+  - 000_Agent/skills/article-to-podcast-script/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/README.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/04_嘴巴Click修正_較強.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/地點核對與繪製規格.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/關聯圖_專案地圖.md
+  - 300_專案/_常態內容/每日策展/2026-08-10_寫作方法.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_提案.md
+  - 000_Agent/memory/daily/2026-08-12.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v3.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷製作計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C11_停頓_19m31.505-19m33.052.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-17_粗剪清單_真實時間碼對照.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_Gamma_逐字稿轉簡報_Prompt.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-28_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-14_提案.md
+  - 000_Agent/plans/2026-08-13-Bullet-Zoom手機大綱UIUX.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/08_測試設定原始錄音_MV7plus.wav
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷_文字定稿.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/01_自動剪輯_頭尾與響度.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_192k.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/編輯會議待辦與決策追蹤.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-10_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_preview-300.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/00_模型研究與製作說明.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_用5個問題整理閱讀心得_附Checklist.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.mjs
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-03_提案.md
+  - 000_Agent/skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/05_重錄原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI時代付費內容的實作價值_付費文.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/02_本機人聲增強.wav
+  - 300_專案/_常態內容/每日策展/2026-08-11_AI 知識工作流.md
+  - 000_Agent/skills/article-to-podcast-script/agents/openai.yaml
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C03_停頓_01m35.400-01m36.314.mp3
+  - 000_Agent/maps/000_Agent_工具箱地圖.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C10_停頓_16m27.446-16m28.660.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版_BigIdea與大綱.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_新版BigIdea與讀者定位草案.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/AGENTS.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C04_疑似贅詞_06m49.846-06m50.665.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C09_停頓_14m59.452-15m00.332.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-16_剪輯規劃_字卡與Broll.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_20組BigIdea候選.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-22_YouTube標題與敘述欄_提案.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_善用ChatGPT_Site建立個人線上課程網站_付費文.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-05_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP02_測試主持稿_把工作寫成SOP與Checklist.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-11_提案.md
+  - 000_Agent/memory/daily/2026-08-14.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_preview.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線_預覽.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI第一版成果落差診斷_Prompt.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C06_轉場_10m37.751-10m38.686.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C07_轉場_12m36.906-12m37.869.mp3
+  - 000_Agent/claude-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.test.mjs
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP06_主持稿_7年不斷更Facebook_三種內容生產方式.md
+  - .agents/skills/podcast-audio-editor
+  - .agents/skills/article-to-podcast-script
+  - 000_Agent/codex-skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/03_嘴巴Click修正_保守.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_使用說明.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/README.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_preview.mp3
+  - 000_Agent/codex-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C08_長停頓_14m44.898-14m51.145.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Top5評選與Top3完整包裝.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/07_重錄_強力MouthClick修正.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-12_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/關聯圖_專案地圖.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版調整計畫.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/01_原始逐字稿.srt
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/annotated-reference.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28-Big-Idea-Generator執行計畫.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/目前決策與待辦.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/南區檢查_v2.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C12_尾部_25m28.354-25m34.628.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-28_V4.1專業養成版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/00_製作說明.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C05_停頓_10m18.640-10m20.431.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-30_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v3.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_3000.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27-付費文Asset實用性準則計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_master.wav
+  - 000_Agent/claude-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-27_7章正文練習修訂規格.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI_Use_Case_實作驗證表.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_raw.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/影片索引.md
+  - 300_專案/_常態內容/每日付費文提案/_提案履歷.md
+  - 300_專案/_常態內容/每日策展/2026-08-07_復盤.md
+  - 300_專案/_常態內容/每日策展/_策展履歷.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/09_測試設定_只剪頭尾與響度.wav
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Big-Idea市場研究Brief.md
+  - AGENTS.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_通用學習網站開發_Prompt.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_raw.wav
+  - 000_Agent/memory/daily/2026-08-11.md
+  - 000_Agent/skills/podcast-audio-editor/agents/openai.yaml
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.svg
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_raw.wav
+  - CLAUDE.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/06_專案紀錄/從0到1建立騏心動念Podcast.md
+  - 000_Agent/maps/300專案_工作區地圖.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_提案.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_相近主題100本書籍命名研究.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-07_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP05_主持稿_跟著女兒一起睡之後重新安排工作與學習.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/EP01_每天手寫10個WritingIdeas_v3_短Hook版_192k.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-29_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP01_試播主持稿_每天手寫10個WritingIdeas.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面插圖.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/02_行銷與銷售/01_電子報與序列信/2026-07-29_課前提醒信3封_Kit草稿.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_pre-reading-reflection-guide_縮圖.png
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP03_主持稿_用5個問題整理閱讀心得.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/06_重錄_只剪頭尾與響度.wav
+  - 300_專案/_常態內容/日常YouTube_製作管理/Premiere專案模板.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C01_頭部_00m00.000-00m00.886.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-31_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/00_原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_master.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C02_轉場_00m26.249-00m29.299.mp3
+  - 000_Agent/memory/daily/2026-08-13.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查.png
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/00_設計說明.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/taipei-mrt-base.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2_預覽.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/音質與自動剪輯測試報告.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-13_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_一頁式重新提案核心.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_master.wav
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.srt
+  - 300_專案/_常態內容/Podcast_騏心動念/2026-08-05-Podcast試播專案一頁規劃.md
+-->
+
+---
+### Requirement: The guard SHALL validate release metadata and assets
+
+The requested version MUST match the version in `manifest.json`, `package.json`, `package-lock.json`, and `package-lock.json.packages[""]`. The corresponding `versions.json` entry MUST equal `manifest.minAppVersion`. The repository MUST contain regular files named `main.js`, `manifest.json`, and `styles.css`.
+
+#### Scenario: Consistent metadata and assets pass
+
+- **WHEN** all required version fields equal the requested version, the `versions.json` entry matches the manifest minimum app version, and all three assets exist as regular files
+- **THEN** the metadata and asset check passes
+
+#### Scenario: A stale package version is rejected
+
+- **WHEN** any required package version field differs from the requested version
+- **THEN** the guard exits with validation failure and reports the mismatched file or field
+
+#### Scenario: A release asset is missing
+
+- **WHEN** `main.js`, `manifest.json`, or `styles.css` is absent or is not a regular file
+- **THEN** the guard exits with validation failure and names the missing asset
+
+
+<!-- @trace
+source: guard-bullet-zoom-release-target
+updated: 2026-08-15
+code:
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_raw.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_封面_v2.png
+  - 000_Agent/codex-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/claude-skills/long-video-fx/SKILL.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_1600x400.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_raw.wav
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_V4.0第二份成果版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_master.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_附去個人化_Prompt.md
+  - 000_Agent/skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP04_主持稿_只靠一張嘴工作_Codex與Typeless.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.ass
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_master.wav
+  - 000_Agent/skills/article-to-podcast-script/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/README.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/04_嘴巴Click修正_較強.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/地點核對與繪製規格.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/關聯圖_專案地圖.md
+  - 300_專案/_常態內容/每日策展/2026-08-10_寫作方法.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_提案.md
+  - 000_Agent/memory/daily/2026-08-12.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v3.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷製作計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C11_停頓_19m31.505-19m33.052.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-17_粗剪清單_真實時間碼對照.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_Gamma_逐字稿轉簡報_Prompt.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-28_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-14_提案.md
+  - 000_Agent/plans/2026-08-13-Bullet-Zoom手機大綱UIUX.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/08_測試設定原始錄音_MV7plus.wav
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷_文字定稿.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/01_自動剪輯_頭尾與響度.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_192k.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/編輯會議待辦與決策追蹤.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-10_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_preview-300.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/00_模型研究與製作說明.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_用5個問題整理閱讀心得_附Checklist.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.mjs
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-03_提案.md
+  - 000_Agent/skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/05_重錄原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI時代付費內容的實作價值_付費文.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/02_本機人聲增強.wav
+  - 300_專案/_常態內容/每日策展/2026-08-11_AI 知識工作流.md
+  - 000_Agent/skills/article-to-podcast-script/agents/openai.yaml
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C03_停頓_01m35.400-01m36.314.mp3
+  - 000_Agent/maps/000_Agent_工具箱地圖.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C10_停頓_16m27.446-16m28.660.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版_BigIdea與大綱.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_新版BigIdea與讀者定位草案.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/AGENTS.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C04_疑似贅詞_06m49.846-06m50.665.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C09_停頓_14m59.452-15m00.332.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-16_剪輯規劃_字卡與Broll.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_20組BigIdea候選.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-22_YouTube標題與敘述欄_提案.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_善用ChatGPT_Site建立個人線上課程網站_付費文.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-05_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP02_測試主持稿_把工作寫成SOP與Checklist.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-11_提案.md
+  - 000_Agent/memory/daily/2026-08-14.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_preview.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線_預覽.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI第一版成果落差診斷_Prompt.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C06_轉場_10m37.751-10m38.686.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C07_轉場_12m36.906-12m37.869.mp3
+  - 000_Agent/claude-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.test.mjs
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP06_主持稿_7年不斷更Facebook_三種內容生產方式.md
+  - .agents/skills/podcast-audio-editor
+  - .agents/skills/article-to-podcast-script
+  - 000_Agent/codex-skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/03_嘴巴Click修正_保守.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_使用說明.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/README.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_preview.mp3
+  - 000_Agent/codex-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C08_長停頓_14m44.898-14m51.145.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Top5評選與Top3完整包裝.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/07_重錄_強力MouthClick修正.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-12_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/關聯圖_專案地圖.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版調整計畫.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/01_原始逐字稿.srt
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/annotated-reference.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28-Big-Idea-Generator執行計畫.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/目前決策與待辦.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/南區檢查_v2.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C12_尾部_25m28.354-25m34.628.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-28_V4.1專業養成版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/00_製作說明.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C05_停頓_10m18.640-10m20.431.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-30_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v3.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_3000.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27-付費文Asset實用性準則計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_master.wav
+  - 000_Agent/claude-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-27_7章正文練習修訂規格.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI_Use_Case_實作驗證表.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_raw.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/影片索引.md
+  - 300_專案/_常態內容/每日付費文提案/_提案履歷.md
+  - 300_專案/_常態內容/每日策展/2026-08-07_復盤.md
+  - 300_專案/_常態內容/每日策展/_策展履歷.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/09_測試設定_只剪頭尾與響度.wav
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Big-Idea市場研究Brief.md
+  - AGENTS.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_通用學習網站開發_Prompt.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_raw.wav
+  - 000_Agent/memory/daily/2026-08-11.md
+  - 000_Agent/skills/podcast-audio-editor/agents/openai.yaml
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.svg
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_raw.wav
+  - CLAUDE.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/06_專案紀錄/從0到1建立騏心動念Podcast.md
+  - 000_Agent/maps/300專案_工作區地圖.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_提案.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_相近主題100本書籍命名研究.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-07_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP05_主持稿_跟著女兒一起睡之後重新安排工作與學習.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/EP01_每天手寫10個WritingIdeas_v3_短Hook版_192k.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-29_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP01_試播主持稿_每天手寫10個WritingIdeas.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面插圖.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/02_行銷與銷售/01_電子報與序列信/2026-07-29_課前提醒信3封_Kit草稿.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_pre-reading-reflection-guide_縮圖.png
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP03_主持稿_用5個問題整理閱讀心得.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/06_重錄_只剪頭尾與響度.wav
+  - 300_專案/_常態內容/日常YouTube_製作管理/Premiere專案模板.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C01_頭部_00m00.000-00m00.886.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-31_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/00_原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_master.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C02_轉場_00m26.249-00m29.299.mp3
+  - 000_Agent/memory/daily/2026-08-13.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查.png
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/00_設計說明.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/taipei-mrt-base.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2_預覽.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/音質與自動剪輯測試報告.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-13_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_一頁式重新提案核心.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_master.wav
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.srt
+  - 300_專案/_常態內容/Podcast_騏心動念/2026-08-05-Podcast試播專案一頁規劃.md
+-->
+
+---
+### Requirement: The guard SHALL prevent duplicate release tags
+
+The requested version tag and its `v`-prefixed equivalent MUST be absent both locally and on the `origin` remote.
+
+#### Scenario: No matching tags exist
+
+- **WHEN** neither the plain nor `v`-prefixed tag exists locally or on `origin`
+- **THEN** the tag safety check passes
+
+#### Scenario: An existing local tag is rejected
+
+- **WHEN** either matching tag exists in the local repository
+- **THEN** the guard exits with validation failure and names the existing tag
+
+#### Scenario: An existing remote tag is rejected
+
+- **WHEN** either matching tag exists on the `origin` remote
+- **THEN** the guard exits with validation failure and names the existing remote tag
+
+
+<!-- @trace
+source: guard-bullet-zoom-release-target
+updated: 2026-08-15
+code:
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_raw.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_封面_v2.png
+  - 000_Agent/codex-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/claude-skills/long-video-fx/SKILL.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_1600x400.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_raw.wav
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_V4.0第二份成果版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_master.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_附去個人化_Prompt.md
+  - 000_Agent/skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP04_主持稿_只靠一張嘴工作_Codex與Typeless.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.ass
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_master.wav
+  - 000_Agent/skills/article-to-podcast-script/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/README.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/04_嘴巴Click修正_較強.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/地點核對與繪製規格.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/關聯圖_專案地圖.md
+  - 300_專案/_常態內容/每日策展/2026-08-10_寫作方法.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_提案.md
+  - 000_Agent/memory/daily/2026-08-12.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v3.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷製作計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C11_停頓_19m31.505-19m33.052.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-17_粗剪清單_真實時間碼對照.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_Gamma_逐字稿轉簡報_Prompt.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-28_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-14_提案.md
+  - 000_Agent/plans/2026-08-13-Bullet-Zoom手機大綱UIUX.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/08_測試設定原始錄音_MV7plus.wav
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷_文字定稿.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/01_自動剪輯_頭尾與響度.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_192k.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/編輯會議待辦與決策追蹤.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-10_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_preview-300.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/00_模型研究與製作說明.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_用5個問題整理閱讀心得_附Checklist.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.mjs
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-03_提案.md
+  - 000_Agent/skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/05_重錄原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI時代付費內容的實作價值_付費文.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/02_本機人聲增強.wav
+  - 300_專案/_常態內容/每日策展/2026-08-11_AI 知識工作流.md
+  - 000_Agent/skills/article-to-podcast-script/agents/openai.yaml
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C03_停頓_01m35.400-01m36.314.mp3
+  - 000_Agent/maps/000_Agent_工具箱地圖.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C10_停頓_16m27.446-16m28.660.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版_BigIdea與大綱.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_新版BigIdea與讀者定位草案.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/AGENTS.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C04_疑似贅詞_06m49.846-06m50.665.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C09_停頓_14m59.452-15m00.332.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-16_剪輯規劃_字卡與Broll.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_20組BigIdea候選.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-22_YouTube標題與敘述欄_提案.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_善用ChatGPT_Site建立個人線上課程網站_付費文.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-05_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP02_測試主持稿_把工作寫成SOP與Checklist.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-11_提案.md
+  - 000_Agent/memory/daily/2026-08-14.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_preview.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線_預覽.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI第一版成果落差診斷_Prompt.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C06_轉場_10m37.751-10m38.686.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C07_轉場_12m36.906-12m37.869.mp3
+  - 000_Agent/claude-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.test.mjs
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP06_主持稿_7年不斷更Facebook_三種內容生產方式.md
+  - .agents/skills/podcast-audio-editor
+  - .agents/skills/article-to-podcast-script
+  - 000_Agent/codex-skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/03_嘴巴Click修正_保守.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_使用說明.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/README.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_preview.mp3
+  - 000_Agent/codex-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C08_長停頓_14m44.898-14m51.145.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Top5評選與Top3完整包裝.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/07_重錄_強力MouthClick修正.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-12_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/關聯圖_專案地圖.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版調整計畫.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/01_原始逐字稿.srt
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/annotated-reference.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28-Big-Idea-Generator執行計畫.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/目前決策與待辦.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/南區檢查_v2.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C12_尾部_25m28.354-25m34.628.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-28_V4.1專業養成版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/00_製作說明.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C05_停頓_10m18.640-10m20.431.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-30_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v3.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_3000.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27-付費文Asset實用性準則計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_master.wav
+  - 000_Agent/claude-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-27_7章正文練習修訂規格.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI_Use_Case_實作驗證表.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_raw.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/影片索引.md
+  - 300_專案/_常態內容/每日付費文提案/_提案履歷.md
+  - 300_專案/_常態內容/每日策展/2026-08-07_復盤.md
+  - 300_專案/_常態內容/每日策展/_策展履歷.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/09_測試設定_只剪頭尾與響度.wav
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Big-Idea市場研究Brief.md
+  - AGENTS.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_通用學習網站開發_Prompt.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_raw.wav
+  - 000_Agent/memory/daily/2026-08-11.md
+  - 000_Agent/skills/podcast-audio-editor/agents/openai.yaml
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.svg
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_raw.wav
+  - CLAUDE.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/06_專案紀錄/從0到1建立騏心動念Podcast.md
+  - 000_Agent/maps/300專案_工作區地圖.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_提案.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_相近主題100本書籍命名研究.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-07_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP05_主持稿_跟著女兒一起睡之後重新安排工作與學習.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/EP01_每天手寫10個WritingIdeas_v3_短Hook版_192k.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-29_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP01_試播主持稿_每天手寫10個WritingIdeas.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面插圖.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/02_行銷與銷售/01_電子報與序列信/2026-07-29_課前提醒信3封_Kit草稿.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_pre-reading-reflection-guide_縮圖.png
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP03_主持稿_用5個問題整理閱讀心得.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/06_重錄_只剪頭尾與響度.wav
+  - 300_專案/_常態內容/日常YouTube_製作管理/Premiere專案模板.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C01_頭部_00m00.000-00m00.886.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-31_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/00_原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_master.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C02_轉場_00m26.249-00m29.299.mp3
+  - 000_Agent/memory/daily/2026-08-13.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查.png
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/00_設計說明.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/taipei-mrt-base.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2_預覽.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/音質與自動剪輯測試報告.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-13_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_一頁式重新提案核心.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_master.wav
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.srt
+  - 300_專案/_常態內容/Podcast_騏心動念/2026-08-05-Podcast試播專案一頁規劃.md
+-->
+
+---
+### Requirement: The guard SHALL provide an auditable result without mutating release state
+
+A successful invocation MUST exit with code `0` and print the normalized repository URL, requested version, target commit, release URL, and asset names. A validation failure MUST exit with code `1` and identify the failed check. The command MUST NOT create, modify, push, or delete repository files, tags, or releases.
+
+#### Scenario: Successful preflight output is actionable
+
+- **WHEN** every required check passes for version `0.1.30`
+- **THEN** the command exits with code `0` and prints `vizance/obsidian-bullet-zoom`, `0.1.30`, the target commit, the release URL, and `main.js`, `manifest.json`, and `styles.css`
+
+#### Scenario: A validation failure is safe to rerun
+
+- **WHEN** any required check fails
+- **THEN** the command exits with code `1`, prints the failed check, and leaves the worktree, tags, and remote release state unchanged
+
+<!-- @trace
+source: guard-bullet-zoom-release-target
+updated: 2026-08-15
+code:
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_raw.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_封面_v2.png
+  - 000_Agent/codex-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/claude-skills/long-video-fx/SKILL.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_1600x400.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_raw.wav
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_V4.0第二份成果版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_master.wav
+  - 300_專案/20260611_付費文章選題企劃/2026-08-11_Codex_Obsidian_月復盤_附去個人化_Prompt.md
+  - 000_Agent/skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP04_主持稿_只靠一張嘴工作_Codex與Typeless.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.ass
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_master.wav
+  - 000_Agent/skills/article-to-podcast-script/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/README.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/04_嘴巴Click修正_較強.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/地點核對與繪製規格.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/關聯圖_專案地圖.md
+  - 300_專案/_常態內容/每日策展/2026-08-10_寫作方法.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_提案.md
+  - 000_Agent/memory/daily/2026-08-12.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v3.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面橫幅_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷製作計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C11_停頓_19m31.505-19m33.052.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-17_粗剪清單_真實時間碼對照.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_Gamma_逐字稿轉簡報_Prompt.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-28_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-14_提案.md
+  - 000_Agent/plans/2026-08-13-Bullet-Zoom手機大綱UIUX.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/08_測試設定原始錄音_MV7plus.wav
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_課前問卷_文字定稿.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/01_自動剪輯_頭尾與響度.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v1_Hook固定橋段_192k.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/編輯會議待辦與決策追蹤.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-10_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_preview-300.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/00_模型研究與製作說明.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_用5個問題整理閱讀心得_附Checklist.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.mjs
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖.png
+  - 300_專案/_常態內容/每日付費文提案/2026-08-03_提案.md
+  - 000_Agent/skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/05_重錄原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI時代付費內容的實作價值_付費文.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/02_本機人聲增強.wav
+  - 300_專案/_常態內容/每日策展/2026-08-11_AI 知識工作流.md
+  - 000_Agent/skills/article-to-podcast-script/agents/openai.yaml
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C03_停頓_01m35.400-01m36.314.mp3
+  - 000_Agent/maps/000_Agent_工具箱地圖.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C10_停頓_16m27.446-16m28.660.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版_BigIdea與大綱.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_新版BigIdea與讀者定位草案.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/AGENTS.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C04_疑似贅詞_06m49.846-06m50.665.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C09_停頓_14m59.452-15m00.332.mp3
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-16_剪輯規劃_字卡與Broll.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_20組BigIdea候選.md
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/2026-06-22_YouTube標題與敘述欄_提案.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_善用ChatGPT_Site建立個人線上課程網站_付費文.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-05_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP02_測試主持稿_把工作寫成SOP與Checklist.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-11_提案.md
+  - 000_Agent/memory/daily/2026-08-14.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_preview.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線_預覽.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI第一版成果落差診斷_Prompt.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v5_淡彩捷運線.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C06_轉場_10m37.751-10m38.686.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C07_轉場_12m36.906-12m37.869.mp3
+  - 000_Agent/claude-skills/article-to-podcast-script/SKILL.md
+  - 000_Agent/scripts/obsidian-bullet-zoom-release/preflight.test.mjs
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP06_主持稿_7年不斷更Facebook_三種內容生產方式.md
+  - .agents/skills/podcast-audio-editor
+  - .agents/skills/article-to-podcast-script
+  - 000_Agent/codex-skills/long-video-fx/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/03_嘴巴Click修正_保守.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_使用說明.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/README.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_preview.mp3
+  - 000_Agent/codex-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C08_長停頓_14m44.898-14m51.145.mp3
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Top5評選與Top3完整包裝.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/07_重錄_強力MouthClick修正.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-12_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/關聯圖_專案地圖.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/README.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-29_V4.2六套系統分組版調整計畫.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/01_原始逐字稿.srt
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/annotated-reference.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28-Big-Idea-Generator執行計畫.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/目前決策與待辦.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/南區檢查_v2.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C12_尾部_25m28.354-25m34.628.mp3
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/2026-07-28_V4.1專業養成版_BigIdea與大綱.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/00_製作說明.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C05_停頓_10m18.640-10m20.431.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-30_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v3.png
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/騏心動念_氣泡移至念字右上_3000.png
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27-付費文Asset實用性準則計劃.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/01_靈光起步_preview.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/02_打開筆記_master.wav
+  - 000_Agent/claude-skills/podcast-audio-editor/SKILL.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-27_7章正文練習修訂規格.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v3_紅字版.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/每日付費文提案/2026-07-27_AI_Use_Case_實作驗證表.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/01_念頭浮現_raw.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/剪輯與音質處理紀錄.md
+  - 300_專案/_常態內容/日常YouTube_製作管理/影片索引.md
+  - 300_專案/_常態內容/每日付費文提案/_提案履歷.md
+  - 300_專案/_常態內容/每日策展/2026-08-07_復盤.md
+  - 300_專案/_常態內容/每日策展/_策展履歷.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/09_測試設定_只剪頭尾與響度.wav
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_Big-Idea市場研究Brief.md
+  - AGENTS.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_通用學習網站開發_Prompt.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/03_往前半步_raw.wav
+  - 000_Agent/memory/daily/2026-08-11.md
+  - 000_Agent/skills/podcast-audio-editor/agents/openai.yaml
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_標記圖層.svg
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_raw.wav
+  - CLAUDE.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/固定開頭/固定開頭_v1_取自_EP01_v3_含前後緩衝_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/06_專案紀錄/從0到1建立騏心動念Podcast.md
+  - 000_Agent/maps/300專案_工作區地圖.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-04_提案.md
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_相近主題100本書籍命名研究.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_raw.wav
+  - 300_專案/_常態內容/每日付費文提案/2026-08-07_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/03_往前一點_master.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP05_主持稿_跟著女兒一起睡之後重新安排工作與學習.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/Podcast_EP02_SOP_Checklist_v2_EP01固定橋段_192k.mp3
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP01_20260811/EP01_每天手寫10個WritingIdeas_v3_短Hook版_192k.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-29_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP01_試播主持稿_每天手寫10個WritingIdeas.md
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/01_課程教材/課前問卷/2026-07-29_Google表單封面插圖.png
+  - 300_專案/20260817_四週ChatGPT日系視覺挑戰營/02_行銷與銷售/01_電子報與序列信/2026-07-29_課前提醒信3封_Kit草稿.md
+  - 300_專案/20260611_付費文章選題企劃/2026-08-12_pre-reading-reflection-guide_縮圖.png
+  - 300_專案/_常態內容/Podcast_騏心動念/03_單集腳本/EP03_主持稿_用5個問題整理閱讀心得.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/06_重錄_只剪頭尾與響度.wav
+  - 300_專案/_常態內容/日常YouTube_製作管理/Premiere專案模板.md
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C01_頭部_00m00.000-00m00.886.mp3
+  - 300_專案/_常態內容/每日付費文提案/2026-07-31_提案.md
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/00_原始錄音_MV7plus.wav
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/v2_輕快版/drafts/02_打開筆記_首版約140BPM_master.wav
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v4_紅字避讓版_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/05_正式錄音與後製/EP02_20260814/02_候選試聽片段/C02_轉場_00m26.249-00m29.299.mp3
+  - 000_Agent/memory/daily/2026-08-13.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查.png
+  - 300_專案/_常態內容/Podcast_騏心動念/01_品牌素材/v9_氣泡移至念字/00_設計說明.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/source/taipei-mrt-base.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_完整PNG_v2_預覽.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/中央區檢查_v2.png
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/臺北捷運業務往來地圖_預覽.png
+  - 300_專案/_常態內容/Podcast_騏心動念/04_試錄與後製測試/20260811_固定開頭音質測試/音質與自動剪輯測試報告.md
+  - 300_專案/_常態內容/每日付費文提案/2026-08-13_提案.md
+  - 300_專案/20260803_臺北捷運業務往來地圖/output/東區檢查_v2.png
+  - 300_專案/20260716_一人營運系統V3.1書稿/封存/2026-07-28_一頁式重新提案核心.md
+  - 300_專案/_常態內容/Podcast_騏心動念/02_節目音樂/02_下班後整理_master.wav
+  - 300_專案/_常態內容/日常YouTube_知識圖卡/重點字卡_標示字.srt
+  - 300_專案/_常態內容/Podcast_騏心動念/2026-08-05-Podcast試播專案一頁規劃.md
+-->
