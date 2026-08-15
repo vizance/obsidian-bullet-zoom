@@ -12,4 +12,4 @@
 
 - [x] 3.1 同步 `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 為 `0.1.34`，更新 `tests/mobile-compatibility.test.ts` 的版本斷言，並在 `README.md` 版本紀錄補 0.1.34 說明；驗證：版本值一致、`npm test` 通過。
 - [x] 3.2 `npm run build` 產生 0.1.34 的 `main.js`；驗證：bundle 含新關閉行為、無 Node.js 或 Electron runtime import。
-- [ ] 3.3 commit 並推送 main，執行 release guard preflight（`--repo .` `--version 0.1.34`），通過後建 tag `0.1.34` 與 GitHub Release 附 `main.js`、`manifest.json`、`styles.css`；驗證：Release 資產齊全、BRAT 可偵測更新；實體 iPhone 驗收由使用者確認。
+- [x] 3.3 commit 並推送 main，執行 release guard preflight（`--repo .` `--version 0.1.34`），通過後建 tag `0.1.34` 與 GitHub Release 附 `main.js`、`manifest.json`、`styles.css`；驗證：Release 資產齊全、BRAT 可偵測更新；實體 iPhone 驗收由使用者確認。
