@@ -348,14 +348,24 @@ describe('native outline sidebar rendering', () => {
 		).toBe('Level five');
 	});
 
-	it('renders one-based indexes for each sibling list without changing label actions', () => {
+	it('renders hierarchical indexes without changing label actions', () => {
 		const container = document.createElement('div');
 		const outline = Object.freeze([
 			Object.freeze({
 				label: 'First',
 				anchor: 0,
 				children: Object.freeze([
-					Object.freeze({ label: 'Child A', anchor: 10, children: Object.freeze([]) }),
+					Object.freeze({
+						label: 'Child A',
+						anchor: 10,
+						children: Object.freeze([
+							Object.freeze({
+								label: 'Grandchild A',
+								anchor: 15,
+								children: Object.freeze([]),
+							}),
+						]),
+					}),
 					Object.freeze({ label: 'Child B', anchor: 20, children: Object.freeze([]) }),
 				]),
 			}),
@@ -369,7 +379,7 @@ describe('native outline sidebar rendering', () => {
 		]);
 		renderOutlineSidebar(
 			container,
-			model({ outline, expandedAnchors: new Set([0, 30]) }),
+			model({ outline, expandedAnchors: new Set([0, 10, 30]) }),
 			actions(),
 		);
 
@@ -379,9 +389,10 @@ describe('native outline sidebar rendering', () => {
 			);
 		expect(indexFor(0)?.textContent).toBe('1.');
 		expect(indexFor(30)?.textContent).toBe('2.');
-		expect(indexFor(10)?.textContent).toBe('1.');
-		expect(indexFor(20)?.textContent).toBe('2.');
-		expect(indexFor(40)?.textContent).toBe('1.');
+		expect(indexFor(10)?.textContent).toBe('1.1');
+		expect(indexFor(15)?.textContent).toBe('1.1.1');
+		expect(indexFor(20)?.textContent).toBe('1.2');
+		expect(indexFor(40)?.textContent).toBe('2.1');
 		expect(indexFor(0)?.getAttribute('aria-hidden')).toBe('true');
 		expect(
 			container.querySelector<HTMLButtonElement>(
@@ -393,7 +404,7 @@ describe('native outline sidebar rendering', () => {
 				container.querySelectorAll('.bullet-zoom-outline-sidebar-index'),
 				({ textContent }) => textContent,
 			),
-		).toEqual(['1.', '1.', '2.', '2.', '1.']);
+		).toEqual(['1.', '1.1', '1.1.1', '1.2', '2.', '2.1']);
 	});
 
 	it('keeps disclosure and focus as separate native actions', () => {
