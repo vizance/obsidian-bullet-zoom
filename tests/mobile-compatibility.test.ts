@@ -30,7 +30,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.30');
+		expect(manifest.version).toBe('0.1.31');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -46,9 +46,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.30');
-		expect(packageLock.version).toBe('0.1.30');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.30');
+		expect(packageManifest.version).toBe('0.1.31');
+		expect(packageLock.version).toBe('0.1.31');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.31');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -406,7 +406,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			);
 			expect(sidebarRule?.style.background).toBe('var(--background-primary)');
 			expect(sidebarRule?.style.color).toBe('var(--text-normal)');
-			expect(getComputedStyle(sidebar).fontSize).toBe('var(--font-ui-small)');
+			expect(getComputedStyle(sidebar).fontSize).toBe(
+				'var(--font-ui-smaller, 0.9em)',
+			);
 			expect(getComputedStyle(row).minHeight).toBe('44px');
 			expect(getComputedStyle(disclosure).minWidth).toBe('44px');
 			expect(getComputedStyle(disclosure).minHeight).toBe('44px');

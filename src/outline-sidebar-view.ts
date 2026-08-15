@@ -308,8 +308,10 @@ export function renderOutlineSidebar(
 		nodes: readonly BulletOutlineNode[],
 		parent: HTMLUListElement,
 		depth: number,
+		parentNumberPath: readonly number[],
 	): void => {
 		for (const [index, node] of nodes.entries()) {
+			const numberPath = [...parentNumberPath, index + 1];
 			const item = document.createElement('li');
 			item.className = 'bullet-zoom-outline-sidebar-item';
 			item.dataset.anchor = String(node.anchor);
@@ -325,7 +327,10 @@ export function renderOutlineSidebar(
 
 			const indexLabel = document.createElement('span');
 			indexLabel.className = 'bullet-zoom-outline-sidebar-index';
-			indexLabel.textContent = `${index + 1}.`;
+			indexLabel.textContent =
+				numberPath.length === 1
+					? `${numberPath.join('.')}.`
+					: numberPath.join('.');
 			indexLabel.setAttribute('aria-hidden', 'true');
 			row.append(indexLabel);
 
@@ -403,13 +408,13 @@ export function renderOutlineSidebar(
 				group.className = 'bullet-zoom-outline-sidebar-group';
 				group.id = `bullet-zoom-outline-children-${model.revision}-${node.anchor}`;
 				item.append(group);
-				renderNodes(node.children, group, depth + 1);
+				renderNodes(node.children, group, depth + 1, numberPath);
 			}
 			parent.append(item);
 		}
 	};
 
-	renderNodes(model.outline, tree, 0);
+	renderNodes(model.outline, tree, 0, []);
 	syncOutlineLabelOverflow(container);
 	if (
 		!model.revealCurrent &&
