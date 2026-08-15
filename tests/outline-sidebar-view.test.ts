@@ -859,8 +859,8 @@ describe('native outline sidebar rendering', () => {
 	});
 });
 
-describe('compact outline rows (0.1.39)', () => {
-	it('renders a muted aria-hidden dot for leaf rows', () => {
+describe('compact outline rows (0.1.40)', () => {
+	it('renders an empty aria-hidden spacer for leaf rows', () => {
 		const container = document.createElement('div');
 		renderOutlineSidebar(
 			container,
@@ -882,13 +882,37 @@ describe('compact outline rows (0.1.39)', () => {
 			}),
 			actions(),
 		);
-		const dot = container.querySelector(
-			'.bullet-zoom-outline-sidebar-disclosure-spacer.is-dot',
+		const spacer = container.querySelector(
+			'.bullet-zoom-outline-sidebar-disclosure-spacer',
 		);
-		expect(dot).not.toBeNull();
-		expect(dot?.textContent).toBe('•');
-		expect(dot?.getAttribute('aria-hidden')).toBe('true');
-		expect(dot?.closest('li')?.dataset.anchor).toBe('11');
+		expect(spacer).not.toBeNull();
+		expect(spacer?.textContent).toBe('');
+		expect(spacer?.getAttribute('aria-hidden')).toBe('true');
+		expect(spacer?.classList.contains('is-dot')).toBe(false);
+	});
+
+	it('renders the preview control as an icon without ellipsis text', () => {
+		const container = document.createElement('div');
+		renderOutlineSidebar(
+			container,
+			model({
+				isMobile: true,
+				outline: Object.freeze([
+					Object.freeze({
+						label: '很長需要預覽的標籤',
+						anchor: 0,
+						children: Object.freeze([]),
+					}),
+				]),
+			}),
+			actions(),
+		);
+		const preview = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-preview',
+		);
+		expect(preview).not.toBeNull();
+		expect(preview?.querySelector('svg')).not.toBeNull();
+		expect(preview?.textContent).toBe('');
 	});
 });
 
