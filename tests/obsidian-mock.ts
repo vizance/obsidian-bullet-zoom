@@ -33,15 +33,30 @@ export class Modal {
 
 export class Plugin {
 	constructor(readonly app: unknown = {}) {}
+
+	async loadData(): Promise<unknown> {
+		return null;
+	}
+
+	async saveData(_data: unknown): Promise<void> {}
+
+	addSettingTab(_tab: unknown): void {}
 }
 
+type EmptyableElement = HTMLDivElement & { empty?: () => void };
+
 export class PluginSettingTab {
-	readonly containerEl = document.createElement('div');
+	readonly containerEl: EmptyableElement =
+		document.createElement('div');
 
 	constructor(
 		readonly app: unknown,
 		readonly plugin: unknown,
-	) {}
+	) {
+		this.containerEl.empty = () => {
+			this.containerEl.replaceChildren();
+		};
+	}
 }
 
 export class ToggleComponent {
@@ -97,6 +112,52 @@ export class Setting {
 
 	addToggle(callback: (toggle: ToggleComponent) => unknown): this {
 		callback(new ToggleComponent(this.controlEl));
+		return this;
+	}
+
+	addSlider(callback: (slider: SliderComponent) => unknown): this {
+		callback(new SliderComponent(this.controlEl));
+		return this;
+	}
+}
+
+export class SliderComponent {
+	readonly sliderEl = document.createElement('input');
+	private value = 0;
+	private changeHandler: ((value: number) => unknown) | null = null;
+
+	constructor(containerEl: HTMLElement) {
+		this.sliderEl.type = 'range';
+		this.sliderEl.addEventListener('input', () => {
+			this.value = Number(this.sliderEl.value);
+			void this.changeHandler?.(this.value);
+		});
+		containerEl.append(this.sliderEl);
+	}
+
+	setLimits(min: number, max: number, step: number): this {
+		this.sliderEl.min = String(min);
+		this.sliderEl.max = String(max);
+		this.sliderEl.step = String(step);
+		return this;
+	}
+
+	setValue(value: number): this {
+		this.value = value;
+		this.sliderEl.value = String(value);
+		return this;
+	}
+
+	getValue(): number {
+		return this.value;
+	}
+
+	setDynamicTooltip(): this {
+		return this;
+	}
+
+	onChange(handler: (value: number) => unknown): this {
+		this.changeHandler = handler;
 		return this;
 	}
 }

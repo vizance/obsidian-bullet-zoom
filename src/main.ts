@@ -6,6 +6,9 @@ import {
 	Notice,
 	Platform,
 	Plugin,
+	PluginSettingTab,
+	Setting,
+	type App,
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { EditorView } from '@codemirror/view';
@@ -33,6 +36,16 @@ import {
 	BulletOutlineSidebarCoordinator,
 	BulletOutlineSidebarView,
 } from './outline-sidebar-view';
+import {
+	applyScaleVariables,
+	clearScaleVariables,
+	DEFAULT_SETTINGS,
+	normalizeSettings,
+	SCALE_MAX,
+	SCALE_MIN,
+	SCALE_STEP,
+	type BulletZoomSettings,
+} from './settings';
 
 type EditorWithCodeMirror = Editor & { cm?: unknown };
 
@@ -52,10 +65,59 @@ function showOutlineActionFailure(): void {
 	showNotice('無法切換 Bullet，請稍後再試。');
 }
 
+class BulletZoomSettingTab extends PluginSettingTab {
+	constructor(
+		app: App,
+		private readonly plugin: BulletZoomPlugin,
+	) {
+		super(app, plugin);
+	}
+
+	display(): void {
+		this.containerEl.empty();
+		new Setting(this.containerEl)
+			.setName('聚焦頁標題大小')
+			.setDesc('Zoom 進 Bullet 後，頁面標題的字級縮放比例（%）。')
+			.addSlider((slider) =>
+				slider
+					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
+					.setValue(this.plugin.settings.titleScale)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ titleScale: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('Bullet 大綱文字大小')
+			.setDesc('Bullet 大綱清單的字級縮放比例（%），調小可一次看到更多文字。')
+			.addSlider((slider) =>
+				slider
+					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
+					.setValue(this.plugin.settings.outlineScale)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ outlineScale: value });
+					}),
+			);
+	}
+}
+
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
+	settings: BulletZoomSettings = DEFAULT_SETTINGS;
+
+	async updateSettings(
+		partial: Partial<BulletZoomSettings>,
+	): Promise<void> {
+		this.settings = normalizeSettings({ ...this.settings, ...partial });
+		applyScaleVariables(document.body, this.settings);
+		await this.saveData(this.settings);
+	}
 
 	async onload(): Promise<void> {
+		this.settings = normalizeSettings(await this.loadData());
+		applyScaleVariables(document.body, this.settings);
+		this.addSettingTab(new BulletZoomSettingTab(this.app, this));
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
@@ -156,6 +218,7 @@ export default class BulletZoomPlugin extends Plugin {
 	}
 
 	onunload(): void {
+		clearScaleVariables(document.body);
 		this.outlineCoordinator?.destroy();
 		this.outlineCoordinator = null;
 	}
