@@ -92,3 +92,20 @@ describe('plugin settings lifecycle', () => {
 		).toBe('');
 	});
 });
+
+describe('slider reset buttons', () => {
+	it('resets one scale to 100 without touching the other', async () => {
+		const plugin = new BulletZoomPlugin({} as never, {} as never);
+		vi.spyOn(plugin, 'saveData').mockResolvedValue(undefined);
+		await plugin.updateSettings({ titleScale: 130, outlineScale: 85 });
+
+		await plugin.updateSettings({ outlineScale: 100 });
+		expect(plugin.settings).toEqual({ titleScale: 130, outlineScale: 100 });
+		expect(
+			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
+		).toBe('1');
+		expect(
+			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
+		).toBe('1.3');
+	});
+});

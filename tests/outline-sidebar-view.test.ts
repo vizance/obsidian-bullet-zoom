@@ -938,6 +938,19 @@ describe('native outline sidebar coordinator', () => {
 			expect(
 				(openedModal as Modal | null)?.containerEl.hidden,
 			).toBe(true);
+			const closedModal = openedModal as Modal | null;
+			expect(closedModal?.modalEl.style.getPropertyValue('display')).toBe(
+				'none',
+			);
+			expect(closedModal?.modalEl.style.getPropertyPriority('display')).toBe(
+				'important',
+			);
+			expect(
+				closedModal?.containerEl.style.getPropertyValue('display'),
+			).toBe('none');
+			expect(
+				closedModal?.containerEl.style.getPropertyPriority('display'),
+			).toBe('important');
 			expect(nativeClose).toHaveBeenCalledTimes(1);
 			expect(document.activeElement).not.toBe(preview);
 			const bodyAfter =

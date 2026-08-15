@@ -204,6 +204,8 @@ class BulletLabelPreviewModal extends Modal {
 		this.closing = true;
 		this.modalEl.hidden = true;
 		this.containerEl.hidden = true;
+		this.modalEl.style.setProperty('display', 'none', 'important');
+		this.containerEl.style.setProperty('display', 'none', 'important');
 		super.close();
 	}
 

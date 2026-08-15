@@ -86,6 +86,16 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.onChange((value) => {
 						void this.plugin.updateSettings({ titleScale: value });
 					}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon('rotate-ccw')
+					.setTooltip('恢復預設 100%')
+					.onClick(() => {
+						void this.plugin
+							.updateSettings({ titleScale: 100 })
+							.then(() => this.display());
+					}),
 			);
 		new Setting(this.containerEl)
 			.setName('Bullet 大綱文字大小')
@@ -97,6 +107,16 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange((value) => {
 						void this.plugin.updateSettings({ outlineScale: value });
+					}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon('rotate-ccw')
+					.setTooltip('恢復預設 100%')
+					.onClick(() => {
+						void this.plugin
+							.updateSettings({ outlineScale: 100 })
+							.then(() => this.display());
 					}),
 			);
 	}
