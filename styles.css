@@ -121,6 +121,8 @@ button.bullet-zoom-breadcrumb {
 
 .bullet-zoom-focus-root-line {
 	display: flex;
+	text-indent: 0 !important;
+	padding-inline-start: 0 !important;
 	box-sizing: border-box;
 	align-items: baseline;
 	width: 100%;
@@ -544,4 +546,17 @@ button.bullet-zoom-breadcrumb {
 	.HyperMD-list-line
 	.collapse-indicator::after {
 	content: none;
+}
+
+/* 0.1.36: rebase the focus page layout to the focused bullet */
+.bullet-zoom-phone-pane .bullet-zoom-focus-root-line {
+	font-size: clamp(1.3em, 6vw, 1.8em);
+}
+
+.bullet-zoom-rebased-line {
+	padding-inline-start: calc(
+		(var(--bullet-zoom-relative-depth, 0) + 1) *
+			var(--bullet-zoom-indent-unit, 1.2em)
+	) !important;
+	text-indent: calc(-1 * var(--bullet-zoom-indent-unit, 1.2em)) !important;
 }

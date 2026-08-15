@@ -744,6 +744,18 @@ const focusRootLineDecoration = Decoration.line({
 	class: 'bullet-zoom-focus-root-line',
 });
 const hiddenFocusRootPrefix = Decoration.replace({});
+const MAX_REBASED_DEPTH = 8;
+const rebasedLineDecorations = Array.from(
+	{ length: MAX_REBASED_DEPTH },
+	(_, index) =>
+		Decoration.line({
+			class: 'bullet-zoom-rebased-line',
+			attributes: {
+				style: `--bullet-zoom-relative-depth: ${index + 1};`,
+			},
+		}),
+);
+const hiddenRebasedIndent = Decoration.replace({});
 
 const focusPageDecorations = EditorView.decorations.compute(
 	[focusStateField],
@@ -774,6 +786,56 @@ const focusPageDecorations = EditorView.decorations.compute(
 					side: 1,
 				}).range(bullet.lineTo),
 			);
+		}
+
+		const doc = state.doc;
+		const rootLineNumber = doc.lineAt(bullet.lineFrom).number;
+		const lastLineNumber = doc.lineAt(session.branch.to).number;
+		const childBullets: Array<{
+			lineFrom: number;
+			markerFrom: number;
+			indent: number;
+		}> = [];
+		const indentColumns: number[] = [];
+		for (
+			let lineNumber = rootLineNumber + 1;
+			lineNumber <= lastLineNumber;
+			lineNumber += 1
+		) {
+			const line = doc.line(lineNumber);
+			const child = findSupportedBullet(state, line.from);
+			if (
+				child === null ||
+				child.lineFrom !== line.from ||
+				child.indent <= bullet.indent
+			) {
+				continue;
+			}
+			childBullets.push({
+				lineFrom: child.lineFrom,
+				markerFrom: child.markerFrom,
+				indent: child.indent,
+			});
+			if (!indentColumns.includes(child.indent)) {
+				indentColumns.push(child.indent);
+			}
+		}
+		indentColumns.sort((left, right) => left - right);
+		for (const child of childBullets) {
+			const depth = Math.min(
+				indentColumns.indexOf(child.indent) + 1,
+				MAX_REBASED_DEPTH,
+			);
+			const rebasedDecoration = rebasedLineDecorations[depth - 1];
+			if (rebasedDecoration === undefined) {
+				continue;
+			}
+			ranges.push(rebasedDecoration.range(child.lineFrom));
+			if (child.markerFrom > child.lineFrom) {
+				ranges.push(
+					hiddenRebasedIndent.range(child.lineFrom, child.markerFrom),
+				);
+			}
 		}
 		return Decoration.set(ranges, true);
 	},
