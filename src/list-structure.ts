@@ -888,6 +888,48 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 	return freezeOutlineNodes(roots);
 }
 
+export interface OutlineHeading {
+	readonly level: number;
+	readonly label: string;
+	readonly from: number;
+}
+
+const ATX_HEADING_PATTERN = /^(#{1,6})\s+(.*)$/;
+const CODE_FENCE_PATTERN = /^\s{0,3}(?:```|~~~)/;
+
+export function buildOutlineHeadings(
+	state: EditorState,
+): readonly OutlineHeading[] {
+	const headings: OutlineHeading[] = [];
+	const firstContentLine = frontmatterEndLine(state) + 1;
+	let insideFence = false;
+	for (
+		let lineNumber = firstContentLine;
+		lineNumber <= state.doc.lines;
+		lineNumber += 1
+	) {
+		const line = state.doc.line(lineNumber);
+		if (CODE_FENCE_PATTERN.test(line.text)) {
+			insideFence = !insideFence;
+			continue;
+		}
+		if (insideFence) {
+			continue;
+		}
+		const match = ATX_HEADING_PATTERN.exec(line.text);
+		if (match?.[1] !== undefined && match[2] !== undefined) {
+			headings.push(
+				Object.freeze({
+					level: match[1].length,
+					label: match[2].trim(),
+					from: line.from,
+				}),
+			);
+		}
+	}
+	return Object.freeze(headings);
+}
+
 export function buildBulletOutline(
 	state: EditorState,
 ): readonly BulletOutlineNode[] {

@@ -10,12 +10,14 @@ import {
 
 import {
 	buildBulletOutline,
+	buildOutlineHeadings,
 	BulletOutlineLimitError,
 	BulletOutlineParsePendingError,
 	displayBulletLabel,
 	findOutlinePath,
 	findSupportedBullet,
 	type BulletOutlineNode,
+	type OutlineHeading,
 } from './list-structure';
 import { appendHomeIcon } from './home-icon';
 
@@ -38,6 +40,7 @@ export type OutlineSidebarModel = Readonly<{
 	status: OutlineSidebarStatus;
 	noteTitle: string;
 	outline: readonly BulletOutlineNode[];
+	headings: readonly OutlineHeading[];
 	currentAnchor: number | null;
 	expandedAnchors: ReadonlySet<number>;
 	revealCurrent: boolean;
@@ -332,10 +335,13 @@ export function renderOutlineSidebar(
 		return;
 	}
 
-	const tree = document.createElement('ul');
-	tree.className = 'bullet-zoom-outline-sidebar-tree';
-	tree.setAttribute('aria-label', `${model.noteTitle} Bullet 大綱`);
-	body.append(tree);
+	const createTree = (ariaLabel: string): HTMLUListElement => {
+		const list = document.createElement('ul');
+		list.className = 'bullet-zoom-outline-sidebar-tree';
+		list.setAttribute('aria-label', ariaLabel);
+		body.append(list);
+		return list;
+	};
 	const renderNodes = (
 		nodes: readonly BulletOutlineNode[],
 		parent: HTMLUListElement,
@@ -447,7 +453,58 @@ export function renderOutlineSidebar(
 		}
 	};
 
-	renderNodes(model.outline, tree, 0, []);
+	const headings = model.headings;
+	if (headings.length === 0) {
+		renderNodes(
+			model.outline,
+			createTree(`${model.noteTitle} Bullet 大綱`),
+			0,
+			[],
+		);
+	} else {
+		const groups: Array<{
+			heading: OutlineHeading | null;
+			nodes: BulletOutlineNode[];
+		}> = [
+			{ heading: null, nodes: [] },
+			...headings.map((heading) => ({
+				heading,
+				nodes: [] as BulletOutlineNode[],
+			})),
+		];
+		for (const node of model.outline) {
+			let groupIndex = 0;
+			for (const [index, heading] of headings.entries()) {
+				if (heading.from < node.anchor) {
+					groupIndex = index + 1;
+				}
+			}
+			groups[groupIndex]?.nodes.push(node);
+		}
+		for (const group of groups) {
+			if (group.heading === null && group.nodes.length === 0) {
+				continue;
+			}
+			if (group.heading !== null) {
+				const headingRow = document.createElement('div');
+				headingRow.className = `bullet-zoom-outline-sidebar-heading is-level-${group.heading.level}`;
+				headingRow.textContent = group.heading.label;
+				body.append(headingRow);
+			}
+			if (group.nodes.length > 0) {
+				renderNodes(
+					group.nodes,
+					createTree(
+						group.heading === null
+							? `${model.noteTitle} Bullet 大綱`
+							: `${group.heading.label} 區段大綱`,
+					),
+					0,
+					[],
+				);
+			}
+		}
+	}
 	syncOutlineLabelOverflow(container);
 	if (
 		!model.revealCurrent &&
@@ -455,7 +512,7 @@ export function renderOutlineSidebar(
 		activeRole !== null
 	) {
 		const restoredItem = Array.from(
-			tree.querySelectorAll<HTMLElement>('[data-anchor]'),
+			body.querySelectorAll<HTMLElement>('[data-anchor]'),
 		).find(
 			({ dataset }) =>
 				Number.parseInt(dataset.anchor ?? '', 10) === activeAnchor,
@@ -1145,6 +1202,10 @@ export class BulletOutlineSidebarCoordinator {
 				status,
 				noteTitle: this.source.noteTitle,
 				outline,
+				headings:
+					status === 'ready' || status === 'empty'
+						? buildOutlineHeadings(this.source.view.state)
+						: Object.freeze([]),
 				currentAnchor,
 				expandedAnchors: new Set(this.expandedAnchors),
 				revealCurrent,
@@ -1226,6 +1287,7 @@ export class BulletOutlineSidebarCoordinator {
 				status: 'unavailable',
 				noteTitle: BULLET_OUTLINE_VIEW_NAME,
 				outline: Object.freeze([]),
+				headings: Object.freeze([]),
 				currentAnchor: null,
 				expandedAnchors: new Set<number>(),
 				revealCurrent: false,

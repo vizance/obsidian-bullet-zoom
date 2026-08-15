@@ -570,3 +570,20 @@ button.bullet-zoom-breadcrumb {
 	) !important;
 	text-indent: calc(-1 * var(--bullet-zoom-indent-unit, 1.2em)) !important;
 }
+
+/* 0.1.41: heading section rows in the outline */
+.bullet-zoom-outline-sidebar-heading {
+	margin: var(--size-4-3, 12px) 0 var(--size-2-1, 4px);
+	padding: 0 var(--size-2-1, 4px);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller, 0.85em);
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	user-select: none;
+	pointer-events: none;
+}
+
+.bullet-zoom-outline-sidebar-heading.is-level-1 {
+	font-size: var(--font-ui-small, 0.9em);
+	color: var(--text-normal);
+}

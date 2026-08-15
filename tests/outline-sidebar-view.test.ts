@@ -82,6 +82,7 @@ function model(
 		status: 'ready',
 		noteTitle: 'Ideas',
 		outline: Object.freeze([]),
+		headings: Object.freeze([]),
 		currentAnchor: null,
 		expandedAnchors: new Set<number>(),
 		revealCurrent: true,
@@ -913,6 +914,90 @@ describe('compact outline rows (0.1.40)', () => {
 		expect(preview).not.toBeNull();
 		expect(preview?.querySelector('svg')).not.toBeNull();
 		expect(preview?.textContent).toBe('');
+	});
+});
+
+describe('heading sections (0.1.41)', () => {
+	const nodeAt = (label: string, anchor: number) =>
+		Object.freeze({ label, anchor, children: Object.freeze([]) });
+
+	it('restarts top-level numbering in each heading section', () => {
+		const container = document.createElement('div');
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([
+					nodeAt('A', 12),
+					nodeAt('B', 16),
+					nodeAt('C', 30),
+				]),
+				headings: Object.freeze([
+					Object.freeze({ level: 1, label: 'Raw Ideas', from: 0 }),
+					Object.freeze({ level: 1, label: 'Outline', from: 20 }),
+				]),
+			}),
+			actions(),
+		);
+		const headingRows = container.querySelectorAll(
+			'.bullet-zoom-outline-sidebar-heading',
+		);
+		expect(headingRows).toHaveLength(2);
+		expect(headingRows[0]?.textContent).toBe('Raw Ideas');
+		expect(headingRows[1]?.textContent).toBe('Outline');
+		expect(headingRows[0]?.tagName).not.toBe('BUTTON');
+		const trees = container.querySelectorAll(
+			'.bullet-zoom-outline-sidebar-tree',
+		);
+		expect(trees).toHaveLength(2);
+		const firstIndexes = Array.from(
+			trees[0]?.querySelectorAll('.bullet-zoom-outline-sidebar-index') ?? [],
+		).map((element) => element.textContent);
+		expect(firstIndexes).toEqual(['1.', '2.']);
+		const secondIndexes = Array.from(
+			trees[1]?.querySelectorAll('.bullet-zoom-outline-sidebar-index') ?? [],
+		).map((element) => element.textContent);
+		expect(secondIndexes).toEqual(['1.']);
+	});
+
+	it('renders leading bullets without a header and keeps empty sections visible', () => {
+		const container = document.createElement('div');
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([nodeAt('Lead', 2)]),
+				headings: Object.freeze([
+					Object.freeze({ level: 2, label: 'Empty Section', from: 10 }),
+				]),
+			}),
+			actions(),
+		);
+		const trees = container.querySelectorAll(
+			'.bullet-zoom-outline-sidebar-tree',
+		);
+		expect(trees).toHaveLength(1);
+		expect(
+			trees[0]?.querySelector('.bullet-zoom-outline-sidebar-index')
+				?.textContent,
+		).toBe('1.');
+		const headingRow = container.querySelector(
+			'.bullet-zoom-outline-sidebar-heading.is-level-2',
+		);
+		expect(headingRow?.textContent).toBe('Empty Section');
+	});
+
+	it('renders exactly as before when the note has no headings', () => {
+		const container = document.createElement('div');
+		renderOutlineSidebar(
+			container,
+			model({ outline: Object.freeze([nodeAt('A', 0)]) }),
+			actions(),
+		);
+		expect(
+			container.querySelectorAll('.bullet-zoom-outline-sidebar-heading'),
+		).toHaveLength(0);
+		expect(
+			container.querySelectorAll('.bullet-zoom-outline-sidebar-tree'),
+		).toHaveLength(1);
 	});
 });
 
