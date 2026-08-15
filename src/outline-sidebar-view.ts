@@ -1016,8 +1016,9 @@ export class BulletOutlineSidebarCoordinator {
 			return;
 		}
 		if (
-			this.options.workspace.rightSplit.collapsed ||
-			!this.sidebarView.isVisible()
+			!this.options.isMobile &&
+			(this.options.workspace.rightSplit.collapsed ||
+				!this.sidebarView.isVisible())
 		) {
 			return;
 		}
