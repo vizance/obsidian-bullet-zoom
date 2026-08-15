@@ -935,6 +935,9 @@ describe('native outline sidebar coordinator', () => {
 			await Promise.resolve();
 			await Promise.resolve();
 			expect(modalElement?.hidden).toBe(true);
+			expect(
+				(openedModal as Modal | null)?.containerEl.hidden,
+			).toBe(true);
 			expect(nativeClose).toHaveBeenCalledTimes(1);
 			expect(document.activeElement).not.toBe(preview);
 			const bodyAfter =
