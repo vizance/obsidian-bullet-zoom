@@ -90,6 +90,7 @@ export class BulletOutlineLimitError extends Error {
 
 const PLAIN_BULLET_PATTERN = /^([\t ]*)([-+*])([\t ]+)(.*)$/;
 const ANY_LIST_MARKER_PATTERN = /^[\t ]*(?:[-+*]|\d+[.)])[\t ]+/;
+const ORDERED_LIST_MARKER_PATTERN = /^[\t ]*\d+[.)][\t ]+/;
 const TASK_PATTERN = /^\[(?: |x|X)\](?:\s|$)/;
 const frontmatterEndLineCache = new WeakMap<EditorState, number>();
 const completeSyntaxTreeCache = new WeakMap<EditorState, Tree>();
@@ -145,17 +146,18 @@ export function isSupportedBulletSyntaxNode(
 	}
 
 	let current: SyntaxNode | null = node;
+	let foundBulletList = false;
 	while (current !== null) {
 		if (current.name === 'OrderedList') {
 			return false;
 		}
 		if (current.name === 'BulletList') {
-			return true;
+			foundBulletList = true;
 		}
 		current = current.parent;
 	}
 
-	return false;
+	return foundBulletList;
 }
 
 function hasBulletListSyntax(
@@ -645,6 +647,7 @@ export type HyperMdOutlineEntry = Readonly<{
 	level: number | null;
 	bullet: SupportedBullet | null;
 	hasListMarker: boolean;
+	isOrdered?: boolean;
 	nonBlank: boolean;
 }>;
 
@@ -659,6 +662,9 @@ export function collectHyperMdAncestorBullets(
 			continue;
 		}
 		if (entry.level === null) {
+			break;
+		}
+		if (entry.isOrdered === true) {
 			break;
 		}
 		if (!entry.hasListMarker || entry.level >= currentLevel) {
@@ -685,6 +691,7 @@ export function buildHyperMdBulletOutline(
 	const stack: Array<{
 		level: number;
 		node: MutableBulletOutlineNode | null;
+		isOrdered: boolean;
 	}> = [];
 	for (const entry of entries) {
 		if (!entry.nonBlank) {
@@ -694,12 +701,17 @@ export function buildHyperMdBulletOutline(
 			stack.length = 0;
 			continue;
 		}
+		const level = entry.level;
 		if (!entry.hasListMarker) {
 			continue;
 		}
-		while (stack.length > 0 && stack.at(-1)!.level >= entry.level) {
+		while (stack.length > 0 && stack.at(-1)!.level >= level) {
 			stack.pop();
 		}
+		const isOrdered = entry.isOrdered === true;
+		const isInsideOrderedList = stack.some(
+			(parent) => parent.isOrdered && parent.level < level,
+		);
 		structuralEntryCount += 1;
 		if (
 			structuralEntryCount > MAX_OUTLINE_NODES ||
@@ -707,8 +719,8 @@ export function buildHyperMdBulletOutline(
 		) {
 			throw new BulletOutlineLimitError();
 		}
-		if (entry.bullet === null) {
-			stack.push({ level: entry.level, node: null });
+		if (entry.bullet === null || isOrdered || isInsideOrderedList) {
+			stack.push({ level, node: null, isOrdered });
 			continue;
 		}
 		nodeCount += 1;
@@ -726,7 +738,7 @@ export function buildHyperMdBulletOutline(
 		} else {
 			parent.children.push(node);
 		}
-		stack.push({ level: entry.level, node });
+		stack.push({ level, node, isOrdered });
 	}
 	return freezeOutlineNodes(roots);
 }
@@ -760,6 +772,7 @@ function hyperMdAncestors(
 				level: hyperMdListLevel(tree.resolveInner(position, 1)),
 				bullet: findSupportedBullet(state, line.from),
 				hasListMarker: ANY_LIST_MARKER_PATTERN.test(line.text),
+				isOrdered: ORDERED_LIST_MARKER_PATTERN.test(line.text),
 				nonBlank: line.text.trim().length > 0,
 			}),
 		);
@@ -819,6 +832,7 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 	const stack: Array<{
 		level: number;
 		node: MutableBulletOutlineNode | null;
+		isOrdered: boolean;
 	}> = [];
 	for (let number = 1; number <= state.doc.lines; number += 1) {
 		const line = state.doc.line(number);
@@ -838,6 +852,10 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 		while (stack.length > 0 && stack.at(-1)!.level >= level) {
 			stack.pop();
 		}
+		const isOrdered = ORDERED_LIST_MARKER_PATTERN.test(line.text);
+		const isInsideOrderedList = stack.some(
+			(parent) => parent.isOrdered && parent.level < level,
+		);
 		structuralEntryCount += 1;
 		if (
 			structuralEntryCount > MAX_OUTLINE_NODES ||
@@ -846,8 +864,8 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 			throw new BulletOutlineLimitError();
 		}
 		const bullet = findSupportedBullet(state, line.from);
-		if (bullet === null) {
-			stack.push({ level, node: null });
+		if (bullet === null || isOrdered || isInsideOrderedList) {
+			stack.push({ level, node: null, isOrdered });
 			continue;
 		}
 		nodeCount += 1;
@@ -865,7 +883,7 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 		} else {
 			parent.children.push(node);
 		}
-		stack.push({ level, node });
+		stack.push({ level, node, isOrdered });
 	}
 	return freezeOutlineNodes(roots);
 }
