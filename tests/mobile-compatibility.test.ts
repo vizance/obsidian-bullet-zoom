@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.34');
+		expect(manifest.version).toBe('0.1.35');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.34');
-		expect(packageLock.version).toBe('0.1.34');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.34');
+		expect(packageManifest.version).toBe('0.1.35');
+		expect(packageLock.version).toBe('0.1.35');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.35');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
