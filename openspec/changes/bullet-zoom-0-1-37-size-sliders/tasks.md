@@ -10,4 +10,4 @@
 
 - [x] 2.1 同步四個版本檔為 `0.1.37`、更新版本斷言、`README.md` 補版本紀錄與設定說明；驗證：版本一致、`npm test` 通過。
 - [x] 2.2 `npm run build` 產生 `main.js`；驗證：bundle 含 scale 變數邏輯、無 Node.js 或 Electron runtime import。
-- [ ] 2.3 commit 推送 main，release guard preflight（`--version 0.1.37`）通過後建 tag 與 GitHub Release 附三資產；驗證：資產齊全、BRAT 可更新；實體 iPhone 滑桿手感驗收由使用者確認。
+- [x] 2.3 commit 推送 main，release guard preflight（`--version 0.1.37`）通過後建 tag 與 GitHub Release 附三資產；驗證：資產齊全、BRAT 可更新；實體 iPhone 滑桿手感驗收由使用者確認。
