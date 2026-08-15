@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildBulletOutline,
+	buildOutlineHeadings,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
@@ -920,5 +921,33 @@ describe('buildBulletOutline', () => {
 		expect(() =>
 			buildBulletOutline(createState(excessiveSupportedSource)),
 		).toThrow(BulletOutlineLimitError);
+	});
+});
+
+describe('buildOutlineHeadings', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	it('collects ATX headings with level, label, and position', () => {
+		const state = stateOf('# Raw Ideas\n- A\n## Outline\n- B');
+		const headings = buildOutlineHeadings(state);
+		expect(headings).toHaveLength(2);
+		expect(headings[0]).toMatchObject({ level: 1, label: 'Raw Ideas', from: 0 });
+		expect(headings[1]?.level).toBe(2);
+		expect(headings[1]?.label).toBe('Outline');
+	});
+
+	it('returns an empty list for notes without headings', () => {
+		expect(buildOutlineHeadings(stateOf('- A\n- B'))).toHaveLength(0);
+	});
+
+	it('ignores hash lines inside frontmatter and fenced code blocks', () => {
+		const state = stateOf(
+			'---\n# not: heading\n---\n- A\n```\n# not a heading\n```\n# Real\n- B',
+		);
+		const headings = buildOutlineHeadings(state);
+		expect(headings).toHaveLength(1);
+		expect(headings[0]?.label).toBe('Real');
 	});
 });
