@@ -594,6 +594,23 @@ describe('buildBulletOutline', () => {
 		]);
 	});
 
+	it('excludes unordered bullets nested under ordered lists', () => {
+		const source = [
+			'1. Ordered parent',
+			'   - Misleading child',
+			'- Root bullet',
+			'  - Root child',
+		].join('\n');
+		const state = createState(source);
+		expect(findSupportedBullet(state, state.doc.line(2).from)).toBeNull();
+		const outline = buildBulletOutline(state);
+
+		expect(outline.map(({ label }) => label)).toEqual(['Root bullet']);
+		expect(outline[0]?.children.map(({ label }) => label)).toEqual([
+			'Root child',
+		]);
+	});
+
 	it('treats an indented item without an open supported ancestor as a root', () => {
 		const state = createState('  - Indented root');
 		expect(buildBulletOutline(state)).toEqual([
@@ -777,6 +794,50 @@ describe('buildBulletOutline', () => {
 		]);
 		expect(outline.map(({ label }) => label)).toEqual(['Parent', 'Root child']);
 		expect(outline[0]?.children.map(({ label }) => label)).toEqual(['Child']);
+	});
+
+	it('excludes HyperMD unordered bullets nested under ordered lists', () => {
+		const state = createState('- Placeholder');
+		const bullet = findSupportedBullet(state, state.doc.line(1).from);
+		expect(bullet).not.toBeNull();
+		if (bullet === null) {
+			return;
+		}
+		const makeBullet = (label: string, markerFrom: number) =>
+			Object.freeze({ ...bullet, label, markerFrom, lineFrom: markerFrom });
+
+		const outline = buildHyperMdBulletOutline([
+			{
+				level: 1,
+				bullet: null,
+				hasListMarker: true,
+				isOrdered: true,
+				nonBlank: true,
+			},
+			{
+				level: 2,
+				bullet: makeBullet('Misleading child', 10),
+				hasListMarker: true,
+				nonBlank: true,
+			},
+			{
+				level: 1,
+				bullet: makeBullet('Root bullet', 20),
+				hasListMarker: true,
+				nonBlank: true,
+			},
+			{
+				level: 2,
+				bullet: makeBullet('Root child', 30),
+				hasListMarker: true,
+				nonBlank: true,
+			},
+		]);
+
+		expect(outline.map(({ label }) => label)).toEqual(['Root bullet']);
+		expect(outline[0]?.children.map(({ label }) => label)).toEqual([
+			'Root child',
+		]);
 	});
 
 	it('keeps a large flat HyperMD outline linear and complete', () => {
