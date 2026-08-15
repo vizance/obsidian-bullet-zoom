@@ -119,6 +119,40 @@ export class Setting {
 		callback(new SliderComponent(this.controlEl));
 		return this;
 	}
+
+	addExtraButton(
+		callback: (button: ExtraButtonComponent) => unknown,
+	): this {
+		callback(new ExtraButtonComponent(this.controlEl));
+		return this;
+	}
+}
+
+export class ExtraButtonComponent {
+	readonly extraSettingsEl = document.createElement('button');
+	private clickHandler: (() => unknown) | null = null;
+
+	constructor(containerEl: HTMLElement) {
+		this.extraSettingsEl.addEventListener('click', () => {
+			void this.clickHandler?.();
+		});
+		containerEl.append(this.extraSettingsEl);
+	}
+
+	setIcon(icon: string): this {
+		this.extraSettingsEl.dataset.icon = icon;
+		return this;
+	}
+
+	setTooltip(tooltip: string): this {
+		this.extraSettingsEl.title = tooltip;
+		return this;
+	}
+
+	onClick(handler: () => unknown): this {
+		this.clickHandler = handler;
+		return this;
+	}
 }
 
 export class SliderComponent {

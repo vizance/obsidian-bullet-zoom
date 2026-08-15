@@ -118,3 +118,68 @@ When the plugin runs in phone mode, it SHALL add a plugin-owned phone-mode class
 - **GIVEN** the plugin initializes with phone mode disabled
 - **WHEN** the Live Preview editor pane is inspected
 - **THEN** the phone-mode class is absent and no plugin CSS rule without the phone-mode class prefix targets `.collapse-indicator`
+
+---
+### Requirement: Keep the outline scroll position stable across the label preview modal
+
+When the Bullet full-text preview modal opens from an outline row's ellipsis button and later closes, the outline SHALL restore the outline body's scrollTop to its pre-open value after the post-close rerender, and the modal open/close cycle SHALL NOT change the revealCurrent render context. The plugin SHALL NOT return focus to the triggering ellipsis button after close (the ellipsis button and its modal exist only in mobile rendering; desktop outlines render no ellipsis button). Automatic scrollIntoView positioning SHALL run only when the note identity or the focused Zoom anchor actually changes.
+
+#### Scenario: Close the preview modal on a phone
+
+- **WHEN** a phone user opens the Bullet full-text preview modal from an outline row and closes it
+- **THEN** the outline body scrollTop equals its pre-open value after the rerender, no scrollIntoView runs, and the ellipsis button does not receive focus
+
+##### Example: Scrolled outline stays put
+
+- **GIVEN** a phone outline whose body is scrolled to 120 CSS pixels before the ellipsis button opens the modal
+- **WHEN** the modal closes and the outline rerenders
+- **THEN** the outline body scrollTop is 120 and no element received a scrollIntoView call during the close cycle
+
+#### Scenario: Desktop renders no ellipsis preview
+
+- **WHEN** the outline renders outside mobile mode
+- **THEN** no ellipsis preview button exists and the preview modal cannot open
+
+##### Example: Desktop row audit
+
+- **GIVEN** a desktop outline rendered for a note with long Bullet labels
+- **WHEN** the rendered rows are inspected
+- **THEN** no element with the outline preview button class is present
+
+#### Scenario: Real context changes still reveal the current node
+
+- **WHEN** the note identity or the focused Zoom anchor changes
+- **THEN** the outline may position the current node via scrollIntoView as before
+
+##### Example: Zoom change repositions
+
+- **GIVEN** an outline rendered for note `Ideas.md` with no focus anchor
+- **WHEN** the user zooms into a Bullet so the focus anchor changes
+- **THEN** the rerender is allowed to scroll the current row into view
+
+---
+### Requirement: Dismiss the label preview modal instantly
+
+When the Bullet full-text preview modal closes by any path (close button, X button, or backdrop), the plugin SHALL hide the modal element and its container element before delegating to the native close, so no slide-down animation or visible displacement occurs. Repeated close calls SHALL still delegate to the native close only once.
+
+#### Scenario: Close hides the whole modal at once
+
+- **WHEN** the user activates the preview modal's close control
+- **THEN** the modal element and its container element are hidden immediately and the native close runs exactly once
+
+##### Example: Close button tap
+
+- **GIVEN** an open Bullet full-text preview modal
+- **WHEN** the close button is clicked twice in quick succession
+- **THEN** both the modal element and the container element report hidden, and the native close was invoked once
+
+#### Scenario: No displacement during dismissal
+
+- **WHEN** the preview modal is dismissed
+- **THEN** the modal performs no downward movement before disappearing because its container is hidden before the native close animation can play
+
+##### Example: Container hidden before native close
+
+- **GIVEN** an open preview modal whose container element is visible
+- **WHEN** the plugin close override runs
+- **THEN** the container element's hidden property is true before the native close is delegated
