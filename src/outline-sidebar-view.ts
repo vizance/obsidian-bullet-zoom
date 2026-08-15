@@ -112,6 +112,33 @@ function createButton(
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
+function createMagnifierIcon(document: Document): SVGSVGElement {
+	const svgNamespace = 'http://www.w3.org/2000/svg';
+	const svg = document.createElementNS(svgNamespace, 'svg');
+	svg.classList.add('bullet-zoom-outline-sidebar-preview-icon');
+	svg.setAttribute('viewBox', '0 0 16 16');
+	svg.setAttribute('width', '14');
+	svg.setAttribute('height', '14');
+	svg.setAttribute('aria-hidden', 'true');
+	const circle = document.createElementNS(svgNamespace, 'circle');
+	circle.setAttribute('cx', '7');
+	circle.setAttribute('cy', '7');
+	circle.setAttribute('r', '4.2');
+	circle.setAttribute('fill', 'none');
+	circle.setAttribute('stroke', 'currentColor');
+	circle.setAttribute('stroke-width', '1.6');
+	const handle = document.createElementNS(svgNamespace, 'line');
+	handle.setAttribute('x1', '10.2');
+	handle.setAttribute('y1', '10.2');
+	handle.setAttribute('x2', '13.4');
+	handle.setAttribute('y2', '13.4');
+	handle.setAttribute('stroke', 'currentColor');
+	handle.setAttribute('stroke-width', '1.6');
+	handle.setAttribute('stroke-linecap', 'round');
+	svg.append(circle, handle);
+	return svg;
+}
+
 function createDisclosureIcon(
 	document: Document,
 	isExpanded: boolean,
@@ -364,9 +391,7 @@ export function renderOutlineSidebar(
 				row.append(disclosure);
 			} else {
 				const spacer = document.createElement('span');
-				spacer.className =
-					'bullet-zoom-outline-sidebar-disclosure-spacer is-dot';
-				spacer.textContent = '•';
+				spacer.className = 'bullet-zoom-outline-sidebar-disclosure-spacer';
 				spacer.setAttribute('aria-hidden', 'true');
 				row.append(spacer);
 			}
@@ -396,8 +421,9 @@ export function renderOutlineSidebar(
 				const preview = createButton(
 					document,
 					'bullet-zoom-outline-sidebar-preview',
-					'…',
+					'',
 				);
+				preview.append(createMagnifierIcon(document));
 				preview.hidden = true;
 				preview.setAttribute('aria-label', `查看「${label}」全文`);
 				preview.addEventListener('click', () =>

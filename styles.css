@@ -111,18 +111,12 @@ button.bullet-zoom-breadcrumb {
 
 .is-mobile .bullet-zoom-breadcrumb {
 	display: inline-flex;
-	max-width: 6.5em;
+	max-width: none;
 	padding: 0 var(--size-4-1, 4px);
 }
 
 .is-mobile .bullet-zoom-breadcrumb .bullet-zoom-breadcrumb-label {
-	overflow: hidden;
 	white-space: nowrap;
-	text-overflow: ellipsis;
-}
-
-.is-mobile .bullet-zoom-breadcrumb.is-current {
-	max-width: none;
 }
 
 .bullet-zoom-focus-root-line {
@@ -340,12 +334,15 @@ button.bullet-zoom-breadcrumb {
 
 .bullet-zoom-outline-sidebar-index {
 	grid-area: index;
-	align-self: center;
-	justify-self: end;
-	color: var(--text-faint);
-	font-size: var(--font-ui-smaller, 0.85em);
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	min-width: 24px;
+	padding-inline-end: 4px;
+	color: var(--text-muted);
 	font-variant-numeric: tabular-nums;
-	white-space: nowrap;
+	line-height: 1;
+	user-select: none;
 }
 
 .bullet-zoom-outline-sidebar-disclosure,
@@ -572,16 +569,4 @@ button.bullet-zoom-breadcrumb {
 			var(--bullet-zoom-indent-unit, 1.2em)
 	) !important;
 	text-indent: calc(-1 * var(--bullet-zoom-indent-unit, 1.2em)) !important;
-}
-
-/* 0.1.39: Workflowy-style compact outline */
-.bullet-zoom-outline-sidebar-disclosure-spacer.is-dot {
-	display: inline-flex;
-	align-items: center;
-	justify-content: flex-end;
-	justify-self: end;
-	padding-inline-end: 6px;
-	color: var(--text-faint);
-	font-size: var(--font-ui-smaller, 0.85em);
-	line-height: 1;
 }
