@@ -12,4 +12,4 @@
 
 - [x] 3.1 把 `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 的版本同步為 `0.1.33`，並在 `README.md` 的版本紀錄補上 0.1.33 的行為說明（手機摺疊觸控範圍限縮）；驗證：四個檔案版本值一致且 README 描述與 proposal 相符。
 - [x] 3.2 以 `npm run build` 產生對應 0.1.33 的 `main.js`；驗證：bundle 內含手機模式 class 邏輯，且未引入 Node.js 或 Electron 專屬 runtime import。
-- [ ] 3.3 走官方發布流程：commit 後執行 release guard preflight（`--repo` 指向 origin 為 `github.com/vizance/obsidian-bullet-zoom` 的本 repo、`--version 0.1.33`），通過後建立 tag `0.1.33` 與 GitHub Release 並附上 `main.js`、`manifest.json`、`styles.css`；驗證：Release 資產齊全、BRAT 可偵測到 0.1.33 更新；實體 iPhone 點擊驗收留給使用者確認，不得自行宣稱完成。
+- [x] 3.3 走官方發布流程：commit 後執行 release guard preflight（`--repo` 指向 origin 為 `github.com/vizance/obsidian-bullet-zoom` 的本 repo、`--version 0.1.33`），通過後建立 tag `0.1.33` 與 GitHub Release 並附上 `main.js`、`manifest.json`、`styles.css`；驗證：Release 資產齊全、BRAT 可偵測到 0.1.33 更新；實體 iPhone 點擊驗收留給使用者確認，不得自行宣稱完成。
