@@ -183,18 +183,29 @@ The plugin SHALL retain native button click semantics for labels and SHALL NOT m
 ---
 ### Requirement: Render outline rows in a compact indent-first style
 
-Outline rows SHALL keep their hierarchical index but render it in a smaller muted style aligned toward the disclosure control, the disclosure triangle SHALL sit adjacent to the label text, leaf rows SHALL render a muted dot placeholder instead of an empty spacer, and mobile rows SHALL indent 12 CSS pixels per depth level (capped at depth 6) while preserving the existing 44 CSS pixel touch targets.
+Outline rows SHALL keep their hierarchical index rendered inline with the row (inline-flex, minimum 24 CSS pixel width, muted color, tabular numerals) so the index, disclosure triangle, and label align on one visual line. Leaf rows SHALL render an empty spacer in the disclosure position with no visible glyph. The row preview control SHALL render a magnifier SVG icon instead of the「…」character so it cannot be confused with label truncation ellipses. Mobile rows SHALL indent 12 CSS pixels per depth level (capped at depth 6) while preserving the existing 44 CSS pixel touch targets.
 
-#### Scenario: Compact row anatomy
+#### Scenario: Single-line row anatomy
 
 - **WHEN** the outline renders a branch with parents and leaves
-- **THEN** parent rows show index, adjacent triangle, and label in order, and leaf rows show a dot placeholder in the disclosure position
+- **THEN** each row keeps index, disclosure, and label on one line, and leaf rows show an empty spacer with no glyph
 
-##### Example: Leaf dot placeholder
+##### Example: Leaf spacer is empty
 
 - **GIVEN** a note containing `- Parent\n  - Leaf`
 - **WHEN** the outline renders with `Parent` expanded
-- **THEN** the `Leaf` row's disclosure position contains a non-interactive dot element marked aria-hidden
+- **THEN** the `Leaf` row's disclosure position contains an aria-hidden spacer whose text content is empty
+
+#### Scenario: Preview control uses an icon
+
+- **WHEN** a row's label overflows and the preview control is shown
+- **THEN** the control contains an SVG icon and no「…」text content
+
+##### Example: Icon audit
+
+- **GIVEN** a rendered mobile outline row with an overflowing label
+- **WHEN** the preview button is inspected
+- **THEN** it contains an `svg` element and its text content is empty
 
 #### Scenario: Mobile depth indentation
 
@@ -206,3 +217,41 @@ Outline rows SHALL keep their hierarchical index but render it in a smaller mute
 - **GIVEN** the mobile stylesheet is loaded
 - **WHEN** the depth-6 row rule is inspected
 - **THEN** its inline-start padding is 72px and touch heights remain 44px
+
+---
+### Requirement: Group the outline into heading sections
+
+The outline SHALL scan the note for ATX headings (levels 1–6), skipping frontmatter and fenced code blocks, and SHALL render each heading as a non-interactive section header row in document order. Top-level bullets SHALL be grouped under the nearest preceding heading, bullets before the first heading form a headerless leading group, and the top-level index numbering SHALL restart at 1 within each section while nested numbering rules stay unchanged. Headings without bullets SHALL still render, and notes without headings SHALL render exactly as before.
+
+#### Scenario: Sections restart numbering
+
+- **WHEN** a note contains two headings each followed by top-level bullets
+- **THEN** the outline shows both heading rows and the first bullet under each heading is numbered `1.`
+
+##### Example: Two sections
+
+- **GIVEN** the note `# Raw Ideas\n- A\n- B\n# Outline\n- C`
+- **WHEN** the outline renders
+- **THEN** heading rows `Raw Ideas` and `Outline` appear, `A` is `1.` and `B` is `2.` under the first, and `C` is `1.` under the second
+
+#### Scenario: Header rows are visual only
+
+- **WHEN** the user interacts with a heading row
+- **THEN** it triggers no zoom, fold, or selection action and is not focusable
+
+##### Example: Non-interactive audit
+
+- **GIVEN** a rendered heading row
+- **WHEN** it is inspected
+- **THEN** it is not a button, carries no click handler contract, and is excluded from the tab order
+
+#### Scenario: Leading bullets and code blocks
+
+- **WHEN** bullets appear before the first heading or a `#` line sits inside a fenced code block
+- **THEN** the leading bullets render in a headerless first group and the fenced `#` line does not create a section
+
+##### Example: Fence is ignored
+
+- **GIVEN** the note `- A\n\`\`\`\n# not a heading\n\`\`\`\n# Real\n- B`
+- **WHEN** the outline renders
+- **THEN** only one heading row `Real` appears, `A` is `1.` in the leading group, and `B` is `1.` under `Real`
