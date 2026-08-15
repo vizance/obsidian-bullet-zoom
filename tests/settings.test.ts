@@ -22,13 +22,23 @@ describe('settings normalization', () => {
 		expect(normalizeSettings({})).toEqual(DEFAULT_SETTINGS);
 		expect(
 			normalizeSettings({ titleScale: 'abc', outlineScale: 300 }),
-		).toEqual({ titleScale: 100, outlineScale: SCALE_MAX });
+		).toEqual({
+			titleScale: 100,
+			outlineScale: SCALE_MAX,
+			zoomBullets: true,
+			zoomNumbered: true,
+		});
 	});
 
 	it('clamps out-of-range numbers and rounds fractions', () => {
 		expect(
 			normalizeSettings({ titleScale: -5, outlineScale: 87.6 }),
-		).toEqual({ titleScale: SCALE_MIN, outlineScale: 88 });
+		).toEqual({
+			titleScale: SCALE_MIN,
+			outlineScale: 88,
+			zoomBullets: true,
+			zoomNumbered: true,
+		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
 		);
@@ -40,6 +50,8 @@ describe('scale variable application', () => {
 		applyScaleVariables(document.body, {
 			titleScale: 130,
 			outlineScale: 85,
+			zoomBullets: true,
+			zoomNumbered: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -68,13 +80,20 @@ describe('plugin settings lifecycle', () => {
 			.mockResolvedValue(undefined);
 
 		await plugin.updateSettings({ titleScale: 130 });
-		expect(plugin.settings).toEqual({ titleScale: 130, outlineScale: 100 });
+		expect(plugin.settings).toEqual({
+			titleScale: 130,
+			outlineScale: 100,
+			zoomBullets: true,
+			zoomNumbered: true,
+		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
 		).toBe('1.3');
 		expect(saveData).toHaveBeenCalledWith({
 			titleScale: 130,
 			outlineScale: 100,
+			zoomBullets: true,
+			zoomNumbered: true,
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -100,12 +119,41 @@ describe('slider reset buttons', () => {
 		await plugin.updateSettings({ titleScale: 130, outlineScale: 85 });
 
 		await plugin.updateSettings({ outlineScale: 100 });
-		expect(plugin.settings).toEqual({ titleScale: 130, outlineScale: 100 });
+		expect(plugin.settings).toEqual({
+			titleScale: 130,
+			outlineScale: 100,
+			zoomBullets: true,
+			zoomNumbered: true,
+		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
 		).toBe('1');
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
 		).toBe('1.3');
+	});
+});
+
+describe('marker detection toggles', () => {
+	it('persists toggle changes and normalizes non-boolean values', async () => {
+		expect(normalizeSettings({ zoomNumbered: 'yes' }).zoomNumbered).toBe(
+			true,
+		);
+		expect(normalizeSettings({ zoomNumbered: false }).zoomNumbered).toBe(
+			false,
+		);
+		const plugin = new BulletZoomPlugin({} as never, {} as never);
+		const saveData = vi
+			.spyOn(plugin, 'saveData')
+			.mockResolvedValue(undefined);
+		await plugin.updateSettings({ zoomNumbered: false });
+		expect(plugin.settings.zoomNumbered).toBe(false);
+		expect(plugin.settings.zoomBullets).toBe(true);
+		expect(saveData).toHaveBeenCalledWith({
+			titleScale: 100,
+			outlineScale: 100,
+			zoomBullets: true,
+			zoomNumbered: false,
+		});
 	});
 });

@@ -24,9 +24,11 @@ import {
 	buildBreadcrumbs,
 	computeBranchRange,
 	findSupportedBullet,
+	markerDetectionFacet,
 	planAppendChildInsertion,
 	type Breadcrumb,
 	type BranchRange,
+	type MarkerDetection,
 } from './list-structure';
 import { appendHomeIcon } from './home-icon';
 
@@ -1084,6 +1086,7 @@ export function runParentCommand(
 export function createFocusExtension({
 	isPhone,
 	isMobile,
+	markerDetection,
 	onEditorReady,
 	onEditorUpdate,
 	onEditorDestroy,
@@ -1091,6 +1094,7 @@ export function createFocusExtension({
 }: Readonly<{
 	isPhone: boolean;
 	isMobile: boolean;
+	markerDetection?: MarkerDetection;
 	onEditorReady?: (view: EditorView) => void;
 	onEditorUpdate?: (update: ViewUpdate) => void;
 	onEditorDestroy?: (view: EditorView) => void;
@@ -1104,6 +1108,9 @@ export function createFocusExtension({
 		};
 	});
 	return [
+		...(markerDetection !== undefined
+			? [markerDetectionFacet.of(markerDetection)]
+			: []),
 		focusPhoneMode.of(isPhone),
 		focusMobileMode.of(isMobile),
 		focusNoticeHandler.of(notify),

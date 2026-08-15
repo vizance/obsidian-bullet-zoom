@@ -4,7 +4,7 @@ import {
 	indentString,
 	syntaxTree,
 } from '@codemirror/language';
-import { countColumn, EditorState } from '@codemirror/state';
+import { countColumn, EditorState, Facet } from '@codemirror/state';
 import type { SyntaxNode, Tree } from '@lezer/common';
 
 export type SupportedBullet = Readonly<{
@@ -89,6 +89,24 @@ export class BulletOutlineLimitError extends Error {
 }
 
 const PLAIN_BULLET_PATTERN = /^([\t ]*)([-+*])([\t ]+)(.*)$/;
+const ORDERED_ITEM_PATTERN = /^([\t ]*)(\d+[.)])([\t ]+)(.*)$/;
+
+export interface MarkerDetection {
+	readonly bullets: boolean;
+	readonly numbered: boolean;
+}
+
+const DEFAULT_MARKER_DETECTION: MarkerDetection = Object.freeze({
+	bullets: true,
+	numbered: false,
+});
+
+export const markerDetectionFacet = Facet.define<
+	MarkerDetection,
+	MarkerDetection
+>({
+	combine: (values) => values.at(0) ?? DEFAULT_MARKER_DETECTION,
+});
 const ANY_LIST_MARKER_PATTERN = /^[\t ]*(?:[-+*]|\d+[.)])[\t ]+/;
 const ORDERED_LIST_MARKER_PATTERN = /^[\t ]*\d+[.)][\t ]+/;
 const TASK_PATTERN = /^\[(?: |x|X)\](?:\s|$)/;
@@ -127,14 +145,24 @@ export function isSupportedBulletSyntaxNode(
 	node: SyntaxNode,
 	markerFrom: number,
 	markerTo: number,
+	detection: MarkerDetection = DEFAULT_MARKER_DETECTION,
 ): boolean {
 	if (node.from !== markerFrom) {
 		return false;
 	}
 
 	const syntaxTokens = node.name.split('_');
-	if (syntaxTokens.includes('formatting-list-ul')) {
+	if (
+		syntaxTokens.includes('formatting-list-ul') ||
+		syntaxTokens.includes('formatting-list-ol')
+	) {
 		if (node.to < markerTo) {
+			return false;
+		}
+		if (syntaxTokens.includes('formatting-list-ul') && !detection.bullets) {
+			return false;
+		}
+		if (syntaxTokens.includes('formatting-list-ol') && !detection.numbered) {
 			return false;
 		}
 		const parentTokens = node.parent?.name.split('_') ?? [];
@@ -146,18 +174,31 @@ export function isSupportedBulletSyntaxNode(
 	}
 
 	let current: SyntaxNode | null = node;
-	let foundBulletList = false;
+	let nearestListKind: 'bullet' | 'ordered' | null = null;
+	let hasOrderedAncestor = false;
 	while (current !== null) {
 		if (current.name === 'OrderedList') {
-			return false;
+			hasOrderedAncestor = true;
+			nearestListKind ??= 'ordered';
 		}
 		if (current.name === 'BulletList') {
-			foundBulletList = true;
+			nearestListKind ??= 'bullet';
 		}
 		current = current.parent;
 	}
-
-	return foundBulletList;
+	if (nearestListKind === null) {
+		return false;
+	}
+	if (nearestListKind === 'bullet' && !detection.bullets) {
+		return false;
+	}
+	if (nearestListKind === 'ordered' && !detection.numbered) {
+		return false;
+	}
+	if (hasOrderedAncestor && !detection.numbered) {
+		return false;
+	}
+	return true;
 }
 
 function hasBulletListSyntax(
@@ -170,7 +211,12 @@ function hasBulletListSyntax(
 			markerFrom,
 			1,
 		);
-	return isSupportedBulletSyntaxNode(node, markerFrom, markerTo);
+	return isSupportedBulletSyntaxNode(
+		node,
+		markerFrom,
+		markerTo,
+		state.facet(markerDetectionFacet),
+	);
 }
 
 export function findSupportedBullet(
@@ -179,16 +225,25 @@ export function findSupportedBullet(
 ): SupportedBullet | null {
 	const safePosition = Math.max(0, Math.min(position, state.doc.length));
 	const line = state.doc.lineAt(safePosition);
-	const match = PLAIN_BULLET_PATTERN.exec(line.text);
+	const detection = state.facet(markerDetectionFacet);
+	const match =
+		(detection.bullets ? PLAIN_BULLET_PATTERN.exec(line.text) : null) ??
+		(detection.numbered ? ORDERED_ITEM_PATTERN.exec(line.text) : null);
 
 	if (match === null || isInsideFrontmatter(state, line.number)) {
 		return null;
 	}
 
 	const indentText = match[1];
+	const markerText = match[2];
 	const spacing = match[3];
 	const content = match[4];
-	if (indentText === undefined || spacing === undefined || content === undefined) {
+	if (
+		indentText === undefined ||
+		markerText === undefined ||
+		spacing === undefined ||
+		content === undefined
+	) {
 		return null;
 	}
 	if (TASK_PATTERN.test(content)) {
@@ -196,7 +251,7 @@ export function findSupportedBullet(
 	}
 
 	const markerFrom = line.from + indentText.length;
-	const markerTo = markerFrom + 1;
+	const markerTo = markerFrom + markerText.length;
 	if (!hasBulletListSyntax(state, markerFrom, markerTo)) {
 		return null;
 	}
@@ -684,6 +739,7 @@ export function collectHyperMdAncestorBullets(
 
 export function buildHyperMdBulletOutline(
 	entries: readonly HyperMdOutlineEntry[],
+	detection: MarkerDetection = DEFAULT_MARKER_DETECTION,
 ): readonly BulletOutlineNode[] {
 	const roots: MutableBulletOutlineNode[] = [];
 	let nodeCount = 0;
@@ -719,7 +775,10 @@ export function buildHyperMdBulletOutline(
 		) {
 			throw new BulletOutlineLimitError();
 		}
-		if (entry.bullet === null || isOrdered || isInsideOrderedList) {
+		if (
+			entry.bullet === null ||
+			(!detection.numbered && (isOrdered || isInsideOrderedList))
+		) {
 			stack.push({ level, node: null, isOrdered });
 			continue;
 		}
@@ -864,7 +923,11 @@ function buildHyperMdOutline(state: EditorState, tree: Tree): readonly BulletOut
 			throw new BulletOutlineLimitError();
 		}
 		const bullet = findSupportedBullet(state, line.from);
-		if (bullet === null || isOrdered || isInsideOrderedList) {
+		if (
+			bullet === null ||
+			(!state.facet(markerDetectionFacet).numbered &&
+				(isOrdered || isInsideOrderedList))
+		) {
 			stack.push({ level, node: null, isOrdered });
 			continue;
 		}
