@@ -168,13 +168,17 @@ export function syncOutlineLabelOverflow(container: HTMLElement): void {
 	}
 }
 
+interface BulletLabelPreviewModalOptions {
+	readonly onClosed?: () => void;
+}
+
 class BulletLabelPreviewModal extends Modal {
 	private closing = false;
 
 	constructor(
 		app: BulletOutlineSidebarView['app'],
 		private readonly label: string,
-		private readonly trigger: HTMLButtonElement,
+		private readonly options: BulletLabelPreviewModalOptions,
 	) {
 		super(app);
 	}
@@ -204,9 +208,7 @@ class BulletLabelPreviewModal extends Modal {
 
 	onClose(): void {
 		this.contentEl.replaceChildren();
-		if (this.trigger.isConnected) {
-			this.trigger.focus({ preventScroll: true });
-		}
+		this.options.onClosed?.();
 	}
 }
 
@@ -527,7 +529,24 @@ export class BulletOutlineSidebarView extends ItemView {
 						this.contentEl.contains(trigger) &&
 						this.coordinator.isPreviewActionValid(action)
 					) {
-						new BulletLabelPreviewModal(this.app, label, trigger).open();
+						const body = this.contentEl.querySelector<HTMLElement>(
+							'.bullet-zoom-outline-sidebar-body',
+						);
+						const retainedScrollTop = body?.scrollTop ?? 0;
+						this.coordinator.lockPreviewContext();
+						new BulletLabelPreviewModal(this.app, label, {
+							onClosed: () => {
+								const currentBody =
+									this.contentEl.querySelector<HTMLElement>(
+										'.bullet-zoom-outline-sidebar-body',
+									);
+								if (currentBody !== null) {
+									currentBody.scrollTop = retainedScrollTop;
+								}
+								this.retainedReadyScrollTop = retainedScrollTop;
+								this.coordinator.unlockPreviewContext();
+							},
+						}).open();
 					}
 				},
 		});
@@ -564,6 +583,7 @@ export class BulletOutlineSidebarCoordinator {
 	private refreshGeneration = 0;
 	private lastRenderedContext: string | null = null;
 	private forceRevealCurrent = false;
+	private previewContextLock = false;
 	private openRequestGeneration = 0;
 	private destroyed = false;
 	private revision = 0;
@@ -816,6 +836,14 @@ export class BulletOutlineSidebarCoordinator {
 		}
 	}
 
+	lockPreviewContext(): void {
+		this.previewContextLock = true;
+	}
+
+	unlockPreviewContext(): void {
+		this.previewContextLock = false;
+	}
+
 	isPreviewActionValid({ anchor, revision }: OutlineNodeAction): boolean {
 		return this.isActionValid(anchor, revision);
 	}
@@ -1066,6 +1094,7 @@ export class BulletOutlineSidebarCoordinator {
 		this.revision += 1;
 		const renderContext = `${source.filePath}\0${currentAnchor ?? 'full'}`;
 		const revealCurrent =
+			!this.previewContextLock &&
 			status === 'ready' &&
 			(this.forceRevealCurrent || this.lastRenderedContext !== renderContext);
 		if (status !== 'pending') {

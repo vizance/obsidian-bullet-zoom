@@ -898,6 +898,20 @@ describe('native outline sidebar coordinator', () => {
 			syncOutlineLabelOverflow(fixture.sidebarView.contentEl);
 			const beforeDoc = fixture.editorView.state.doc.toString();
 			const beforeSelection = fixture.editorView.state.selection;
+			const bodyBefore =
+				fixture.sidebarView.contentEl.querySelector<HTMLElement>(
+					'.bullet-zoom-outline-sidebar-body',
+				);
+			expect(bodyBefore).not.toBeNull();
+			if (bodyBefore !== null) {
+				bodyBefore.scrollTop = 120;
+			}
+			const scrollIntoViewSpy = vi.fn();
+			const elementPrototype = Element.prototype as {
+				scrollIntoView?: (options?: unknown) => void;
+			};
+			const originalScrollIntoView = elementPrototype.scrollIntoView;
+			elementPrototype.scrollIntoView = scrollIntoViewSpy;
 			preview.click();
 			expect(document.body.textContent).toContain('Bullet 全文');
 			expect(document.body.textContent).toContain(
@@ -912,13 +926,47 @@ describe('native outline sidebar coordinator', () => {
 				'.bullet-zoom-outline-preview-close',
 			);
 			const modalElement = close?.parentElement?.parentElement;
+			fixture.emit('layout-change');
+			await Promise.resolve();
+			await Promise.resolve();
 			close?.click();
 			close?.click();
+			fixture.emit('layout-change');
+			await Promise.resolve();
+			await Promise.resolve();
 			expect(modalElement?.hidden).toBe(true);
 			expect(nativeClose).toHaveBeenCalledTimes(1);
-			expect(document.activeElement).toBe(preview);
+			expect(document.activeElement).not.toBe(preview);
+			const bodyAfter =
+				fixture.sidebarView.contentEl.querySelector<HTMLElement>(
+					'.bullet-zoom-outline-sidebar-body',
+				);
+			expect(bodyAfter?.scrollTop).toBe(120);
+			expect(scrollIntoViewSpy).not.toHaveBeenCalled();
+			elementPrototype.scrollIntoView = originalScrollIntoView;
 		}
 		expect(openedModal).not.toBeNull();
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('keeps revealCurrent suppressed while the preview modal is open', async () => {
+		const fixture = await createCoordinatorFixture('- Long **preview** label', true);
+		const updates = vi.spyOn(fixture.sidebarView, 'updateModel');
+
+		fixture.coordinator.lockPreviewContext();
+		await fixture.coordinator.openForEditor(fixture.editorView);
+		await Promise.resolve();
+		await Promise.resolve();
+		const lockedModel = updates.mock.calls.at(-1)?.[0];
+		expect(lockedModel?.revealCurrent).toBe(false);
+
+		fixture.coordinator.unlockPreviewContext();
+		await fixture.coordinator.openForEditor(fixture.editorView);
+		await Promise.resolve();
+		await Promise.resolve();
+		const unlockedModel = updates.mock.calls.at(-1)?.[0];
+		expect(unlockedModel?.revealCurrent).toBe(true);
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
