@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.36');
+		expect(manifest.version).toBe('0.1.37');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.36');
-		expect(packageLock.version).toBe('0.1.36');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.36');
+		expect(packageManifest.version).toBe('0.1.37');
+		expect(packageLock.version).toBe('0.1.37');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.37');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -418,8 +418,11 @@ describe('mobile-compatible plugin bundle contract', () => {
 			);
 			expect(sidebarRule?.style.background).toBe('var(--background-primary)');
 			expect(sidebarRule?.style.color).toBe('var(--text-normal)');
-			expect(getComputedStyle(sidebar).fontSize).toBe(
+			expect(getComputedStyle(sidebar).fontSize).toContain(
 				'var(--font-ui-smaller, 0.9em)',
+			);
+			expect(getComputedStyle(sidebar).fontSize).toContain(
+				'--bullet-zoom-outline-scale',
 			);
 			expect(getComputedStyle(row).minHeight).toBe('44px');
 			expect(getComputedStyle(disclosure).minWidth).toBe('44px');
@@ -650,6 +653,36 @@ describe('focus page rebase CSS contract (0.1.36)', () => {
 		);
 		expect(phoneTitleRule?.style.getPropertyValue('font-size')).toContain(
 			'clamp',
+		);
+	});
+});
+
+describe('size slider CSS contract (0.1.37)', () => {
+	it('multiplies title and outline font sizes by the scale variables', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const fontSizeOf = (selector: string): string =>
+			rules
+				.filter((rule) => rule.selectorText === selector)
+				.map((rule) => rule.style.getPropertyValue('font-size'))
+				.find((value) => value !== '') ?? '';
+
+		expect(fontSizeOf('.bullet-zoom-focus-root-line')).toContain(
+			'--bullet-zoom-title-scale',
+		);
+		expect(
+			fontSizeOf('.bullet-zoom-phone-pane .bullet-zoom-focus-root-line'),
+		).toContain('--bullet-zoom-title-scale');
+		expect(fontSizeOf('.bullet-zoom-outline-sidebar')).toContain(
+			'--bullet-zoom-outline-scale',
+		);
+		expect(fontSizeOf('.is-mobile .bullet-zoom-outline-sidebar')).toContain(
+			'--bullet-zoom-outline-scale',
 		);
 	});
 });
