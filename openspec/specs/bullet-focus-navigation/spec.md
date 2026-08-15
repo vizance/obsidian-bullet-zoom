@@ -580,3 +580,117 @@ For version 0.1.27 and later, when Bullet Zoom promotes a focused source line in
 
 - **WHEN** focus is stale, the target is detached or unsupported, or the document cannot provide a safe focused branch
 - **THEN** the plugin keeps the existing fail-closed behavior and does not rewrite source solely to repair visual indentation
+
+---
+### Requirement: Rebase focus page layout to the focused bullet
+
+When a Bullet is focused, the plugin SHALL lay out the focus page relative to the focused bullet instead of the document's absolute list depth. The focus root line SHALL render with zero text-indent and zero inline-start padding so the title and its wrapped lines use the full editor width. Every bullet line inside the focused branch SHALL hide its leading indentation characters and SHALL receive a relative-depth custom property (capped at 8) that drives a rebased hanging indent, so a direct child renders at depth one regardless of how deep the branch sits in the document. Exiting focus SHALL restore the native layout.
+
+#### Scenario: Zoom into a third-level bullet
+
+- **WHEN** the user focuses a Bullet nested three levels deep
+- **THEN** the focus root line carries the focus-root class with zeroed indent overrides, and its direct children carry the rebased line class with relative depth `1`
+
+##### Example: Deep branch rebases
+
+- **GIVEN** the document is `- A\n  - B\n    - C 這是一段會折行的長文字\n      - D\n        - E`
+- **WHEN** the user focuses `C`
+- **THEN** the line of `D` carries the rebased class with relative depth `1`, the line of `E` carries relative depth `2`, and the leading indentation characters of both lines are hidden from rendering
+
+#### Scenario: Wrapped title uses the full width
+
+- **WHEN** a focused bullet's label is longer than one visual line
+- **THEN** the focus root line's computed text-indent is `0` and its inline-start padding is `0`, so wrapped title lines start at the editor's left edge
+
+##### Example: Root line CSS contract
+
+- **GIVEN** the plugin stylesheet is loaded and a line carries the focus-root class
+- **WHEN** its computed style is inspected
+- **THEN** text-indent is `0px` and padding-inline-start is `0px`
+
+#### Scenario: Leaving focus restores native indentation
+
+- **WHEN** the user exits focus
+- **THEN** no line carries the rebased class or the focus-root class and the native indentation renders unchanged
+
+##### Example: Exit cleanup
+
+- **GIVEN** a focused branch whose lines carry rebased classes
+- **WHEN** the focus session ends
+- **THEN** querying the editor DOM for the rebased line class returns no elements
+
+---
+### Requirement: Provide size sliders for the focus title and the outline
+
+The plugin SHALL provide a settings tab with two sliders — focus title scale and outline scale — each an integer percentage from 60 to 160 with step 5 and default 100, persisted via plugin data. Changing a slider SHALL apply immediately by writing the corresponding scale multipliers to custom properties `--bullet-zoom-title-scale` and `--bullet-zoom-outline-scale` on the document body, which the stylesheet multiplies into the focus root title font-size (desktop and phone variants) and the outline sidebar font-size. Loading settings SHALL normalize invalid values: non-numeric input falls back to the default and out-of-range numbers clamp to the range. Unloading the plugin SHALL remove both custom properties.
+
+#### Scenario: Adjust the title slider
+
+- **WHEN** the user drags the focus title slider to 130
+- **THEN** the plugin saves `titleScale` 130 and sets `--bullet-zoom-title-scale` to `1.3` on the document body
+
+##### Example: Slider write-through
+
+- **GIVEN** the settings tab is open with default values
+- **WHEN** the title slider changes to `130`
+- **THEN** the body style contains `--bullet-zoom-title-scale: 1.3` and the persisted data records `titleScale: 130`
+
+#### Scenario: Normalize invalid persisted data
+
+- **WHEN** the plugin loads persisted data containing a non-numeric or out-of-range scale
+- **THEN** non-numeric values fall back to 100 and out-of-range numbers clamp into 60–160
+
+##### Example: Normalization table
+
+- **GIVEN** persisted data `{ "titleScale": "abc", "outlineScale": 300 }`
+- **WHEN** settings are loaded
+- **THEN** the effective values are `titleScale` 100 and `outlineScale` 160
+
+#### Scenario: Stylesheet multiplies the scales
+
+- **WHEN** the plugin stylesheet renders the focus root title and the outline sidebar
+- **THEN** their font-size declarations multiply the base size by the corresponding scale custom property with a fallback of 1
+
+##### Example: CSS contract
+
+- **GIVEN** the plugin stylesheet is loaded
+- **WHEN** its rules are inspected
+- **THEN** the focus root title and phone title font-size values reference `--bullet-zoom-title-scale` and the outline sidebar font-size references `--bullet-zoom-outline-scale`
+
+#### Scenario: Unload removes the overrides
+
+- **WHEN** the plugin unloads
+- **THEN** neither `--bullet-zoom-title-scale` nor `--bullet-zoom-outline-scale` remains on the document body
+
+##### Example: Cleanup audit
+
+- **GIVEN** a loaded plugin with both custom properties applied
+- **WHEN** onunload runs
+- **THEN** reading either property from the body style returns an empty string
+
+---
+### Requirement: Reset each size slider to its default with one tap
+
+Each size slider setting SHALL include a reset extra button that, when activated, sets the corresponding scale back to 100, persists the change, reapplies the scale custom properties, and re-renders the settings tab so the slider control reflects 100.
+
+#### Scenario: Reset the title slider
+
+- **WHEN** the user taps the reset button next to the focus title slider
+- **THEN** the persisted title scale becomes 100, the body custom property becomes `1`, and the re-rendered slider shows 100
+
+##### Example: Reset after adjustment
+
+- **GIVEN** the title scale is 130
+- **WHEN** the reset button of the title slider is activated
+- **THEN** the persisted data records `titleScale: 100` and the slider control value is `100`
+
+#### Scenario: Reset the outline slider independently
+
+- **WHEN** the user taps the reset button next to the outline slider while the title scale is 130
+- **THEN** only the outline scale returns to 100 and the title scale stays 130
+
+##### Example: Independent reset
+
+- **GIVEN** persisted data `{ "titleScale": 130, "outlineScale": 85 }`
+- **WHEN** the outline reset button is activated
+- **THEN** the persisted data becomes `{ "titleScale": 130, "outlineScale": 100 }`
