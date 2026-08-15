@@ -529,6 +529,7 @@ const markerClickHandler = EditorView.domEventHandlers({
 });
 
 const FOCUSED_PANE_CLASS = 'bullet-zoom-pane-is-focused';
+const PHONE_PANE_CLASS = 'bullet-zoom-phone-pane';
 
 class FocusedPanePresentationPlugin implements PluginValue {
 	private pane: HTMLElement | null = null;
@@ -543,6 +544,7 @@ class FocusedPanePresentationPlugin implements PluginValue {
 
 	destroy(): void {
 		this.pane?.classList.remove(FOCUSED_PANE_CLASS);
+		this.pane?.classList.remove(PHONE_PANE_CLASS);
 		this.pane = null;
 	}
 
@@ -550,11 +552,16 @@ class FocusedPanePresentationPlugin implements PluginValue {
 		const nextPane = view.dom.closest<HTMLElement>('.markdown-source-view');
 		if (nextPane !== this.pane) {
 			this.pane?.classList.remove(FOCUSED_PANE_CLASS);
+			this.pane?.classList.remove(PHONE_PANE_CLASS);
 			this.pane = nextPane;
 		}
 		this.pane?.classList.toggle(
 			FOCUSED_PANE_CLASS,
 			getFocusSession(view.state) !== null,
+		);
+		this.pane?.classList.toggle(
+			PHONE_PANE_CLASS,
+			view.state.facet(focusPhoneMode),
 		);
 	}
 }
