@@ -38,6 +38,10 @@ import {
 	suggestExtractFileName,
 } from './list-structure';
 import {
+	collectFolderPaths,
+	filterFolderSuggestions,
+} from './folder-suggest';
+import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
 	BulletOutlineSidebarView,
@@ -155,17 +159,102 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						void this.plugin.updateSettings({ zoomNumbered: value });
 					}),
 			);
-		new Setting(this.containerEl)
+		const folderSetting = new Setting(this.containerEl)
 			.setName('拆分後的新筆記位置')
-			.setDesc('輸入資料夾路徑（例如 Cards）；留空表示與目前筆記同資料夾。')
-			.addText((text) =>
-				text
-					.setPlaceholder('留空＝與目前筆記同資料夾')
-					.setValue(this.plugin.settings.extractFolder)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ extractFolder: value });
-					}),
+			.setDesc('輸入或選擇資料夾（例如 Cards）；留空表示與目前筆記同資料夾。');
+		folderSetting.addText((text) => {
+			text
+				.setPlaceholder('留空＝與目前筆記同資料夾')
+				.setValue(this.plugin.settings.extractFolder)
+				.onChange((value) => {
+					void this.plugin.updateSettings({ extractFolder: value });
+					renderSuggestions(value);
+				});
+			const input = text.inputEl;
+			input.autocomplete = 'off';
+			const wrapper = input.ownerDocument.createElement('div');
+			wrapper.className = 'bullet-zoom-folder-suggest';
+			input.replaceWith(wrapper);
+			wrapper.append(input);
+			const list = input.ownerDocument.createElement('div');
+			list.className = 'bullet-zoom-folder-suggestions';
+			list.hidden = true;
+			wrapper.append(list);
+
+			let activeIndex = -1;
+			const folders = collectFolderPaths(
+				this.app.vault as unknown as {
+					getAllLoadedFiles?: () => readonly unknown[];
+				},
 			);
+			const applySuggestion = (value: string): void => {
+				text.setValue(value);
+				void this.plugin.updateSettings({ extractFolder: value });
+				list.hidden = true;
+				list.replaceChildren();
+				activeIndex = -1;
+			};
+			const highlight = (): void => {
+				const items = Array.from(
+					list.querySelectorAll('.bullet-zoom-folder-suggestion'),
+				);
+				for (const [index, child] of items.entries()) {
+					child.classList.toggle('is-active', index === activeIndex);
+				}
+			};
+			function renderSuggestions(query: string): void {
+				const matches = filterFolderSuggestions(folders, query);
+				list.replaceChildren();
+				activeIndex = matches.length > 0 ? 0 : -1;
+				for (const match of matches) {
+					const item = input.ownerDocument.createElement('div');
+					item.className = 'bullet-zoom-folder-suggestion';
+					item.textContent = match;
+					item.addEventListener('mousedown', (event) => {
+						event.preventDefault();
+						applySuggestion(match);
+					});
+					list.append(item);
+				}
+				list.hidden = matches.length === 0;
+				highlight();
+			}
+
+			input.addEventListener('focus', () => renderSuggestions(input.value));
+			input.addEventListener('blur', () => {
+				input.ownerDocument.defaultView?.setTimeout(() => {
+					list.hidden = true;
+				}, 120);
+			});
+			input.addEventListener('keydown', (event) => {
+				if (list.hidden || list.children.length === 0) {
+					return;
+				}
+				if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+					event.preventDefault();
+					const delta = event.key === 'ArrowDown' ? 1 : -1;
+					activeIndex =
+						(activeIndex + delta + list.children.length) %
+						list.children.length;
+					highlight();
+					return;
+				}
+				if (event.key === 'Enter' && activeIndex >= 0) {
+					event.preventDefault();
+					const value =
+						list.querySelectorAll('.bullet-zoom-folder-suggestion')[
+							activeIndex
+						]?.textContent ?? '';
+					if (value.length > 0) {
+						applySuggestion(value);
+					}
+					return;
+				}
+				if (event.key === 'Escape') {
+					list.hidden = true;
+				}
+			});
+		});
 		new Setting(this.containerEl)
 			.setName('拆分時移除最上層 Bullet')
 			.setDesc(
