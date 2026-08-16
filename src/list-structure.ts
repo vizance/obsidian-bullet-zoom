@@ -1169,6 +1169,17 @@ function minimalCommonIndent(lines: readonly string[]): string {
 	return common ?? '';
 }
 
+export function suggestExtractFileName(label: string): string {
+	return label
+		.replace(/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, alias) =>
+			typeof alias === 'string' && alias.length > 0 ? alias : String(target),
+		)
+		.replace(/!?\[([^\]]*)\]\([^)]*\)/g, (_match, text) => String(text))
+		.replace(/[\\/:*?"<>|#^[\]]/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
 export function planBulletExtract(
 	state: EditorState,
 	anchor: number,

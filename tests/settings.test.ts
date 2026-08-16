@@ -28,6 +28,7 @@ describe('settings normalization', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 	});
 
@@ -40,6 +41,7 @@ describe('settings normalization', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -55,6 +57,7 @@ describe('scale variable application', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -89,6 +92,7 @@ describe('plugin settings lifecycle', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -99,6 +103,7 @@ describe('plugin settings lifecycle', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -130,6 +135,7 @@ describe('slider reset buttons', () => {
 			zoomBullets: true,
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -161,6 +167,7 @@ describe('marker detection toggles', () => {
 			zoomBullets: true,
 			zoomNumbered: false,
 			extractRemoveTopBullet: true,
+			extractFolder: '',
 		});
 	});
 });
@@ -176,5 +183,18 @@ describe('extract settings', () => {
 			normalizeSettings({ extractRemoveTopBullet: false })
 				.extractRemoveTopBullet,
 		).toBe(false);
+	});
+});
+
+describe('extract folder setting', () => {
+	it('defaults to empty and normalizes surrounding slashes and non-strings', () => {
+		expect(normalizeSettings({}).extractFolder).toBe('');
+		expect(normalizeSettings({ extractFolder: '/Cards/' }).extractFolder).toBe(
+			'Cards',
+		);
+		expect(
+			normalizeSettings({ extractFolder: '  Cards/Sub  ' }).extractFolder,
+		).toBe('Cards/Sub');
+		expect(normalizeSettings({ extractFolder: 42 }).extractFolder).toBe('');
 	});
 });

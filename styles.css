@@ -602,6 +602,12 @@ button.bullet-zoom-breadcrumb {
 	user-select: none;
 }
 
+.bullet-zoom-outline-sidebar-body.bullet-zoom-outline-dragging {
+	overflow: hidden;
+	touch-action: none;
+	overscroll-behavior: none;
+}
+
 .bullet-zoom-outline-dragging .bullet-zoom-outline-sidebar-row {
 	touch-action: none;
 }

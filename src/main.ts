@@ -32,7 +32,11 @@ import {
 	runFocusCommand,
 	runParentCommand,
 } from './focus-extension';
-import { findSupportedBullet, planBulletExtract } from './list-structure';
+import {
+	findSupportedBullet,
+	planBulletExtract,
+	suggestExtractFileName,
+} from './list-structure';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -72,6 +76,7 @@ class ExtractNameModal extends Modal {
 
 	constructor(
 		app: App,
+		private readonly defaultName: string,
 		private readonly onSubmit: (name: string) => void,
 	) {
 		super(app);
@@ -83,6 +88,7 @@ class ExtractNameModal extends Modal {
 		input.type = 'text';
 		input.className = 'bullet-zoom-extract-name-input';
 		input.placeholder = '輸入新筆記名稱';
+		input.value = this.defaultName;
 		const confirm = this.contentEl.ownerDocument.createElement('button');
 		confirm.className = 'bullet-zoom-extract-confirm mod-cta';
 		confirm.textContent = '建立';
@@ -108,6 +114,7 @@ class ExtractNameModal extends Modal {
 		actions.append(cancel, confirm);
 		this.contentEl.replaceChildren(input, actions);
 		input.focus();
+		input.select();
 	}
 
 	onClose(): void {
@@ -146,6 +153,17 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.zoomNumbered)
 					.onChange((value) => {
 						void this.plugin.updateSettings({ zoomNumbered: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('拆分後的新筆記位置')
+			.setDesc('輸入資料夾路徑（例如 Cards）；留空表示與目前筆記同資料夾。')
+			.addText((text) =>
+				text
+					.setPlaceholder('留空＝與目前筆記同資料夾')
+					.setValue(this.plugin.settings.extractFolder)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ extractFolder: value });
 					}),
 			);
 		new Setting(this.containerEl)
@@ -358,9 +376,13 @@ export default class BulletZoomPlugin extends Plugin {
 				if (checking) {
 					return true;
 				}
-				new ExtractNameModal(this.app, (name) => {
-					void this.extractBulletToNote(view, bullet.markerFrom, name);
-				}).open();
+				new ExtractNameModal(
+					this.app,
+					suggestExtractFileName(bullet.label),
+					(name) => {
+						void this.extractBulletToNote(view, bullet.markerFrom, name);
+					},
+				).open();
 				return true;
 			},
 		});
@@ -399,8 +421,23 @@ export default class BulletZoomPlugin extends Plugin {
 			showNotice('請先把游標移到可拆分的 Bullet 上。');
 			return;
 		}
+		const configuredFolder = this.settings.extractFolder;
 		const activeFile = this.app.workspace.getActiveFile();
-		const folderPath = activeFile?.parent?.path ?? '';
+		const folderPath =
+			configuredFolder.length > 0
+				? configuredFolder
+				: (activeFile?.parent?.path ?? '');
+		if (
+			configuredFolder.length > 0 &&
+			this.app.vault.getAbstractFileByPath(configuredFolder) === null
+		) {
+			try {
+				await this.app.vault.createFolder(configuredFolder);
+			} catch {
+				showNotice('無法建立指定的資料夾，請確認路徑是否正確。');
+				return;
+			}
+		}
 		const filePath =
 			folderPath === '' || folderPath === '/'
 				? `${name}.md`
