@@ -7,7 +7,10 @@ export interface BulletZoomSettings {
 	readonly extractFolder: string;
 	readonly extractTemplatePath: string;
 	readonly extractReplacement: ExtractReplacement;
+	readonly extractOpenBehavior: ExtractOpenBehavior;
 }
+
+export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
 
 export type ExtractReplacement = 'link' | 'embed' | 'none';
 
@@ -28,6 +31,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	extractFolder: '',
 	extractTemplatePath: '',
 	extractReplacement: 'link',
+	extractOpenBehavior: 'stay',
 });
 
 export const TITLE_SCALE_PROPERTY = '--bullet-zoom-title-scale';
@@ -53,6 +57,12 @@ function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 
 function normalizeReplacement(value: unknown): ExtractReplacement {
 	return value === 'embed' || value === 'none' ? value : 'link';
+}
+
+function normalizeOpenBehavior(value: unknown): ExtractOpenBehavior {
+	return value === 'current' || value === 'tab' || value === 'split'
+		? value
+		: 'stay';
 }
 
 function normalizeFolder(value: unknown): string {
@@ -91,6 +101,9 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		extractFolder: normalizeFolder(source['extractFolder']),
 		extractTemplatePath: normalizeFolder(source['extractTemplatePath']),
 		extractReplacement: normalizeReplacement(source['extractReplacement']),
+		extractOpenBehavior: normalizeOpenBehavior(
+			source['extractOpenBehavior'],
+		),
 	});
 }
 

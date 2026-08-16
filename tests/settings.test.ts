@@ -31,6 +31,7 @@ describe('settings normalization', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 	});
 
@@ -46,6 +47,7 @@ describe('settings normalization', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -64,6 +66,7 @@ describe('scale variable application', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -101,6 +104,7 @@ describe('plugin settings lifecycle', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -114,6 +118,7 @@ describe('plugin settings lifecycle', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -148,6 +153,7 @@ describe('slider reset buttons', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -182,6 +188,7 @@ describe('marker detection toggles', () => {
 			extractFolder: '',
 			extractTemplatePath: '',
 			extractReplacement: 'link',
+			extractOpenBehavior: 'stay',
 		});
 	});
 });
@@ -239,5 +246,24 @@ describe('extract replacement setting', () => {
 			normalizeSettings({ extractReplacement: 'whatever' })
 				.extractReplacement,
 		).toBe('link');
+	});
+});
+
+describe('extract open behavior setting', () => {
+	it('defaults to stay and normalizes unknown values', () => {
+		expect(normalizeSettings({}).extractOpenBehavior).toBe('stay');
+		for (const behavior of ['current', 'tab', 'split'] as const) {
+			expect(
+				normalizeSettings({ extractOpenBehavior: behavior })
+					.extractOpenBehavior,
+			).toBe(behavior);
+		}
+		expect(
+			normalizeSettings({ extractOpenBehavior: 'popout' })
+				.extractOpenBehavior,
+		).toBe('stay');
+		expect(
+			normalizeSettings({ extractOpenBehavior: 3 }).extractOpenBehavior,
+		).toBe('stay');
 	});
 });
