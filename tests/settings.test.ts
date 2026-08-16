@@ -30,6 +30,7 @@ describe('settings normalization', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 	});
 
@@ -44,6 +45,7 @@ describe('settings normalization', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -61,6 +63,7 @@ describe('scale variable application', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -97,6 +100,7 @@ describe('plugin settings lifecycle', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -109,6 +113,7 @@ describe('plugin settings lifecycle', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -142,6 +147,7 @@ describe('slider reset buttons', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -175,6 +181,7 @@ describe('marker detection toggles', () => {
 			extractRemoveTopBullet: true,
 			extractFolder: '',
 			extractTemplatePath: '',
+			extractReplacement: 'link',
 		});
 	});
 });
@@ -216,5 +223,21 @@ describe('extract template setting', () => {
 		expect(
 			normalizeSettings({ extractTemplatePath: 7 }).extractTemplatePath,
 		).toBe('');
+	});
+});
+
+describe('extract replacement setting', () => {
+	it('defaults to link and normalizes unknown values', () => {
+		expect(normalizeSettings({}).extractReplacement).toBe('link');
+		expect(
+			normalizeSettings({ extractReplacement: 'embed' }).extractReplacement,
+		).toBe('embed');
+		expect(
+			normalizeSettings({ extractReplacement: 'none' }).extractReplacement,
+		).toBe('none');
+		expect(
+			normalizeSettings({ extractReplacement: 'whatever' })
+				.extractReplacement,
+		).toBe('link');
 	});
 });

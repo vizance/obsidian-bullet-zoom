@@ -35,6 +35,7 @@ import {
 import {
 	findSupportedBullet,
 	planBulletExtract,
+	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
 import {
@@ -348,6 +349,22 @@ class BulletZoomSettingTab extends PluginSettingTab {
 				});
 			});
 		new Setting(this.containerEl)
+			.setName('Replacement text')
+			.setDesc('What stays in the original note after extracting.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('link', 'Link to the new note')
+					.addOption('embed', 'Embed the new note')
+					.addOption('none', 'Nothing')
+					.setValue(this.plugin.settings.extractReplacement)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							extractReplacement:
+								value === 'embed' || value === 'none' ? value : 'link',
+						});
+					}),
+			);
+		new Setting(this.containerEl)
 			.setName('Remove the top bullet')
 			.setDesc('Keep only the child bullets in the new note.')
 			.addToggle((toggle) =>
@@ -616,13 +633,26 @@ export default class BulletZoomPlugin extends Plugin {
 			showNotice('Could not create the note. Check that the name is valid.');
 			return;
 		}
-		view.dispatch({
-			changes: {
-				from: plan.replaceFrom,
-				to: plan.replaceTo,
-				insert: `${plan.linkIndentText}- [[${name}]]`,
-			},
-		});
+		const replacement = this.settings.extractReplacement;
+		if (replacement === 'none') {
+			const removal = planBulletRemovalRange(
+				view.state,
+				plan.replaceFrom,
+				plan.replaceTo,
+			);
+			view.dispatch({
+				changes: { from: removal.from, to: removal.to, insert: '' },
+			});
+		} else {
+			const marker = replacement === 'embed' ? '![[' : '[[';
+			view.dispatch({
+				changes: {
+					from: plan.replaceFrom,
+					to: plan.replaceTo,
+					insert: `${plan.linkIndentText}- ${marker}${name}]]`,
+				},
+			});
+		}
 		showNotice(`Extracted to ${name}.`);
 	}
 

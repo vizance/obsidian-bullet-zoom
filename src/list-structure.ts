@@ -1169,6 +1169,20 @@ function minimalCommonIndent(lines: readonly string[]): string {
 	return common ?? '';
 }
 
+export function planBulletRemovalRange(
+	state: EditorState,
+	replaceFrom: number,
+	replaceTo: number,
+): Readonly<{ from: number; to: number }> {
+	if (replaceTo < state.doc.length) {
+		return Object.freeze({ from: replaceFrom, to: replaceTo + 1 });
+	}
+	if (replaceFrom > 0) {
+		return Object.freeze({ from: replaceFrom - 1, to: replaceTo });
+	}
+	return Object.freeze({ from: replaceFrom, to: replaceTo });
+}
+
 export function suggestExtractFileName(label: string): string {
 	return label
 		.replace(/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, alias) =>

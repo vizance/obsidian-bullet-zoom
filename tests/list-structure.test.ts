@@ -10,6 +10,7 @@ import {
 	markerDetectionFacet,
 	planBranchMove,
 	planBulletExtract,
+	planBulletRemovalRange,
 	suggestExtractFileName,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
@@ -1119,5 +1120,39 @@ describe('suggestExtractFileName (0.1.45)', () => {
 	it('keeps plain text and handles blank labels', () => {
 		expect(suggestExtractFileName('  一般標題  ')).toBe('一般標題');
 		expect(suggestExtractFileName('')).toBe('');
+	});
+});
+
+describe('planBulletRemovalRange (0.1.49)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function removeAt(document: string, line: number): string {
+		const state = stateOf(document);
+		const plan = planBulletExtract(state, state.doc.line(line).from, true);
+		if (plan === null) {
+			throw new Error('Expected an extract plan');
+		}
+		const range = planBulletRemovalRange(
+			state,
+			plan.replaceFrom,
+			plan.replaceTo,
+		);
+		return state.update({
+			changes: { from: range.from, to: range.to, insert: '' },
+		}).state.doc.toString();
+	}
+
+	it('removes a middle branch without leaving a blank line', () => {
+		expect(removeAt('- A\n- Topic\n  - P1\n- B', 2)).toBe('- A\n- B');
+	});
+
+	it('removes a trailing branch by consuming the preceding newline', () => {
+		expect(removeAt('- A\n- Topic\n  - P1', 2)).toBe('- A');
+	});
+
+	it('keeps the range unchanged when the branch is the whole document', () => {
+		expect(removeAt('- Topic\n  - P1', 1)).toBe('');
 	});
 });
