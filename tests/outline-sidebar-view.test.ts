@@ -95,6 +95,7 @@ function actions(): OutlineSidebarActions {
 	return {
 		onToggle: vi.fn(),
 		onSelect: vi.fn(),
+		onMove: vi.fn(),
 		onExit: vi.fn(),
 		onRetry: vi.fn(),
 		onPreview: vi.fn(),
@@ -998,6 +999,82 @@ describe('heading sections (0.1.41)', () => {
 		expect(
 			container.querySelectorAll('.bullet-zoom-outline-sidebar-tree'),
 		).toHaveLength(1);
+	});
+});
+
+describe('outline drag move (0.1.43)', () => {
+	it('moves a branch through the coordinator and rejects stale or invalid targets', async () => {
+		const fixture = await createCoordinatorFixture('- A\n  - A1\n- B\n- C');
+		const state = fixture.editorView.state;
+		const anchorA = state.doc.line(1).from;
+		const anchorA1 = state.doc.line(2).from + 2;
+		const anchorC = state.doc.line(4).from;
+
+		fixture.coordinator.moveBranch(
+			{ anchor: anchorA, revision: 999999 },
+			anchorC,
+			'after',
+		);
+		expect(fixture.editorView.state.doc.toString()).toBe(
+			'- A\n  - A1\n- B\n- C',
+		);
+
+		const updates = vi.spyOn(fixture.sidebarView, 'updateModel');
+		fixture.emit('layout-change');
+		await Promise.resolve();
+		await Promise.resolve();
+		const revision = updates.mock.calls.at(-1)?.[0]?.revision ?? 0;
+		expect(revision).toBeGreaterThan(0);
+		fixture.coordinator.moveBranch(
+			{ anchor: anchorA, revision },
+			anchorA1,
+			'after',
+		);
+		expect(fixture.editorView.state.doc.toString()).toBe(
+			'- A\n  - A1\n- B\n- C',
+		);
+
+		fixture.coordinator.moveBranch(
+			{ anchor: anchorA, revision },
+			anchorC,
+			'after',
+		);
+		expect(fixture.editorView.state.doc.toString()).toBe(
+			'- B\n- C\n- A\n  - A1',
+		);
+		fixture.coordinator.destroy();
+		fixture.editorView.destroy();
+	});
+
+	it('suppresses the click that follows a completed drag', () => {
+		const container = document.createElement('div');
+		const handlers = actions();
+		renderOutlineSidebar(
+			container,
+			model({
+				outline: Object.freeze([
+					Object.freeze({ label: 'A', anchor: 0, children: Object.freeze([]) }),
+				]),
+			}),
+			handlers,
+		);
+		const body = container.querySelector<HTMLElement>(
+			'.bullet-zoom-outline-sidebar-body',
+		);
+		const label = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-label',
+		);
+		expect(body).not.toBeNull();
+		expect(label).not.toBeNull();
+		if (body === null || label === null) {
+			return;
+		}
+		body.dataset.bulletZoomDragEnded = 'true';
+		label.click();
+		expect(handlers.onSelect).not.toHaveBeenCalled();
+		expect(body.dataset.bulletZoomDragEnded).toBeUndefined();
+		label.click();
+		expect(handlers.onSelect).toHaveBeenCalledTimes(1);
 	});
 });
 
