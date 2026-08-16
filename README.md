@@ -102,10 +102,10 @@ Settings are grouped into four sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
-- **Focus page** — scale the title shown after zooming.
+- **Focus page** — scale the title shown after zooming, and toggle indent guides.
 - **Extract to new note** — the extraction options listed above.
 
-Both size sliders range from 60% to 160% and have a reset button.
+Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.
 
 ## Commands
 

@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.0.0');
+		expect(manifest.version).toBe('1.1.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.0.0');
-		expect(packageLock.version).toBe('1.0.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.0.0');
+		expect(packageManifest.version).toBe('1.1.0');
+		expect(packageLock.version).toBe('1.1.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.1.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -702,5 +702,40 @@ describe('drag scroll lock CSS contract (0.1.45)', () => {
 		expect(rule).toBeDefined();
 		expect(rule?.style.getPropertyValue('touch-action').trim()).toBe('none');
 		expect(rule?.style.getPropertyValue('overflow').trim()).toBe('hidden');
+	});
+});
+
+describe('focus indent guides CSS contract (1.1.0)', () => {
+	it('paints scoped depth-aware guides without changing layout metrics', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const guideRules = rules.filter((rule) =>
+			rule.style.getPropertyValue('background-image').includes(
+				'repeating-linear-gradient',
+			),
+		);
+		expect(guideRules.length).toBeGreaterThan(0);
+		for (const rule of guideRules) {
+			expect(rule.selectorText).toContain('bullet-zoom-indent-guides');
+			expect(rule.style.getPropertyValue('padding-inline-start')).toBe('');
+			expect(rule.style.getPropertyValue('text-indent')).toBe('');
+		}
+		const guideRule = guideRules.find((rule) =>
+			rule.selectorText.includes('bullet-zoom-rebased-line'),
+		);
+		expect(guideRule?.style.getPropertyValue('background-size')).toContain(
+			'--bullet-zoom-relative-depth',
+		);
+		expect(guideRule?.style.getPropertyValue('background-size')).toContain(
+			'--bullet-zoom-indent-unit',
+		);
+		expect(guideRule?.style.getPropertyValue('background-repeat').trim()).toBe(
+			'no-repeat',
+		);
 	});
 });
