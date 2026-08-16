@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	collectFolderPaths,
+	collectMarkdownPaths,
 	filterFolderSuggestions,
 	FOLDER_SUGGESTION_LIMIT,
 } from '../src/folder-suggest';
@@ -60,5 +61,26 @@ describe('filterFolderSuggestions', () => {
 	it('matches case-insensitively and respects a custom limit', () => {
 		const paths = ['Cards/Inbox', 'cards/Done', 'Notes'];
 		expect(filterFolderSuggestions(paths, 'CARDS', 1)).toEqual(['Cards/Inbox']);
+	});
+});
+
+describe('collectMarkdownPaths', () => {
+	it('keeps Markdown files only and sorts them', () => {
+		const vault = {
+			getAllLoadedFiles: () => [
+				folder('Templates'),
+				file('Templates/card.md'),
+				file('image.png'),
+				file('Notes/idea.MD'),
+			],
+		};
+		expect(collectMarkdownPaths(vault)).toEqual([
+			'Notes/idea.MD',
+			'Templates/card.md',
+		]);
+	});
+
+	it('returns an empty list without a vault', () => {
+		expect(collectMarkdownPaths(null)).toEqual([]);
 	});
 });

@@ -26,6 +26,27 @@ export function collectFolderPaths(vault: VaultLike | null): readonly string[] {
 	return Object.freeze([...paths].sort((left, right) => left.localeCompare(right)));
 }
 
+export function collectMarkdownPaths(
+	vault: VaultLike | null,
+): readonly string[] {
+	const files = vault?.getAllLoadedFiles?.() ?? [];
+	const paths = new Set<string>();
+	for (const file of files) {
+		const candidate = file as FolderLikeFile;
+		if (Array.isArray(candidate.children)) {
+			continue;
+		}
+		const path = typeof candidate.path === 'string' ? candidate.path.trim() : '';
+		if (!path.toLowerCase().endsWith('.md')) {
+			continue;
+		}
+		paths.add(path);
+	}
+	return Object.freeze(
+		[...paths].sort((left, right) => left.localeCompare(right)),
+	);
+}
+
 export function filterFolderSuggestions(
 	paths: readonly string[],
 	query: string,
