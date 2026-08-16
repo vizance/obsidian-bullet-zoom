@@ -587,3 +587,21 @@ button.bullet-zoom-breadcrumb {
 	font-size: var(--font-ui-small, 0.9em);
 	color: var(--text-normal);
 }
+
+/* 0.1.43: outline drag-and-drop */
+.bullet-zoom-outline-drop-indicator {
+	height: 2px;
+	margin: 0 var(--size-2-1, 4px);
+	background: var(--interactive-accent);
+	border-radius: 1px;
+	pointer-events: none;
+}
+
+.bullet-zoom-outline-dragging {
+	cursor: grabbing;
+	user-select: none;
+}
+
+.bullet-zoom-outline-dragging .bullet-zoom-outline-sidebar-row {
+	touch-action: none;
+}

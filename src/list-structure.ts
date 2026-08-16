@@ -4,7 +4,12 @@ import {
 	indentString,
 	syntaxTree,
 } from '@codemirror/language';
-import { countColumn, EditorState, Facet } from '@codemirror/state';
+import {
+	countColumn,
+	EditorState,
+	Facet,
+	type ChangeSpec,
+} from '@codemirror/state';
 import type { SyntaxNode, Tree } from '@lezer/common';
 
 export type SupportedBullet = Readonly<{
@@ -1072,6 +1077,65 @@ export function buildBulletOutline(
 	});
 
 	return freezeOutlineNodes(roots);
+}
+
+export type BranchMovePlacement = 'before' | 'after';
+
+export function planBranchMove(
+	state: EditorState,
+	sourceAnchor: number,
+	targetAnchor: number,
+	placement: BranchMovePlacement,
+): readonly ChangeSpec[] | null {
+	const source = findSupportedBullet(state, sourceAnchor);
+	const target = findSupportedBullet(state, targetAnchor);
+	if (source === null || target === null) {
+		return null;
+	}
+	const sourceBranch = computeBranchRange(state, sourceAnchor);
+	const targetBranch = computeBranchRange(state, targetAnchor);
+	if (sourceBranch === null || targetBranch === null) {
+		return null;
+	}
+	if (
+		target.lineFrom >= sourceBranch.from &&
+		target.lineFrom <= sourceBranch.to
+	) {
+		return null;
+	}
+
+	const sourceIndentText = state.doc.sliceString(
+		source.lineFrom,
+		source.markerFrom,
+	);
+	const targetIndentText = state.doc.sliceString(
+		target.lineFrom,
+		target.markerFrom,
+	);
+	const rebased = state.doc
+		.sliceString(sourceBranch.from, sourceBranch.to)
+		.split('\n')
+		.map((line) =>
+			line.startsWith(sourceIndentText)
+				? targetIndentText + line.slice(sourceIndentText.length)
+				: targetIndentText + line,
+		)
+		.join('\n');
+
+	let deleteFrom = sourceBranch.from;
+	let deleteTo = sourceBranch.to;
+	if (deleteTo < state.doc.length) {
+		deleteTo += 1;
+	} else if (deleteFrom > 0) {
+		deleteFrom -= 1;
+	}
+
+	const insertion: ChangeSpec =
+		placement === 'before'
+			? { from: targetBranch.from, insert: `${rebased}\n` }
+			: { from: targetBranch.to, insert: `\n${rebased}` };
+
+	return Object.freeze([{ from: deleteFrom, to: deleteTo }, insertion]);
 }
 
 export function buildBreadcrumbs(

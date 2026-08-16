@@ -11,11 +11,13 @@ import {
 import {
 	buildBulletOutline,
 	buildOutlineHeadings,
+	planBranchMove,
 	BulletOutlineLimitError,
 	BulletOutlineParsePendingError,
 	displayBulletLabel,
 	findOutlinePath,
 	findSupportedBullet,
+	type BranchMovePlacement,
 	type BulletOutlineNode,
 	type OutlineHeading,
 } from './list-structure';
@@ -55,6 +57,11 @@ export type OutlineNodeAction = Readonly<{
 export type OutlineSidebarActions = Readonly<{
 	onToggle: (action: OutlineNodeAction) => void;
 	onSelect: (action: OutlineNodeAction) => void;
+	onMove: (
+		action: OutlineNodeAction,
+		targetAnchor: number,
+		placement: BranchMovePlacement,
+	) => void;
 	onExit: (revision: number) => void;
 	onRetry: (revision: number) => void;
 	onPreview: (
@@ -243,6 +250,178 @@ class BulletLabelPreviewModal extends Modal {
 		this.contentEl.replaceChildren();
 		this.options.onClosed?.();
 	}
+}
+
+const DRAG_START_DISTANCE_PX = 8;
+const DRAG_SCROLL_TOLERANCE_PX = 10;
+const DRAG_TOUCH_HOLD_MS = 350;
+
+function attachOutlineDragController(
+	body: HTMLElement,
+	model: OutlineSidebarModel,
+	actions: OutlineSidebarActions,
+): void {
+	const document = body.ownerDocument;
+	const window = document.defaultView;
+	let pointerId: number | null = null;
+	let sourceAnchor: number | null = null;
+	let startX = 0;
+	let startY = 0;
+	let dragging = false;
+	let holdTimer: number | null = null;
+	let indicator: HTMLElement | null = null;
+	let dropTarget: {
+		anchor: number;
+		placement: BranchMovePlacement;
+	} | null = null;
+
+	const clearIndicator = (): void => {
+		indicator?.remove();
+		indicator = null;
+	};
+	const reset = (): void => {
+		if (holdTimer !== null) {
+			window?.clearTimeout(holdTimer);
+			holdTimer = null;
+		}
+		body.classList.remove('bullet-zoom-outline-dragging');
+		clearIndicator();
+		dragging = false;
+		pointerId = null;
+		sourceAnchor = null;
+		dropTarget = null;
+	};
+	const beginDrag = (): void => {
+		dragging = true;
+		body.classList.add('bullet-zoom-outline-dragging');
+	};
+	const itemAnchor = (element: Element | null): number | null => {
+		const item = element?.closest<HTMLElement>('li[data-anchor]') ?? null;
+		if (item === null || !body.contains(item)) {
+			return null;
+		}
+		const anchorText = item.dataset.anchor ?? '';
+		return /^\d+$/.test(anchorText)
+			? Number.parseInt(anchorText, 10)
+			: null;
+	};
+
+	body.addEventListener('pointerdown', (event) => {
+		if (event.isPrimary === false || !(event.target instanceof Element)) {
+			return;
+		}
+		const anchor = itemAnchor(event.target);
+		if (anchor === null) {
+			return;
+		}
+		pointerId = event.pointerId;
+		sourceAnchor = anchor;
+		startX = event.clientX;
+		startY = event.clientY;
+		if (event.pointerType !== 'mouse') {
+			holdTimer =
+				window?.setTimeout(() => {
+					holdTimer = null;
+					beginDrag();
+				}, DRAG_TOUCH_HOLD_MS) ?? null;
+		}
+	});
+
+	body.addEventListener('pointermove', (event) => {
+		if (pointerId !== event.pointerId || sourceAnchor === null) {
+			return;
+		}
+		const distance = Math.hypot(
+			event.clientX - startX,
+			event.clientY - startY,
+		);
+		if (!dragging) {
+			if (event.pointerType === 'mouse') {
+				if (distance >= DRAG_START_DISTANCE_PX) {
+					beginDrag();
+				}
+			} else if (
+				holdTimer !== null &&
+				distance >= DRAG_SCROLL_TOLERANCE_PX
+			) {
+				reset();
+				return;
+			}
+			if (!dragging) {
+				return;
+			}
+			try {
+				body.setPointerCapture(event.pointerId);
+			} catch {
+				// jsdom and older WebViews may not support pointer capture.
+			}
+		}
+		event.preventDefault();
+		clearIndicator();
+		dropTarget = null;
+		const hitElement =
+			typeof document.elementFromPoint === 'function'
+				? document.elementFromPoint(event.clientX, event.clientY)
+				: null;
+		const hitItem =
+			hitElement instanceof Element
+				? hitElement.closest<HTMLElement>('li[data-anchor]')
+				: null;
+		const anchor = itemAnchor(hitItem);
+		if (hitItem === null || anchor === null || anchor === sourceAnchor) {
+			return;
+		}
+		const rect = hitItem.getBoundingClientRect();
+		const placement: BranchMovePlacement =
+			event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+		dropTarget = { anchor, placement };
+		indicator = document.createElement('div');
+		indicator.className = 'bullet-zoom-outline-drop-indicator';
+		if (placement === 'before') {
+			hitItem.before(indicator);
+		} else {
+			hitItem.after(indicator);
+		}
+	});
+
+	body.addEventListener('pointerup', (event) => {
+		if (pointerId !== event.pointerId) {
+			return;
+		}
+		const wasDragging = dragging;
+		const source = sourceAnchor;
+		const target = dropTarget;
+		reset();
+		if (!wasDragging) {
+			return;
+		}
+		body.dataset.bulletZoomDragEnded = 'true';
+		if (source !== null && target !== null) {
+			actions.onMove(
+				Object.freeze({ anchor: source, revision: model.revision }),
+				target.anchor,
+				target.placement,
+			);
+		}
+	});
+
+	body.addEventListener('pointercancel', (event) => {
+		if (pointerId === event.pointerId) {
+			reset();
+		}
+	});
+
+	body.addEventListener(
+		'click',
+		(event) => {
+			if (body.dataset.bulletZoomDragEnded === 'true') {
+				delete body.dataset.bulletZoomDragEnded;
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		},
+		true,
+	);
 }
 
 export function renderOutlineSidebar(
@@ -505,6 +684,7 @@ export function renderOutlineSidebar(
 			}
 		}
 	}
+	attachOutlineDragController(body, model, actions);
 	syncOutlineLabelOverflow(container);
 	if (
 		!model.revealCurrent &&
@@ -604,6 +784,9 @@ export class BulletOutlineSidebarView extends ItemView {
 		this.model = model;
 		renderOutlineSidebar(this.contentEl, model, {
 				onToggle: (action) => this.coordinator.toggle(action),
+				onMove: (action, targetAnchor, placement) => {
+					this.coordinator.moveBranch(action, targetAnchor, placement);
+				},
 				onSelect: (action) => {
 					void this.coordinator.select(action);
 				},
@@ -871,6 +1054,37 @@ export class BulletOutlineSidebarCoordinator {
 			this.manuallyCollapsedAnchors.delete(anchor);
 		}
 		this.refreshNow();
+	}
+
+	moveBranch(
+		{ anchor, revision }: OutlineNodeAction,
+		targetAnchor: number,
+		placement: BranchMovePlacement,
+	): void {
+		if (!this.isActionValid(anchor, revision)) {
+			this.scheduleRefresh();
+			return;
+		}
+		const source = this.source;
+		if (source === null) {
+			return;
+		}
+		const changes = planBranchMove(
+			source.view.state,
+			anchor,
+			targetAnchor,
+			placement,
+		);
+		if (changes === null) {
+			return;
+		}
+		try {
+			source.view.dispatch({ changes: [...changes] });
+		} catch {
+			this.options.onUnexpectedError?.();
+			return;
+		}
+		this.scheduleRefresh();
 	}
 
 	async select({ anchor, revision }: OutlineNodeAction): Promise<boolean> {

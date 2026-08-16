@@ -8,6 +8,7 @@ import {
 	buildBulletOutline,
 	buildOutlineHeadings,
 	markerDetectionFacet,
+	planBranchMove,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
@@ -999,5 +1000,55 @@ describe('marker detection (0.1.42)', () => {
 			'Second',
 			'C',
 		]);
+	});
+});
+
+describe('planBranchMove (0.1.43)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function apply(
+		document: string,
+		sourceLine: number,
+		targetLine: number,
+		placement: 'before' | 'after',
+	): string | null {
+		const state = stateOf(document);
+		const source = state.doc.line(sourceLine);
+		const target = state.doc.line(targetLine);
+		const changes = planBranchMove(
+			state,
+			source.from,
+			target.from,
+			placement,
+		);
+		if (changes === null) {
+			return null;
+		}
+		return state.update({ changes: [...changes] }).state.doc.toString();
+	}
+
+	it('moves a branch after a target sibling', () => {
+		expect(apply('- A\n  - A1\n- B\n- C', 1, 4, 'after')).toBe(
+			'- B\n- C\n- A\n  - A1',
+		);
+	});
+
+	it('reindents a branch dropped before a nested target', () => {
+		expect(apply('- A\n  - A1\n- B\n  - B1', 1, 4, 'before')).toBe(
+			'- B\n  - A\n    - A1\n  - B1',
+		);
+	});
+
+	it('rejects dropping into the dragged subtree', () => {
+		expect(apply('- A\n  - A1\n- B', 1, 2, 'after')).toBeNull();
+		expect(apply('- A\n  - A1\n- B', 1, 1, 'before')).toBeNull();
+	});
+
+	it('handles a document without a trailing newline when moving the last branch', () => {
+		expect(apply('- A\n- B\n  - B1', 2, 1, 'before')).toBe(
+			'- B\n  - B1\n- A',
+		);
 	});
 });
