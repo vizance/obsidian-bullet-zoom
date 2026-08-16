@@ -365,6 +365,25 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 		new Setting(this.containerEl)
+			.setName('After extracting')
+			.setDesc('What to do once the new note is created.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('stay', 'Stay in the current note')
+					.addOption('current', 'Open the new note')
+					.addOption('tab', 'Open the new note in a new tab')
+					.addOption('split', 'Open the new note in a split')
+					.setValue(this.plugin.settings.extractOpenBehavior)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							extractOpenBehavior:
+								value === 'current' || value === 'tab' || value === 'split'
+									? value
+									: 'stay',
+						});
+					}),
+			);
+		new Setting(this.containerEl)
 			.setName('Remove the top bullet')
 			.setDesc('Keep only the child bullets in the new note.')
 			.addToggle((toggle) =>
@@ -654,6 +673,27 @@ export default class BulletZoomPlugin extends Plugin {
 			});
 		}
 		showNotice(`Extracted to ${name}.`);
+		const behavior = this.settings.extractOpenBehavior;
+		if (behavior === 'stay') {
+			return;
+		}
+		const createdFile = this.app.vault.getAbstractFileByPath(filePath);
+		if (createdFile === null || !('extension' in createdFile)) {
+			return;
+		}
+		try {
+			const leaf =
+				behavior === 'current'
+					? this.app.workspace.getLeaf(false)
+					: this.app.workspace.getLeaf(
+							behavior === 'tab' ? 'tab' : 'split',
+						);
+			await leaf.openFile(
+				createdFile as Parameters<typeof leaf.openFile>[0],
+			);
+		} catch {
+			showNotice('Could not open the new note.');
+		}
 	}
 
 	onunload(): void {
