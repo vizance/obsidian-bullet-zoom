@@ -29,6 +29,7 @@ describe('settings normalization', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 	});
 
@@ -42,6 +43,7 @@ describe('settings normalization', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -58,6 +60,7 @@ describe('scale variable application', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -93,6 +96,7 @@ describe('plugin settings lifecycle', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -104,6 +108,7 @@ describe('plugin settings lifecycle', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -136,6 +141,7 @@ describe('slider reset buttons', () => {
 			zoomNumbered: true,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -168,6 +174,7 @@ describe('marker detection toggles', () => {
 			zoomNumbered: false,
 			extractRemoveTopBullet: true,
 			extractFolder: '',
+			extractTemplatePath: '',
 		});
 	});
 });
@@ -196,5 +203,18 @@ describe('extract folder setting', () => {
 			normalizeSettings({ extractFolder: '  Cards/Sub  ' }).extractFolder,
 		).toBe('Cards/Sub');
 		expect(normalizeSettings({ extractFolder: 42 }).extractFolder).toBe('');
+	});
+});
+
+describe('extract template setting', () => {
+	it('defaults to empty and normalizes the path', () => {
+		expect(normalizeSettings({}).extractTemplatePath).toBe('');
+		expect(
+			normalizeSettings({ extractTemplatePath: ' /Templates/card.md ' })
+				.extractTemplatePath,
+		).toBe('Templates/card.md');
+		expect(
+			normalizeSettings({ extractTemplatePath: 7 }).extractTemplatePath,
+		).toBe('');
 	});
 });

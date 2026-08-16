@@ -39,8 +39,14 @@ import {
 } from './list-structure';
 import {
 	collectFolderPaths,
+	collectMarkdownPaths,
 	filterFolderSuggestions,
 } from './folder-suggest';
+import {
+	formatTemplateDate,
+	formatTemplateTime,
+	renderExtractTemplate,
+} from './extract-template';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -73,6 +79,91 @@ function showOutlineOpenFailure(): void {
 
 function showOutlineActionFailure(): void {
 	showNotice('無法切換 Bullet，請稍後再試。');
+}
+
+function attachPathAutocomplete(
+	text: {
+		inputEl: HTMLInputElement;
+		setValue: (value: string) => unknown;
+	},
+	paths: readonly string[],
+	onPick: (value: string) => void,
+): (query: string) => void {
+	const input = text.inputEl;
+	input.autocomplete = 'off';
+	const wrapper = input.ownerDocument.createElement('div');
+	wrapper.className = 'bullet-zoom-folder-suggest';
+	input.replaceWith(wrapper);
+	wrapper.append(input);
+	const list = input.ownerDocument.createElement('div');
+	list.className = 'bullet-zoom-folder-suggestions';
+	list.hidden = true;
+	wrapper.append(list);
+
+	let activeIndex = -1;
+	const items = (): readonly Element[] =>
+		Array.from(list.querySelectorAll('.bullet-zoom-folder-suggestion'));
+	const highlight = (): void => {
+		for (const [index, child] of items().entries()) {
+			child.classList.toggle('is-active', index === activeIndex);
+		}
+	};
+	const apply = (value: string): void => {
+		text.setValue(value);
+		onPick(value);
+		list.hidden = true;
+		list.replaceChildren();
+		activeIndex = -1;
+	};
+	const render = (query: string): void => {
+		const matches = filterFolderSuggestions(paths, query);
+		list.replaceChildren();
+		activeIndex = matches.length > 0 ? 0 : -1;
+		for (const match of matches) {
+			const item = input.ownerDocument.createElement('div');
+			item.className = 'bullet-zoom-folder-suggestion';
+			item.textContent = match;
+			item.addEventListener('mousedown', (event) => {
+				event.preventDefault();
+				apply(match);
+			});
+			list.append(item);
+		}
+		list.hidden = matches.length === 0;
+		highlight();
+	};
+
+	input.addEventListener('focus', () => render(input.value));
+	input.addEventListener('blur', () => {
+		input.ownerDocument.defaultView?.setTimeout(() => {
+			list.hidden = true;
+		}, 120);
+	});
+	input.addEventListener('keydown', (event) => {
+		const current = items();
+		if (list.hidden || current.length === 0) {
+			return;
+		}
+		if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+			event.preventDefault();
+			const delta = event.key === 'ArrowDown' ? 1 : -1;
+			activeIndex = (activeIndex + delta + current.length) % current.length;
+			highlight();
+			return;
+		}
+		if (event.key === 'Enter' && activeIndex >= 0) {
+			event.preventDefault();
+			const value = current[activeIndex]?.textContent ?? '';
+			if (value.length > 0) {
+				apply(value);
+			}
+			return;
+		}
+		if (event.key === 'Escape') {
+			list.hidden = true;
+		}
+	});
+	return render;
 }
 
 class ExtractNameModal extends Modal {
@@ -165,96 +256,48 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		folderSetting.addText((text) => {
 			text
 				.setPlaceholder('留空＝與目前筆記同資料夾')
-				.setValue(this.plugin.settings.extractFolder)
-				.onChange((value) => {
+				.setValue(this.plugin.settings.extractFolder);
+			const vault = this.app.vault as unknown as {
+				getAllLoadedFiles?: () => readonly unknown[];
+			};
+			const render = attachPathAutocomplete(
+				text,
+				collectFolderPaths(vault),
+				(value) => {
 					void this.plugin.updateSettings({ extractFolder: value });
-					renderSuggestions(value);
-				});
-			const input = text.inputEl;
-			input.autocomplete = 'off';
-			const wrapper = input.ownerDocument.createElement('div');
-			wrapper.className = 'bullet-zoom-folder-suggest';
-			input.replaceWith(wrapper);
-			wrapper.append(input);
-			const list = input.ownerDocument.createElement('div');
-			list.className = 'bullet-zoom-folder-suggestions';
-			list.hidden = true;
-			wrapper.append(list);
-
-			let activeIndex = -1;
-			const folders = collectFolderPaths(
-				this.app.vault as unknown as {
-					getAllLoadedFiles?: () => readonly unknown[];
 				},
 			);
-			const applySuggestion = (value: string): void => {
-				text.setValue(value);
+			text.onChange((value) => {
 				void this.plugin.updateSettings({ extractFolder: value });
-				list.hidden = true;
-				list.replaceChildren();
-				activeIndex = -1;
-			};
-			const highlight = (): void => {
-				const items = Array.from(
-					list.querySelectorAll('.bullet-zoom-folder-suggestion'),
-				);
-				for (const [index, child] of items.entries()) {
-					child.classList.toggle('is-active', index === activeIndex);
-				}
-			};
-			function renderSuggestions(query: string): void {
-				const matches = filterFolderSuggestions(folders, query);
-				list.replaceChildren();
-				activeIndex = matches.length > 0 ? 0 : -1;
-				for (const match of matches) {
-					const item = input.ownerDocument.createElement('div');
-					item.className = 'bullet-zoom-folder-suggestion';
-					item.textContent = match;
-					item.addEventListener('mousedown', (event) => {
-						event.preventDefault();
-						applySuggestion(match);
-					});
-					list.append(item);
-				}
-				list.hidden = matches.length === 0;
-				highlight();
-			}
-
-			input.addEventListener('focus', () => renderSuggestions(input.value));
-			input.addEventListener('blur', () => {
-				input.ownerDocument.defaultView?.setTimeout(() => {
-					list.hidden = true;
-				}, 120);
-			});
-			input.addEventListener('keydown', (event) => {
-				if (list.hidden || list.children.length === 0) {
-					return;
-				}
-				if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-					event.preventDefault();
-					const delta = event.key === 'ArrowDown' ? 1 : -1;
-					activeIndex =
-						(activeIndex + delta + list.children.length) %
-						list.children.length;
-					highlight();
-					return;
-				}
-				if (event.key === 'Enter' && activeIndex >= 0) {
-					event.preventDefault();
-					const value =
-						list.querySelectorAll('.bullet-zoom-folder-suggestion')[
-							activeIndex
-						]?.textContent ?? '';
-					if (value.length > 0) {
-						applySuggestion(value);
-					}
-					return;
-				}
-				if (event.key === 'Escape') {
-					list.hidden = true;
-				}
+				render(value);
 			});
 		});
+
+		const templateSetting = new Setting(this.containerEl)
+			.setName('拆分筆記模板')
+			.setDesc(
+				'選擇模板檔（.md）；可用 {{content}}、{{title}}、{{date}}、{{time}}、{{source}}，留空表示不套模板。',
+			);
+		templateSetting.addText((text) => {
+			text
+				.setPlaceholder('留空＝不套用模板')
+				.setValue(this.plugin.settings.extractTemplatePath);
+			const vault = this.app.vault as unknown as {
+				getAllLoadedFiles?: () => readonly unknown[];
+			};
+			const render = attachPathAutocomplete(
+				text,
+				collectMarkdownPaths(vault),
+				(value) => {
+					void this.plugin.updateSettings({ extractTemplatePath: value });
+				},
+			);
+			text.onChange((value) => {
+				void this.plugin.updateSettings({ extractTemplatePath: value });
+				render(value);
+			});
+		});
+
 		new Setting(this.containerEl)
 			.setName('拆分時移除最上層 Bullet')
 			.setDesc(
@@ -535,8 +578,37 @@ export default class BulletZoomPlugin extends Plugin {
 			showNotice('已有同名筆記，請換一個名稱。');
 			return;
 		}
+		let fileContent = plan.fileContent;
+		const templatePath = this.settings.extractTemplatePath;
+		if (templatePath.length > 0) {
+			const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
+			if (templateFile === null || !('extension' in templateFile)) {
+				showNotice('找不到指定的模板檔，請確認設定中的路徑。');
+				return;
+			}
+			let template: string;
+			try {
+				template = await this.app.vault.read(
+					templateFile as Parameters<typeof this.app.vault.read>[0],
+				);
+			} catch {
+				showNotice('無法讀取模板檔，請確認檔案是否正常。');
+				return;
+			}
+			const now = new Date();
+			fileContent = renderExtractTemplate(template, {
+				content: plan.fileContent,
+				title: name,
+				date: formatTemplateDate(now),
+				time: formatTemplateTime(now),
+				source:
+					activeFile?.basename === undefined
+						? ''
+						: `[[${activeFile.basename}]]`,
+			});
+		}
 		try {
-			await this.app.vault.create(filePath, plan.fileContent);
+			await this.app.vault.create(filePath, fileContent);
 		} catch {
 			showNotice('無法建立新筆記，請確認名稱是否合法。');
 			return;

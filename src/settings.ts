@@ -5,6 +5,7 @@ export interface BulletZoomSettings {
 	readonly zoomNumbered: boolean;
 	readonly extractRemoveTopBullet: boolean;
 	readonly extractFolder: string;
+	readonly extractTemplatePath: string;
 }
 
 export const SCALE_MIN = 60;
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	zoomNumbered: true,
 	extractRemoveTopBullet: true,
 	extractFolder: '',
+	extractTemplatePath: '',
 });
 
 export const TITLE_SCALE_PROPERTY = '--bullet-zoom-title-scale';
@@ -75,6 +77,7 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 			DEFAULT_SETTINGS.extractRemoveTopBullet,
 		),
 		extractFolder: normalizeFolder(source['extractFolder']),
+		extractTemplatePath: normalizeFolder(source['extractTemplatePath']),
 	});
 }
 
