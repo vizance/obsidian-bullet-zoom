@@ -1138,6 +1138,87 @@ export function planBranchMove(
 	return Object.freeze([{ from: deleteFrom, to: deleteTo }, insertion]);
 }
 
+export interface BulletExtractPlan {
+	readonly replaceFrom: number;
+	readonly replaceTo: number;
+	readonly linkIndentText: string;
+	readonly fileContent: string;
+}
+
+function minimalCommonIndent(lines: readonly string[]): string {
+	let common: string | null = null;
+	for (const line of lines) {
+		if (line.trim().length === 0) {
+			continue;
+		}
+		const indent = /^[\t ]*/.exec(line)?.[0] ?? '';
+		if (common === null) {
+			common = indent;
+			continue;
+		}
+		let index = 0;
+		while (
+			index < common.length &&
+			index < indent.length &&
+			common[index] === indent[index]
+		) {
+			index += 1;
+		}
+		common = common.slice(0, index);
+	}
+	return common ?? '';
+}
+
+export function planBulletExtract(
+	state: EditorState,
+	anchor: number,
+	removeTopBullet: boolean,
+): BulletExtractPlan | null {
+	const bullet = findSupportedBullet(state, anchor);
+	if (bullet === null) {
+		return null;
+	}
+	const branch = computeBranchRange(state, anchor);
+	if (branch === null) {
+		return null;
+	}
+	const linkIndentText = state.doc.sliceString(
+		bullet.lineFrom,
+		bullet.markerFrom,
+	);
+	const branchLines = state.doc
+		.sliceString(branch.from, branch.to)
+		.split('\n');
+	let fileContent: string;
+	if (removeTopBullet) {
+		const childLines = branchLines.slice(1);
+		if (childLines.length === 0) {
+			fileContent = bullet.label;
+		} else {
+			const common = minimalCommonIndent(childLines);
+			fileContent = childLines
+				.map((line) =>
+					line.startsWith(common) ? line.slice(common.length) : line.trimStart(),
+				)
+				.join('\n');
+		}
+	} else {
+		fileContent = branchLines
+			.map((line) =>
+				line.startsWith(linkIndentText)
+					? line.slice(linkIndentText.length)
+					: line.trimStart(),
+			)
+			.join('\n');
+	}
+	return Object.freeze({
+		replaceFrom: branch.from,
+		replaceTo: branch.to,
+		linkIndentText,
+		fileContent,
+	});
+}
+
 export function buildBreadcrumbs(
 	state: EditorState,
 	position: number,

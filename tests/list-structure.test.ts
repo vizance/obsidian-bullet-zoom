@@ -9,6 +9,7 @@ import {
 	buildOutlineHeadings,
 	markerDetectionFacet,
 	planBranchMove,
+	planBulletExtract,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
@@ -1050,5 +1051,55 @@ describe('planBranchMove (0.1.43)', () => {
 		expect(apply('- A\n- B\n  - B1', 2, 1, 'before')).toBe(
 			'- B\n  - B1\n- A',
 		);
+	});
+});
+
+describe('planBulletExtract (0.1.44)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function extract(
+		document: string,
+		line: number,
+		removeTop: boolean,
+	): { content: string; source: string } | null {
+		const state = stateOf(document);
+		const anchorLine = state.doc.line(line);
+		const plan = planBulletExtract(state, anchorLine.from, removeTop);
+		if (plan === null) {
+			return null;
+		}
+		const source = state.update({
+			changes: {
+				from: plan.replaceFrom,
+				to: plan.replaceTo,
+				insert: `${plan.linkIndentText}- [[N]]`,
+			},
+		}).state.doc.toString();
+		return { content: plan.fileContent, source };
+	}
+
+	it('drops the top bullet and dedents children by default', () => {
+		const result = extract('- Topic\n  - P1\n    - P1a\n  - P2', 1, true);
+		expect(result?.content).toBe('- P1\n  - P1a\n- P2');
+		expect(result?.source).toBe('- [[N]]');
+	});
+
+	it('keeps the whole branch rebased to zero indent when configured', () => {
+		const result = extract('- A\n  - Topic\n    - P1', 2, false);
+		expect(result?.content).toBe('- Topic\n  - P1');
+		expect(result?.source).toBe('- A\n  - [[N]]');
+	});
+
+	it('extracts the label text for a leaf bullet', () => {
+		const result = extract('- Only text', 1, true);
+		expect(result?.content).toBe('Only text');
+		expect(result?.source).toBe('- [[N]]');
+	});
+
+	it('returns null when the position is not a supported bullet', () => {
+		const state = stateOf('Plain paragraph');
+		expect(planBulletExtract(state, 0, true)).toBeNull();
 	});
 });

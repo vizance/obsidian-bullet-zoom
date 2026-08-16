@@ -3,6 +3,7 @@ import {
 	editorInfoField,
 	editorLivePreviewField,
 	MarkdownView,
+	Modal,
 	Notice,
 	Platform,
 	Plugin,
@@ -31,7 +32,7 @@ import {
 	runFocusCommand,
 	runParentCommand,
 } from './focus-extension';
-import { findSupportedBullet } from './list-structure';
+import { findSupportedBullet, planBulletExtract } from './list-structure';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -66,6 +67,57 @@ function showOutlineActionFailure(): void {
 	showNotice('無法切換 Bullet，請稍後再試。');
 }
 
+class ExtractNameModal extends Modal {
+	private submitted = false;
+
+	constructor(
+		app: App,
+		private readonly onSubmit: (name: string) => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.titleEl.textContent = '拆分 Bullet 成新筆記';
+		const input = this.contentEl.ownerDocument.createElement('input');
+		input.type = 'text';
+		input.className = 'bullet-zoom-extract-name-input';
+		input.placeholder = '輸入新筆記名稱';
+		const confirm = this.contentEl.ownerDocument.createElement('button');
+		confirm.className = 'bullet-zoom-extract-confirm mod-cta';
+		confirm.textContent = '建立';
+		const cancel = this.contentEl.ownerDocument.createElement('button');
+		cancel.className = 'bullet-zoom-extract-cancel';
+		cancel.textContent = '取消';
+		const submit = (): void => {
+			const name = input.value.trim();
+			this.submitted = true;
+			this.close();
+			this.onSubmit(name);
+		};
+		confirm.addEventListener('click', submit);
+		cancel.addEventListener('click', () => this.close());
+		input.addEventListener('keydown', (event) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				submit();
+			}
+		});
+		const actions = this.contentEl.ownerDocument.createElement('div');
+		actions.className = 'bullet-zoom-extract-actions';
+		actions.append(cancel, confirm);
+		this.contentEl.replaceChildren(input, actions);
+		input.focus();
+	}
+
+	onClose(): void {
+		this.contentEl.replaceChildren();
+		if (!this.submitted) {
+			this.submitted = true;
+		}
+	}
+}
+
 class BulletZoomSettingTab extends PluginSettingTab {
 	constructor(
 		app: App,
@@ -94,6 +146,20 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.zoomNumbered)
 					.onChange((value) => {
 						void this.plugin.updateSettings({ zoomNumbered: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('拆分時移除最上層 Bullet')
+			.setDesc(
+				'拆分 Bullet 成新筆記時，新筆記只保留子項目內容；關閉則連最上層 Bullet 一起搬過去。',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.extractRemoveTopBullet)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							extractRemoveTopBullet: value,
+						});
 					}),
 			);
 		new Setting(this.containerEl)
@@ -275,6 +341,31 @@ export default class BulletZoomPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: 'extract-bullet-to-note',
+			name: '拆分 Bullet 成新筆記',
+			editorCheckCallback: (checking, editor) => {
+				const view = getEditorView(editor);
+				if (view === null) {
+					return false;
+				}
+				const bullet = findSupportedBullet(
+					view.state,
+					view.state.selection.main.head,
+				);
+				if (bullet === null) {
+					return false;
+				}
+				if (checking) {
+					return true;
+				}
+				new ExtractNameModal(this.app, (name) => {
+					void this.extractBulletToNote(view, bullet.markerFrom, name);
+				}).open();
+				return true;
+			},
+		});
+
+		this.addCommand({
 			...EXIT_FOCUS_COMMAND,
 			editorCallback: (editor) => {
 				runExitCommand(getEditorView(editor), showNotice);
@@ -287,6 +378,51 @@ export default class BulletZoomPlugin extends Plugin {
 				runParentCommand(getEditorView(editor), showNotice);
 			},
 		});
+	}
+
+	private async extractBulletToNote(
+		view: EditorView,
+		anchor: number,
+		rawName: string,
+	): Promise<void> {
+		const name = rawName.trim();
+		if (name.length === 0) {
+			showNotice('請輸入新筆記名稱。');
+			return;
+		}
+		const plan = planBulletExtract(
+			view.state,
+			anchor,
+			this.settings.extractRemoveTopBullet,
+		);
+		if (plan === null) {
+			showNotice('請先把游標移到可拆分的 Bullet 上。');
+			return;
+		}
+		const activeFile = this.app.workspace.getActiveFile();
+		const folderPath = activeFile?.parent?.path ?? '';
+		const filePath =
+			folderPath === '' || folderPath === '/'
+				? `${name}.md`
+				: `${folderPath}/${name}.md`;
+		if (this.app.vault.getAbstractFileByPath(filePath) !== null) {
+			showNotice('已有同名筆記，請換一個名稱。');
+			return;
+		}
+		try {
+			await this.app.vault.create(filePath, plan.fileContent);
+		} catch {
+			showNotice('無法建立新筆記，請確認名稱是否合法。');
+			return;
+		}
+		view.dispatch({
+			changes: {
+				from: plan.replaceFrom,
+				to: plan.replaceTo,
+				insert: `${plan.linkIndentText}- [[${name}]]`,
+			},
+		});
+		showNotice(`已拆分到「${name}」。`);
 	}
 
 	onunload(): void {
