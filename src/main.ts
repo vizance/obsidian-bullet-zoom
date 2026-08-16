@@ -74,11 +74,11 @@ function showNotice(message: string): void {
 }
 
 function showOutlineOpenFailure(): void {
-	showNotice('無法開啟 Bullet 大綱，請稍後再試。');
+	showNotice('Could not open the bullet outline. Try again.');
 }
 
 function showOutlineActionFailure(): void {
-	showNotice('無法切換 Bullet，請稍後再試。');
+	showNotice('Could not switch bullets. Try again.');
 }
 
 function attachPathAutocomplete(
@@ -178,18 +178,18 @@ class ExtractNameModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.titleEl.textContent = '拆分 Bullet 成新筆記';
+		this.titleEl.textContent = 'Extract to new note';
 		const input = this.contentEl.ownerDocument.createElement('input');
 		input.type = 'text';
 		input.className = 'bullet-zoom-extract-name-input';
-		input.placeholder = '輸入新筆記名稱';
+		input.placeholder = 'New note name';
 		input.value = this.defaultName;
 		const confirm = this.contentEl.ownerDocument.createElement('button');
 		confirm.className = 'bullet-zoom-extract-confirm mod-cta';
-		confirm.textContent = '建立';
+		confirm.textContent = 'Create';
 		const cancel = this.contentEl.ownerDocument.createElement('button');
 		cancel.className = 'bullet-zoom-extract-cancel';
-		cancel.textContent = '取消';
+		cancel.textContent = 'Cancel';
 		const submit = (): void => {
 			const name = input.value.trim();
 			this.submitted = true;
@@ -230,9 +230,11 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 	display(): void {
 		this.containerEl.empty();
+
+		new Setting(this.containerEl).setName('Zoom').setHeading();
 		new Setting(this.containerEl)
-			.setName('Zoom 一般 Bullet')
-			.setDesc('偵測 - 開頭的無序清單項目，點圓點即可 Zoom。')
+			.setName('Zoom bullets')
+			.setDesc('Detect bullets that start with a dash so you can zoom into them.')
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.zoomBullets)
@@ -241,8 +243,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 		new Setting(this.containerEl)
-			.setName('Zoom 編號清單')
-			.setDesc('偵測 1.、2) 這類編號清單項目，讓編號也能 Zoom 並進入大綱。')
+			.setName('Zoom numbered items')
+			.setDesc('Detect numbered list items such as 1. or 2) as well.')
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.zoomNumbered)
@@ -250,93 +252,11 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						void this.plugin.updateSettings({ zoomNumbered: value });
 					}),
 			);
-		const folderSetting = new Setting(this.containerEl)
-			.setName('拆分後的新筆記位置')
-			.setDesc('輸入或選擇資料夾（例如 Cards）；留空表示與目前筆記同資料夾。');
-		folderSetting.addText((text) => {
-			text
-				.setPlaceholder('留空＝與目前筆記同資料夾')
-				.setValue(this.plugin.settings.extractFolder);
-			const vault = this.app.vault as unknown as {
-				getAllLoadedFiles?: () => readonly unknown[];
-			};
-			const render = attachPathAutocomplete(
-				text,
-				collectFolderPaths(vault),
-				(value) => {
-					void this.plugin.updateSettings({ extractFolder: value });
-				},
-			);
-			text.onChange((value) => {
-				void this.plugin.updateSettings({ extractFolder: value });
-				render(value);
-			});
-		});
 
-		const templateSetting = new Setting(this.containerEl)
-			.setName('拆分筆記模板')
-			.setDesc(
-				'選擇模板檔（.md）；可用 {{content}}、{{title}}、{{date}}、{{time}}、{{source}}，留空表示不套模板。',
-			);
-		templateSetting.addText((text) => {
-			text
-				.setPlaceholder('留空＝不套用模板')
-				.setValue(this.plugin.settings.extractTemplatePath);
-			const vault = this.app.vault as unknown as {
-				getAllLoadedFiles?: () => readonly unknown[];
-			};
-			const render = attachPathAutocomplete(
-				text,
-				collectMarkdownPaths(vault),
-				(value) => {
-					void this.plugin.updateSettings({ extractTemplatePath: value });
-				},
-			);
-			text.onChange((value) => {
-				void this.plugin.updateSettings({ extractTemplatePath: value });
-				render(value);
-			});
-		});
-
+		new Setting(this.containerEl).setName('Outline').setHeading();
 		new Setting(this.containerEl)
-			.setName('拆分時移除最上層 Bullet')
-			.setDesc(
-				'拆分 Bullet 成新筆記時，新筆記只保留子項目內容；關閉則連最上層 Bullet 一起搬過去。',
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.extractRemoveTopBullet)
-					.onChange((value) => {
-						void this.plugin.updateSettings({
-							extractRemoveTopBullet: value,
-						});
-					}),
-			);
-		new Setting(this.containerEl)
-			.setName('聚焦頁標題大小')
-			.setDesc('Zoom 進 Bullet 後，頁面標題的字級縮放比例（%）。')
-			.addSlider((slider) =>
-				slider
-					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
-					.setValue(this.plugin.settings.titleScale)
-					.setDynamicTooltip()
-					.onChange((value) => {
-						void this.plugin.updateSettings({ titleScale: value });
-					}),
-			)
-			.addExtraButton((button) =>
-				button
-					.setIcon('rotate-ccw')
-					.setTooltip('恢復預設 100%')
-					.onClick(() => {
-						void this.plugin
-							.updateSettings({ titleScale: 100 })
-							.then(() => this.display());
-					}),
-			);
-		new Setting(this.containerEl)
-			.setName('Bullet 大綱文字大小')
-			.setDesc('Bullet 大綱清單的字級縮放比例（%），調小可一次看到更多文字。')
+			.setName('Outline text size')
+			.setDesc('Scale the outline text. Lower values fit more lines on screen.')
 			.addSlider((slider) =>
 				slider
 					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
@@ -349,11 +269,94 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			.addExtraButton((button) =>
 				button
 					.setIcon('rotate-ccw')
-					.setTooltip('恢復預設 100%')
+					.setTooltip('Reset to 100%')
 					.onClick(() => {
 						void this.plugin
 							.updateSettings({ outlineScale: 100 })
 							.then(() => this.display());
+					}),
+			);
+
+		new Setting(this.containerEl).setName('Focus page').setHeading();
+		new Setting(this.containerEl)
+			.setName('Focus title size')
+			.setDesc('Scale the title shown after you zoom into a bullet.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
+					.setValue(this.plugin.settings.titleScale)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ titleScale: value });
+					}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon('rotate-ccw')
+					.setTooltip('Reset to 100%')
+					.onClick(() => {
+						void this.plugin
+							.updateSettings({ titleScale: 100 })
+							.then(() => this.display());
+					}),
+			);
+
+		new Setting(this.containerEl)
+			.setName('Extract to new note')
+			.setHeading();
+		const vault = this.app.vault as unknown as {
+			getAllLoadedFiles?: () => readonly unknown[];
+		};
+		new Setting(this.containerEl)
+			.setName('Destination folder')
+			.setDesc('Where new notes are created. Leave empty to use the current note\'s folder.')
+			.addText((text) => {
+				text
+					.setPlaceholder('Same folder as the current note')
+					.setValue(this.plugin.settings.extractFolder);
+				const render = attachPathAutocomplete(
+					text,
+					collectFolderPaths(vault),
+					(value) => {
+						void this.plugin.updateSettings({ extractFolder: value });
+					},
+				);
+				text.onChange((value) => {
+					void this.plugin.updateSettings({ extractFolder: value });
+					render(value);
+				});
+			});
+		new Setting(this.containerEl)
+			.setName('Template file')
+			.setDesc(
+				'Markdown file used as the starting point. Placeholders: {{content}}, {{title}}, {{date}}, {{time}}, {{source}}.',
+			)
+			.addText((text) => {
+				text
+					.setPlaceholder('No template')
+					.setValue(this.plugin.settings.extractTemplatePath);
+				const render = attachPathAutocomplete(
+					text,
+					collectMarkdownPaths(vault),
+					(value) => {
+						void this.plugin.updateSettings({ extractTemplatePath: value });
+					},
+				);
+				text.onChange((value) => {
+					void this.plugin.updateSettings({ extractTemplatePath: value });
+					render(value);
+				});
+			});
+		new Setting(this.containerEl)
+			.setName('Remove the top bullet')
+			.setDesc('Keep only the child bullets in the new note.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.extractRemoveTopBullet)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							extractRemoveTopBullet: value,
+						});
 					}),
 			);
 	}
@@ -372,7 +375,7 @@ export default class BulletZoomPlugin extends Plugin {
 				state.field(editorInfoField, false)?.file?.path ?? null,
 			),
 			focusNoteTitle.compute([editorInfoField], (state) =>
-				state.field(editorInfoField, false)?.file?.basename ?? '未命名筆記',
+				state.field(editorInfoField, false)?.file?.basename ?? 'Untitled note',
 			),
 			focusLivePreview.compute([editorLivePreviewField], (state) =>
 				state.field(editorLivePreviewField, false) ?? false,
@@ -459,7 +462,7 @@ export default class BulletZoomPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'open-outline',
-			name: '開啟 Bullet 大綱',
+			name: 'Open bullet outline',
 			callback: () => {
 				void outlineCoordinator
 					.openCurrent()
@@ -471,7 +474,7 @@ export default class BulletZoomPlugin extends Plugin {
 					.catch(showOutlineOpenFailure);
 			},
 		});
-		this.addRibbonIcon('list-tree', '開啟 Bullet 大綱', () => {
+		this.addRibbonIcon('list-tree', 'Open bullet outline', () => {
 			void outlineCoordinator
 				.openCurrent()
 				.then((result) => {
@@ -484,7 +487,7 @@ export default class BulletZoomPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'bullet-zoom-focus-current',
-			name: '聚焦目前的 Bullet Point',
+			name: 'Zoom into current bullet',
 			editorCallback: (editor) => {
 				runFocusCommand(getEditorView(editor), showNotice);
 			},
@@ -492,7 +495,7 @@ export default class BulletZoomPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'extract-bullet-to-note',
-			name: '拆分 Bullet 成新筆記',
+			name: 'Extract bullet to new note',
 			editorCheckCallback: (checking, editor) => {
 				const view = getEditorView(editor);
 				if (view === null) {
@@ -541,7 +544,7 @@ export default class BulletZoomPlugin extends Plugin {
 	): Promise<void> {
 		const name = rawName.trim();
 		if (name.length === 0) {
-			showNotice('請輸入新筆記名稱。');
+			showNotice('Enter a name for the new note.');
 			return;
 		}
 		const plan = planBulletExtract(
@@ -550,7 +553,7 @@ export default class BulletZoomPlugin extends Plugin {
 			this.settings.extractRemoveTopBullet,
 		);
 		if (plan === null) {
-			showNotice('請先把游標移到可拆分的 Bullet 上。');
+			showNotice('Put the cursor on a bullet to extract it.');
 			return;
 		}
 		const configuredFolder = this.settings.extractFolder;
@@ -566,7 +569,7 @@ export default class BulletZoomPlugin extends Plugin {
 			try {
 				await this.app.vault.createFolder(configuredFolder);
 			} catch {
-				showNotice('無法建立指定的資料夾，請確認路徑是否正確。');
+				showNotice('Could not create that folder. Check the path in settings.');
 				return;
 			}
 		}
@@ -575,7 +578,7 @@ export default class BulletZoomPlugin extends Plugin {
 				? `${name}.md`
 				: `${folderPath}/${name}.md`;
 		if (this.app.vault.getAbstractFileByPath(filePath) !== null) {
-			showNotice('已有同名筆記，請換一個名稱。');
+			showNotice('A note with that name already exists. Try another name.');
 			return;
 		}
 		let fileContent = plan.fileContent;
@@ -583,7 +586,7 @@ export default class BulletZoomPlugin extends Plugin {
 		if (templatePath.length > 0) {
 			const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
 			if (templateFile === null || !('extension' in templateFile)) {
-				showNotice('找不到指定的模板檔，請確認設定中的路徑。');
+				showNotice('Template file not found. Check the path in settings.');
 				return;
 			}
 			let template: string;
@@ -592,7 +595,7 @@ export default class BulletZoomPlugin extends Plugin {
 					templateFile as Parameters<typeof this.app.vault.read>[0],
 				);
 			} catch {
-				showNotice('無法讀取模板檔，請確認檔案是否正常。');
+				showNotice('Could not read the template file.');
 				return;
 			}
 			const now = new Date();
@@ -610,7 +613,7 @@ export default class BulletZoomPlugin extends Plugin {
 		try {
 			await this.app.vault.create(filePath, fileContent);
 		} catch {
-			showNotice('無法建立新筆記，請確認名稱是否合法。');
+			showNotice('Could not create the note. Check that the name is valid.');
 			return;
 		}
 		view.dispatch({
@@ -620,7 +623,7 @@ export default class BulletZoomPlugin extends Plugin {
 				insert: `${plan.linkIndentText}- [[${name}]]`,
 			},
 		});
-		showNotice(`已拆分到「${name}」。`);
+		showNotice(`Extracted to ${name}.`);
 	}
 
 	onunload(): void {

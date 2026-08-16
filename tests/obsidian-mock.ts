@@ -110,6 +110,11 @@ export class Setting {
 		return this;
 	}
 
+	setHeading(): this {
+		this.settingEl.classList.add('setting-item-heading');
+		return this;
+	}
+
 	addToggle(callback: (toggle: ToggleComponent) => unknown): this {
 		callback(new ToggleComponent(this.controlEl));
 		return this;

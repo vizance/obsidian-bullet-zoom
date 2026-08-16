@@ -1386,7 +1386,7 @@ describe('per-editor breadcrumb panel', () => {
 			expect(footer).not.toBeNull();
 			expect(addChild?.textContent).toBe('＋');
 			expect(addChild?.getAttribute('aria-label')).toBe(
-				'在「Write the draft」新增子 Bullet',
+				'Add a child bullet under Write the draft',
 			);
 			const childLine = Array.from(
 				view.contentDOM.querySelectorAll<HTMLElement>('.cm-line'),
@@ -1422,12 +1422,12 @@ describe('per-editor breadcrumb panel', () => {
 
 		expect(enterFocusAt(view, view.state.doc.line(2).from)).toBe(true);
 		title = parent.querySelector('.bullet-zoom-focus-root-line');
-		expect(title?.textContent).toBe('（空白節點）');
+		expect(title?.textContent).toBe('Untitled bullet');
 		expect(
 			parent
 				.querySelector('.bullet-zoom-add-child')
 				?.getAttribute('aria-label'),
-		).toBe('在「（空白節點）」新增子 Bullet');
+		).toBe('Add a child bullet under Untitled bullet');
 		view.destroy();
 		parent.remove();
 	});
@@ -1645,12 +1645,12 @@ describe('per-editor breadcrumb panel', () => {
 			'Child link',
 		]);
 		expect(items.map(({ title }) => title)).toEqual([
-			'回到全文',
+			'Back to full note',
 			'Parent',
 			'Child link',
 		]);
 		expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
-			'回到全文',
+			'Back to full note',
 			'Parent',
 			'Child link',
 		]);
@@ -1715,13 +1715,13 @@ describe('per-editor breadcrumb panel', () => {
 			'SPAN',
 		]);
 		expect(navigationItems.map((item) => item.getAttribute('aria-label'))).toEqual([
-			'回到全文',
+			'Back to full note',
 			'Parent',
 			'Child',
 			'Grandchild',
 		]);
 		expect(navigationItems.map((item) => item.title)).toEqual([
-			'回到全文',
+			'Back to full note',
 			'Parent',
 			'Child',
 			'Grandchild',
@@ -1799,9 +1799,9 @@ describe('per-editor breadcrumb panel', () => {
 		);
 
 		expect(emptyCurrent?.tagName).toBe('SPAN');
-		expect(emptyCurrent?.textContent).toBe('（空白節點）');
-		expect(emptyCurrent?.getAttribute('aria-label')).toBe('（空白節點）');
-		expect(emptyCurrent?.title).toBe('（空白節點）');
+		expect(emptyCurrent?.textContent).toBe('Untitled bullet');
+		expect(emptyCurrent?.getAttribute('aria-label')).toBe('Untitled bullet');
+		expect(emptyCurrent?.title).toBe('Untitled bullet');
 		view.destroy();
 		parent.remove();
 	});
@@ -2198,7 +2198,7 @@ describe('per-editor breadcrumb panel', () => {
 					tag: item.tagName,
 				})),
 			).toEqual([
-				{ label: '回到全文', tag: 'BUTTON' },
+				{ label: 'Back to full note', tag: 'BUTTON' },
 				{ label: 'Parent', tag: 'BUTTON' },
 				{ label: 'Child', tag: 'BUTTON' },
 				{ label: 'Grandchild', tag: 'SPAN' },

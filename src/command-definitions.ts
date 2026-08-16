@@ -4,10 +4,10 @@ type CommandMetadata = Pick<Command, 'id' | 'name'>;
 
 export const EXIT_FOCUS_COMMAND: CommandMetadata = {
 	id: 'bullet-zoom-exit',
-	name: '退出 Bullet 聚焦',
+	name: 'Exit bullet focus',
 };
 
 export const PARENT_FOCUS_COMMAND: CommandMetadata = {
 	id: 'bullet-zoom-focus-parent',
-	name: '回到上一層 Bullet',
+	name: 'Go to parent bullet',
 };

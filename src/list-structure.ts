@@ -505,7 +505,7 @@ export function planAppendChildInsertion(
 }
 
 export function displayBulletLabel(label: string): string {
-	return label.length === 0 ? '（空白節點）' : label;
+	return label.length === 0 ? 'Untitled bullet' : label;
 }
 
 function plainTextFallbackLabel(label: string): string {
@@ -1250,7 +1250,7 @@ export function buildBreadcrumbs(
 
 	const breadcrumbs: Breadcrumb[] = [
 		Object.freeze({
-			label: noteTitle.length === 0 ? '未命名筆記' : noteTitle,
+			label: noteTitle.length === 0 ? 'Untitled note' : noteTitle,
 			anchor: null,
 		}),
 	];

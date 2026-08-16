@@ -176,7 +176,7 @@ async function createCoordinatorFixture(
 		isEditorEligible: () => eligible,
 		getFilePath: (view) => filePaths.get(view) ?? null,
 		getNoteTitle: (view) =>
-			(filePaths.get(view) ?? '未命名筆記').replace(/\.md$/, ''),
+			(filePaths.get(view) ?? 'Untitled note').replace(/\.md$/, ''),
 		getFocusAnchor: (view) => currentAnchors.get(view) ?? null,
 		getCurrentAnchor: (view) =>
 			trackCaretBullet
@@ -400,7 +400,7 @@ describe('native outline sidebar rendering', () => {
 			container.querySelector<HTMLButtonElement>(
 				'[data-anchor="0"] .bullet-zoom-outline-sidebar-label',
 			)?.getAttribute('aria-label'),
-		).toBe('聚焦「First」');
+		).toBe('Zoom into First');
 		expect(
 			Array.from(
 				container.querySelectorAll('.bullet-zoom-outline-sidebar-index'),
@@ -504,8 +504,8 @@ describe('native outline sidebar rendering', () => {
 			'.bullet-zoom-outline-sidebar-root',
 		);
 		expect(root?.textContent).toBe('');
-		expect(root?.getAttribute('aria-label')).toBe('回到全文');
-		expect(root?.title).toBe('回到全文');
+		expect(root?.getAttribute('aria-label')).toBe('Back to full note');
+		expect(root?.title).toBe('Back to full note');
 		const icon = root?.querySelector('svg.bullet-zoom-home-icon');
 		expect(icon?.getAttribute('viewBox')).toBe('0 0 24 24');
 		expect(icon?.getAttribute('aria-hidden')).toBe('true');
@@ -540,12 +540,12 @@ describe('native outline sidebar rendering', () => {
 			Array.from(
 				container.querySelectorAll('.bullet-zoom-outline-sidebar-label-text'),
 			).map(({ textContent }) => textContent),
-		).toEqual(['<img src=x onerror=alert(1)>', '（空白節點）']);
+		).toEqual(['<img src=x onerror=alert(1)>', 'Untitled bullet']);
 		expect(
 			Array.from(
 				container.querySelectorAll('.bullet-zoom-outline-sidebar-label'),
 			).map(({ textContent }) => textContent),
-		).toEqual(['<img src=x onerror=alert(1)>', '（空白節點）']);
+		).toEqual(['<img src=x onerror=alert(1)>', 'Untitled bullet']);
 	});
 
 	it('keeps every label to one ellipsized line and exposes its full desktop text', () => {
@@ -576,7 +576,7 @@ describe('native outline sidebar rendering', () => {
 	it('shows the separate mobile full-text action only for an overflowing label', () => {
 		const container = document.createElement('div');
 		const handlers = actions();
-		const labelText = '很長的手機 Bullet 全文';
+		const labelText = '很長的手機 Bullet text';
 		renderOutlineSidebar(
 			container,
 			model({
@@ -639,7 +639,7 @@ describe('native outline sidebar rendering', () => {
 	it('keeps mobile disclosure, label, and overflowing preview in one owned row', () => {
 		const container = document.createElement('div');
 		const handlers = actions();
-		const labelText = '很長而且需要截斷的父層 Bullet 全文';
+		const labelText = '很長而且需要截斷的父層 Bullet text';
 		renderOutlineSidebar(
 			container,
 			model({
@@ -811,10 +811,10 @@ describe('native outline sidebar rendering', () => {
 		const container = document.createElement('div');
 		const handlers = actions();
 		renderOutlineSidebar(container, model({ status: 'empty' }), handlers);
-		expect(container.textContent).toContain('這份筆記沒有可切換的 Bullet');
+		expect(container.textContent).toContain('No bullets in this note yet.');
 		expect(container.querySelector('.bullet-zoom-outline-sidebar-label')).toBeNull();
 		renderOutlineSidebar(container, model({ status: 'pending' }), handlers);
-		expect(container.textContent).toContain('筆記結構仍在解析');
+		expect(container.textContent).toContain('Reading the note structure…');
 		expect(container.querySelector('.bullet-zoom-outline-sidebar-label')).toBeNull();
 		container
 			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-sidebar-retry')
@@ -822,11 +822,11 @@ describe('native outline sidebar rendering', () => {
 		expect(handlers.onRetry).toHaveBeenCalledWith(1);
 		renderOutlineSidebar(container, model({ status: 'unavailable' }), handlers);
 		expect(container.textContent).toContain(
-			'請先開啟即時預覽模式的 Markdown 筆記',
+			'Open a Markdown note in Live Preview to see its bullets.',
 		);
 		expect(container.querySelector('button')).toBeNull();
 		renderOutlineSidebar(container, model({ status: 'limited' }), handlers);
-		expect(container.textContent).toContain('Bullet 大綱過大');
+		expect(container.textContent).toContain('too many bullets');
 		expect(container.querySelector('.bullet-zoom-outline-sidebar-label')).toBeNull();
 	});
 
@@ -1132,7 +1132,7 @@ describe('native outline sidebar coordinator', () => {
 			const originalScrollIntoView = elementPrototype.scrollIntoView;
 			elementPrototype.scrollIntoView = scrollIntoViewSpy;
 			preview.click();
-			expect(document.body.textContent).toContain('Bullet 全文');
+			expect(document.body.textContent).toContain('Bullet text');
 			expect(document.body.textContent).toContain(
 				'This is a long plain Bullet label',
 			);
@@ -1303,7 +1303,7 @@ describe('native outline sidebar coordinator', () => {
 			changes: { from: 0, to: fixture.editorView.state.doc.length, insert: '- New label' },
 		});
 		stalePreview?.click();
-		expect(document.body.textContent).not.toContain('Bullet 全文');
+		expect(document.body.textContent).not.toContain('Bullet text');
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
@@ -1316,7 +1316,7 @@ describe('native outline sidebar coordinator', () => {
 		expect(preview).not.toBeNull();
 		preview?.remove();
 		preview?.click();
-		expect(document.body.textContent).not.toContain('Bullet 全文');
+		expect(document.body.textContent).not.toContain('Bullet text');
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
 	});
@@ -2306,7 +2306,7 @@ describe('native outline sidebar coordinator', () => {
 			changes: { from: fixture.editorView.state.doc.length, insert: ' ' },
 		});
 		await new Promise((resolve) => window.setTimeout(resolve, 90));
-		expect(fixture.sidebarView.contentEl.textContent).toContain('筆記結構仍在解析');
+		expect(fixture.sidebarView.contentEl.textContent).toContain('Reading the note structure…');
 		pending = false;
 		fixture.sidebarView.contentEl
 			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-sidebar-retry')
@@ -2343,7 +2343,7 @@ describe('native outline sidebar coordinator', () => {
 		scrollIntoView.mockClear();
 		pending = true;
 		await fixture.coordinator.openForEditor(fixture.editorView);
-		expect(fixture.sidebarView.contentEl.textContent).toContain('筆記結構仍在解析');
+		expect(fixture.sidebarView.contentEl.textContent).toContain('Reading the note structure…');
 		pending = false;
 		fixture.sidebarView.contentEl
 			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-sidebar-retry')
@@ -2363,7 +2363,7 @@ describe('native outline sidebar coordinator', () => {
 				throw new BulletOutlineLimitError();
 			},
 		);
-		expect(fixture.sidebarView.contentEl.textContent).toContain('Bullet 大綱過大');
+		expect(fixture.sidebarView.contentEl.textContent).toContain('too many bullets');
 		expect(
 			fixture.sidebarView.contentEl.querySelector(
 				'.bullet-zoom-outline-sidebar-label',
@@ -2385,7 +2385,7 @@ describe('native outline sidebar coordinator', () => {
 		await Promise.resolve();
 		expect(
 			fixture.sidebarView.contentEl.querySelector(
-				'.bullet-zoom-outline-sidebar-label[aria-label="聚焦「Child」"]',
+				'.bullet-zoom-outline-sidebar-label[aria-label="Zoom into Child"]',
 			),
 		).toBeNull();
 		fixture.coordinator.destroy();
@@ -2397,7 +2397,7 @@ describe('native outline sidebar coordinator', () => {
 		fixture.setEligible(false);
 		fixture.editorView.dispatch({ selection: { anchor: 2 } });
 		expect(fixture.sidebarView.contentEl.textContent).toContain(
-			'請先開啟即時預覽模式的 Markdown 筆記',
+			'Open a Markdown note in Live Preview to see its bullets.',
 		);
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
@@ -2413,7 +2413,7 @@ describe('native outline sidebar coordinator', () => {
 		await Promise.resolve();
 		expect(fixture.onFocus).not.toHaveBeenCalled();
 		expect(fixture.sidebarView.contentEl.textContent).toContain(
-			'請先開啟即時預覽模式的 Markdown 筆記',
+			'Open a Markdown note in Live Preview to see its bullets.',
 		);
 		fixture.coordinator.destroy();
 		fixture.editorView.destroy();
@@ -2593,7 +2593,7 @@ describe('native outline sidebar coordinator', () => {
 		expect(fixture.sidebarView.contentEl.textContent).toContain('Parent');
 		fixture.editorView.destroy();
 		expect(fixture.sidebarView.contentEl.textContent).toContain(
-			'請先開啟即時預覽模式的 Markdown 筆記',
+			'Open a Markdown note in Live Preview to see its bullets.',
 		);
 		fixture.coordinator.destroy();
 	});
