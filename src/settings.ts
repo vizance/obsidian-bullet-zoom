@@ -3,6 +3,7 @@ export interface BulletZoomSettings {
 	readonly outlineScale: number;
 	readonly zoomBullets: boolean;
 	readonly zoomNumbered: boolean;
+	readonly extractRemoveTopBullet: boolean;
 }
 
 export const SCALE_MIN = 60;
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	outlineScale: 100,
 	zoomBullets: true,
 	zoomNumbered: true,
+	extractRemoveTopBullet: true,
 });
 
 export const TITLE_SCALE_PROPERTY = '--bullet-zoom-title-scale';
@@ -58,6 +60,10 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		zoomNumbered: normalizeBoolean(
 			source['zoomNumbered'],
 			DEFAULT_SETTINGS.zoomNumbered,
+		),
+		extractRemoveTopBullet: normalizeBoolean(
+			source['extractRemoveTopBullet'],
+			DEFAULT_SETTINGS.extractRemoveTopBullet,
 		),
 	});
 }

@@ -605,3 +605,15 @@ button.bullet-zoom-breadcrumb {
 .bullet-zoom-outline-dragging .bullet-zoom-outline-sidebar-row {
 	touch-action: none;
 }
+
+/* 0.1.44: extract-to-note modal */
+.bullet-zoom-extract-name-input {
+	width: 100%;
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+.bullet-zoom-extract-actions {
+	display: flex;
+	gap: var(--size-4-2, 8px);
+	justify-content: flex-end;
+}

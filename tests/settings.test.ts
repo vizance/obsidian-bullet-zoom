@@ -27,6 +27,7 @@ describe('settings normalization', () => {
 			outlineScale: SCALE_MAX,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 	});
 
@@ -38,6 +39,7 @@ describe('settings normalization', () => {
 			outlineScale: 88,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -52,6 +54,7 @@ describe('scale variable application', () => {
 			outlineScale: 85,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -85,6 +88,7 @@ describe('plugin settings lifecycle', () => {
 			outlineScale: 100,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -94,6 +98,7 @@ describe('plugin settings lifecycle', () => {
 			outlineScale: 100,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -124,6 +129,7 @@ describe('slider reset buttons', () => {
 			outlineScale: 100,
 			zoomBullets: true,
 			zoomNumbered: true,
+			extractRemoveTopBullet: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -154,6 +160,21 @@ describe('marker detection toggles', () => {
 			outlineScale: 100,
 			zoomBullets: true,
 			zoomNumbered: false,
+			extractRemoveTopBullet: true,
 		});
+	});
+});
+
+describe('extract settings', () => {
+	it('defaults to removing the top bullet and normalizes non-boolean values', () => {
+		expect(normalizeSettings({}).extractRemoveTopBullet).toBe(true);
+		expect(
+			normalizeSettings({ extractRemoveTopBullet: 'nope' })
+				.extractRemoveTopBullet,
+		).toBe(true);
+		expect(
+			normalizeSettings({ extractRemoveTopBullet: false })
+				.extractRemoveTopBullet,
+		).toBe(false);
 	});
 });
