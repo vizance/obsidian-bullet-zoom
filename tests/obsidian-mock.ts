@@ -136,6 +136,45 @@ export class Setting {
 		callback(new TextComponent(this.controlEl));
 		return this;
 	}
+
+	addDropdown(callback: (dropdown: DropdownComponent) => unknown): this {
+		callback(new DropdownComponent(this.controlEl));
+		return this;
+	}
+}
+
+export class DropdownComponent {
+	readonly selectEl = document.createElement('select');
+	private changeHandler: ((value: string) => unknown) | null = null;
+
+	constructor(containerEl: HTMLElement) {
+		this.selectEl.addEventListener('change', () => {
+			void this.changeHandler?.(this.selectEl.value);
+		});
+		containerEl.append(this.selectEl);
+	}
+
+	addOption(value: string, label: string): this {
+		const option = document.createElement('option');
+		option.value = value;
+		option.textContent = label;
+		this.selectEl.append(option);
+		return this;
+	}
+
+	setValue(value: string): this {
+		this.selectEl.value = value;
+		return this;
+	}
+
+	getValue(): string {
+		return this.selectEl.value;
+	}
+
+	onChange(handler: (value: string) => unknown): this {
+		this.changeHandler = handler;
+		return this;
+	}
 }
 
 export class TextComponent {
