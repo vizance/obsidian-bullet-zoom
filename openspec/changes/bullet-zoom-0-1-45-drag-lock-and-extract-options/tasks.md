@@ -9,4 +9,4 @@
 
 - [x] 2.1 同步四個版本檔為 `0.1.45`、更新版本斷言、`README.md` 補版本紀錄；驗證：版本一致、`npm test` 通過。
 - [x] 2.2 `npm run build` 產生 `main.js`；驗證：bundle 含拖移鎖定與資料夾設定、無 Node.js 或 Electron runtime import。
-- [ ] 2.3 commit 推送 main，release guard preflight（`--version 0.1.45`）通過後建 tag 與 GitHub Release 附三資產；驗證：資產齊全；實機拖移穩定度與拆分預設值由使用者驗收。
+- [x] 2.3 commit 推送 main，release guard preflight（`--version 0.1.45`）通過後建 tag 與 GitHub Release 附三資產；驗證：資產齊全；實機拖移穩定度與拆分預設值由使用者驗收。
