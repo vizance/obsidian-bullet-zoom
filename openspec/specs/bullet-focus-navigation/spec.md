@@ -2193,3 +2193,255 @@ The plugin SHALL support Zoom on ordered-list items whose markers are a number f
 - **GIVEN** default settings
 - **WHEN** the numbered toggle is turned off
 - **THEN** the persisted data records `zoomNumbered: false` and `zoomBullets: true`
+
+---
+### Requirement: Extract a bullet branch into a new note
+
+The plugin SHALL provide an editor command that is available only when the cursor sits on a supported bullet, opens a modal asking for a file name, and on confirmation creates a Markdown file with that name in the current note's folder, moves the bullet's branch content into it, and replaces the branch in the source note with a wiki-link bullet at the original indent so the list structure and outline stay valid. A removeTopBullet setting (default enabled, exposed as a settings toggle) SHALL control the new file's content: when enabled the top bullet line is dropped and its child lines are dedented to the top level by their minimal common indent prefix (falling back to the bullet's label text when there are no children); when disabled the whole branch is included rebased to zero indent. An empty file name or an existing file SHALL abort with a notice and leave the source note unchanged.
+
+#### Scenario: Extract with the default remove-top behavior
+
+- **WHEN** the user runs the command on a bullet with children, enters a name, and confirms
+- **THEN** the new file contains the dedented children, and the source branch becomes a link bullet at the original indent
+
+##### Example: Remove-top extraction
+
+- **GIVEN** the source `- Topic\n  - P1\n    - P1a\n  - P2` with the cursor on `Topic` and the name `新筆記`
+- **THEN** the new file content is `- P1\n  - P1a\n- P2` and the source becomes `- [[新筆記]]`
+
+#### Scenario: Extract keeping the top bullet
+
+- **WHEN** removeTopBullet is disabled and the user extracts a nested bullet
+- **THEN** the new file contains the whole branch rebased to zero indent
+
+##### Example: Keep-top extraction
+
+- **GIVEN** the source `- A\n  - Topic\n    - P1` with the cursor on `Topic`, removeTopBullet disabled, and the name `T`
+- **THEN** the new file content is `- Topic\n  - P1` and the source becomes `- A\n  - [[T]]`
+
+#### Scenario: A leaf bullet extracts its label
+
+- **WHEN** removeTopBullet is enabled and the bullet has no children
+- **THEN** the new file contains the bullet's label text
+
+##### Example: Leaf extraction
+
+- **GIVEN** the source `- Only text` and the name `N`
+- **THEN** the new file content is `Only text` and the source becomes `- [[N]]`
+
+#### Scenario: Invalid names abort safely
+
+- **WHEN** the entered name is empty or a file with that name already exists
+- **THEN** a notice is shown and the source note is unchanged
+
+---
+### Requirement: Configure the extract destination and prefill the name
+
+The extract command SHALL support an extractFolder setting (default empty, meaning the current note's folder) that determines where the new note is created, creating the folder when it does not exist and aborting with a notice when creation fails. The extract modal SHALL prefill its name field with the bullet's text, sanitized by trimming whitespace, unwrapping Markdown link syntax to its display text, and removing characters that are illegal in file names, and SHALL select that text so the user can overwrite it directly.
+
+#### Scenario: Extract into a configured folder
+
+- **WHEN** the extract folder setting is a non-empty path and the user confirms a name
+- **THEN** the new note is created under that folder rather than the current note's folder
+
+##### Example: Configured destination
+
+- **GIVEN** the extract folder setting is `Cards` and the entered name is `新筆記`
+- **THEN** the created path is `Cards/新筆記.md`
+
+#### Scenario: Empty setting keeps the current folder
+
+- **WHEN** the extract folder setting is empty
+- **THEN** the new note is created in the current note's folder as before
+
+#### Scenario: Prefilled and sanitized name
+
+- **WHEN** the extract modal opens for a bullet
+- **THEN** the name field contains the bullet text with illegal file-name characters removed and link syntax unwrapped, and the text is selected
+
+##### Example: Sanitization table
+
+- **GIVEN** the bullet text `關於 [[卡片盒]] / 筆記: 方法`
+- **WHEN** the modal opens
+- **THEN** the prefilled name is `關於 卡片盒 筆記 方法`
+
+---
+### Requirement: Autocomplete the extract destination folder
+
+The extract destination setting SHALL offer autocomplete over the vault's existing folders. The plugin SHALL collect folder paths excluding the vault root, deduplicated and sorted lexicographically, and SHALL filter them case-insensitively by substring with prefix matches ordered first, returning at most a bounded number of suggestions (default 8) and returning the leading suggestions when the query is empty. Selecting a suggestion by click or Enter SHALL fill the field with that path and persist the setting; ArrowDown and ArrowUp SHALL move the highlighted suggestion and Escape SHALL dismiss the list. Typing a folder that does not exist SHALL remain allowed.
+
+#### Scenario: Filter folders while typing
+
+- **WHEN** the user types part of a folder name into the destination field
+- **THEN** the suggestion list shows matching existing folders with prefix matches first
+
+##### Example: Prefix ordering
+
+- **GIVEN** the vault folders `Cards`, `Archive/Cards`, `Notes`
+- **WHEN** the query is `car`
+- **THEN** the suggestions are `Cards` then `Archive/Cards`
+
+#### Scenario: Select a suggestion
+
+- **WHEN** the user clicks a suggestion or presses Enter on the highlighted one
+- **THEN** the field value becomes that path, the setting persists, and the list closes
+
+##### Example: Click fills the field
+
+- **GIVEN** the suggestion `Cards/Inbox` is displayed
+- **WHEN** it is clicked
+- **THEN** the field value is `Cards/Inbox` and the persisted extract folder is `Cards/Inbox`
+
+#### Scenario: Empty query lists leading folders
+
+- **WHEN** the field is focused while empty
+- **THEN** the first suggestions in sorted order are shown, bounded by the suggestion limit
+
+##### Example: Bounded list
+
+- **GIVEN** a vault with twenty folders
+- **WHEN** the empty field is focused
+- **THEN** at most eight suggestions render
+
+---
+### Requirement: Apply a template when extracting a note
+
+The extract command SHALL support an extractTemplatePath setting (default empty, meaning no template) selectable through a Markdown-file autocomplete in the settings tab. When set and the file exists, the plugin SHALL read the template and render the new note by substituting the placeholders `{{content}}`, `{{title}}`, `{{date}}`, `{{time}}`, and `{{source}}`, matched case-insensitively and tolerating inner whitespace, where content is the extracted branch text, title is the entered file name, date is the local `YYYY-MM-DD`, time is the local `HH:mm`, and source is a wiki link to the originating note or an empty string when unavailable. A template without a content placeholder SHALL have the extracted content appended after a blank line, unknown placeholders SHALL be left untouched, an empty template SHALL yield the extracted content unchanged, and a template that cannot be read SHALL abort the extraction with a notice leaving the source note unchanged.
+
+#### Scenario: Render a template with placeholders
+
+- **WHEN** a template containing placeholders is configured and the user extracts a bullet
+- **THEN** the new note contains the template with each known placeholder replaced
+
+##### Example: Standard template
+
+- **GIVEN** the template `# {{title}}\n\n{{content}}\n\n來源：{{source}}`, the name `想法`, the content `- A`, and the source note `Daily`
+- **THEN** the new note is `# 想法\n\n- A\n\n來源：[[Daily]]`
+
+#### Scenario: Template without a content placeholder
+
+- **WHEN** the configured template has no content placeholder
+- **THEN** the extracted content is appended after a blank line
+
+##### Example: Header-only template
+
+- **GIVEN** the template `# {{title}}` , the name `想法`, and the content `- A`
+- **THEN** the new note is `# 想法\n\n- A`
+
+#### Scenario: No template configured
+
+- **WHEN** the template setting is empty
+- **THEN** the new note contains exactly the extracted content as before
+
+##### Example: Unchanged behavior
+
+- **GIVEN** an empty template and the content `- A`
+- **THEN** the new note is `- A`
+
+#### Scenario: Unreadable template aborts safely
+
+- **WHEN** the configured template file cannot be read
+- **THEN** a notice is shown, no file is created, and the source note is unchanged
+
+---
+### Requirement: Present an English interface grouped into settings sections
+
+All user-facing strings SHALL be written in plain English, and the settings tab SHALL group its options under four headings in this order: `Zoom`, `Outline`, `Focus page`, and `Extract to new note`. Each option SHALL appear under the heading matching its purpose, with names as short noun phrases, descriptions as complete sentences, buttons labelled with verbs, and notices stating what happened plus what to do next. Setting keys, defaults, and behavior SHALL stay unchanged.
+
+#### Scenario: Settings render in grouped sections
+
+- **WHEN** the settings tab opens
+- **THEN** four section headings render in order and every option appears under its matching heading
+
+##### Example: Extract options grouped together
+
+- **GIVEN** the settings tab is open
+- **WHEN** the `Extract to new note` section is inspected
+- **THEN** it contains the destination folder, template file, and remove-top-bullet options
+
+#### Scenario: Interface strings are English
+
+- **WHEN** commands, notices, panels, or dialogs display text
+- **THEN** the text is English
+
+##### Example: Command names
+
+- **GIVEN** the plugin registers its commands
+- **WHEN** their names are inspected
+- **THEN** they read `Exit bullet focus` and `Go to parent bullet`
+
+#### Scenario: Empty labels use English fallbacks
+
+- **WHEN** a bullet has no text or a note has no title
+- **THEN** the interface shows `Untitled bullet` or `Untitled note`
+
+##### Example: Empty bullet label
+
+- **GIVEN** a focused bullet whose text is empty
+- **WHEN** the breadcrumb renders
+- **THEN** it displays `Untitled bullet`
+
+---
+### Requirement: Choose what replaces the extracted bullet
+
+The extract command SHALL support an extractReplacement setting with the values `link`, `embed`, and `none`, defaulting to `link` and normalizing unknown or missing values to `link`, exposed as a dropdown in the settings tab. After a successful extraction the source note SHALL keep a link bullet for `link`, an embed bullet for `embed` — both preserving the original indentation — or no remaining content for `none`. When removing content the plugin SHALL also remove the branch's line break, consuming the following newline when one exists, the preceding newline when the branch ends the document, and neither when the branch is the whole document, so no blank line is left behind and the outline keeps rendering.
+
+#### Scenario: Keep a link by default
+
+- **WHEN** the replacement setting is `link` and an extraction succeeds
+- **THEN** the branch is replaced with a link bullet at the original indent
+
+##### Example: Link replacement
+
+- **GIVEN** the source `- A\n  - Topic\n    - P1` extracted at `Topic` with the name `T`
+- **THEN** the source becomes `- A\n  - [[T]]`
+
+#### Scenario: Keep an embed
+
+- **WHEN** the replacement setting is `embed`
+- **THEN** the branch is replaced with an embed bullet at the original indent
+
+##### Example: Embed replacement
+
+- **GIVEN** the source `- A\n  - Topic\n    - P1` extracted at `Topic` with the name `T`
+- **THEN** the source becomes `- A\n  - ![[T]]`
+
+#### Scenario: Leave nothing behind
+
+- **WHEN** the replacement setting is `none`
+- **THEN** the branch and its line break are removed without leaving a blank line
+
+##### Example: Removal in the middle
+
+- **GIVEN** the source `- A\n- Topic\n  - P1\n- B` extracted at `Topic`
+- **THEN** the source becomes `- A\n- B`
+
+##### Example: Removal at the end
+
+- **GIVEN** the source `- A\n- Topic\n  - P1` extracted at `Topic`
+- **THEN** the source becomes `- A`
+
+---
+### Requirement: Choose what happens after extracting
+
+The extract command SHALL support an extractOpenBehavior setting with the values `stay`, `current`, `tab`, and `split`, defaulting to `stay` and normalizing unknown or missing values to `stay`, exposed as a dropdown in the settings tab. After the new note is created and the source note is updated, the plugin SHALL keep the current view for `stay`, open the new note in the active tab for `current`, in a new tab for `tab`, and in a split for `split`. A failure while opening SHALL show a notice without undoing the completed extraction.
+
+#### Scenario: Stay in the source note by default
+
+- **WHEN** the behavior setting is `stay` and an extraction succeeds
+- **THEN** no leaf is opened and the user keeps editing the source note
+
+#### Scenario: Open the new note
+
+- **WHEN** the behavior setting is `current`, `tab`, or `split`
+- **THEN** the created file opens in the active tab, a new tab, or a split respectively
+
+##### Example: New tab behavior
+
+- **GIVEN** the behavior setting is `tab` and the extraction created `Cards/T.md`
+- **THEN** the plugin opens that file in a new tab after the source note is updated
+
+#### Scenario: Opening failures do not undo the extraction
+
+- **WHEN** opening the created file throws
+- **THEN** a notice reports that the note could not be opened and both the new file and the updated source note remain
