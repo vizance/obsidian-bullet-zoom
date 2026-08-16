@@ -154,7 +154,7 @@ describe('outlinePlainTextLabel', () => {
 
 	it('uses the empty fallback when formatting has no visible content', () => {
 		const state = createState('- [ ](https://example.com)');
-		expect(buildBulletOutline(state)[0]?.label).toBe('（空白節點）');
+		expect(buildBulletOutline(state)[0]?.label).toBe('Untitled bullet');
 	});
 
 	it('keeps duplicate plain labels independently addressable by anchor', () => {
@@ -308,7 +308,7 @@ describe('planAppendChildInsertion', () => {
 			buildBreadcrumbs(next, next.doc.line(2).from, 'Ideas')?.map(
 				({ label }) => label,
 			),
-		).toEqual(['Ideas', 'Fundraising video', '（空白節點）']);
+		).toEqual(['Ideas', 'Fundraising video', 'Untitled bullet']);
 	});
 
 	it('uses one configured tab indentation unit below a nested marker', () => {
@@ -328,7 +328,7 @@ describe('planAppendChildInsertion', () => {
 			buildBreadcrumbs(next, next.doc.line(3).from, 'Ideas')?.map(
 				({ label }) => label,
 			),
-		).toEqual(['Ideas', 'Parent', 'Child', '（空白節點）']);
+		).toEqual(['Ideas', 'Parent', 'Child', 'Untitled bullet']);
 	});
 
 	it.each([
@@ -461,7 +461,7 @@ describe('buildBreadcrumbs', () => {
 		expect(breadcrumbs?.map(({ label }) => label)).toEqual([
 			'Ideas',
 			'Parent',
-			'（空白節點）',
+			'Untitled bullet',
 			'Target',
 		]);
 	});
@@ -476,7 +476,7 @@ describe('buildBreadcrumbs', () => {
 
 	it('uses a fallback for an empty note title', () => {
 		const state = createState('- Root');
-		expect(buildBreadcrumbs(state, 0, '')?.[0]?.label).toBe('未命名筆記');
+		expect(buildBreadcrumbs(state, 0, '')?.[0]?.label).toBe('Untitled note');
 	});
 
 	it('does not cache a target-limited syntax tree as the complete document tree', () => {
@@ -566,7 +566,7 @@ describe('buildBulletOutline', () => {
 		expect(outline.map(({ label }) => label)).toEqual([
 			'Idea',
 			'Idea',
-			'（空白節點）',
+			'Untitled bullet',
 		]);
 		expect(outline.map(({ anchor }) => anchor)).toEqual([
 			state.doc.line(1).from,

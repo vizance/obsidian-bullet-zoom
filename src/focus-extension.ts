@@ -33,13 +33,13 @@ import {
 import { appendHomeIcon } from './home-icon';
 
 export const LIVE_PREVIEW_REQUIRED_NOTICE =
-	'Bullet Zoom 第一版只支援即時預覽模式。';
+	'Bullet Zoom works in Live Preview mode only.';
 export const SUPPORTED_BULLET_REQUIRED_NOTICE =
-	'請先把游標放在一般 Bullet Point 裡。';
+	'Put the cursor on a bullet first.';
 export const EDITOR_VIEW_UNAVAILABLE_NOTICE =
-	'無法取得目前的 Obsidian 編輯畫面。';
+	'Could not reach the current editor.';
 export const ADD_CHILD_UNAVAILABLE_NOTICE =
-	'目前無法新增子 Bullet，請稍後再試。';
+	'Could not add a child bullet. Try again.';
 
 const MOBILE_BREADCRUMB_SCROLL_MARGIN = 164;
 const MOBILE_MARKER_TARGET_SIZE = 28;
@@ -58,7 +58,7 @@ export const focusFilePath = Facet.define<string | null, string | null>({
 });
 
 export const focusNoteTitle = Facet.define<string, string>({
-	combine: (values) => values[values.length - 1] ?? '未命名筆記',
+	combine: (values) => values[values.length - 1] ?? 'Untitled note',
 });
 
 export const focusLivePreview = Facet.define<boolean, boolean>({
@@ -170,7 +170,7 @@ export const focusStateField = StateField.define<FocusSession | null>({
 
 		const nextNoteTitle = transaction.state.facet(focusNoteTitle);
 		const nextDisplayTitle =
-			nextNoteTitle.length === 0 ? '未命名筆記' : nextNoteTitle;
+			nextNoteTitle.length === 0 ? 'Untitled note' : nextNoteTitle;
 		if (
 			!transaction.docChanged &&
 			transaction.state.facet(focusLivePreview) &&
@@ -608,8 +608,8 @@ function renderBreadcrumbs(view: EditorView, container: HTMLElement): void {
 
 			if (isNote) {
 				appendHomeIcon(item);
-				item.title = '回到全文';
-				item.setAttribute('aria-label', '回到全文');
+				item.title = 'Back to full note';
+				item.setAttribute('aria-label', 'Back to full note');
 			} else {
 				const label = container.ownerDocument.createElement('span');
 				label.className = 'bullet-zoom-breadcrumb-label';
@@ -654,7 +654,7 @@ function createBreadcrumbContainer(
 	if (additionalClass !== undefined) {
 		container.classList.add(additionalClass);
 	}
-	container.setAttribute('aria-label', 'Bullet 聚焦路徑');
+	container.setAttribute('aria-label', 'Bullet focus path');
 	renderBreadcrumbs(view, container);
 	return container;
 }
@@ -676,7 +676,7 @@ class EmptyFocusRootWidget extends WidgetType {
 	toDOM(view: EditorView): HTMLElement {
 		const placeholder = view.dom.ownerDocument.createElement('span');
 		placeholder.className = 'bullet-zoom-focus-root-placeholder';
-		placeholder.textContent = '（空白節點）';
+		placeholder.textContent = 'Untitled bullet';
 		return placeholder;
 	}
 }
@@ -703,10 +703,10 @@ class FocusPageFooterWidget extends WidgetType {
 		addChild.className = 'bullet-zoom-add-child';
 		addChild.type = 'button';
 		addChild.textContent = '＋';
-		addChild.title = `在「${this.label}」新增子 Bullet`;
+		addChild.title = `Add a child bullet under ${this.label}`;
 		addChild.setAttribute(
 			'aria-label',
-			`在「${this.label}」新增子 Bullet`,
+			`Add a child bullet under ${this.label}`,
 		);
 		addChild.addEventListener('click', () => {
 			if (
@@ -771,7 +771,7 @@ const focusPageDecorations = EditorView.decorations.compute(
 		if (bullet === null) {
 			return Decoration.none;
 		}
-		const label = session.breadcrumbs.at(-1)?.label ?? '（空白節點）';
+		const label = session.breadcrumbs.at(-1)?.label ?? 'Untitled bullet';
 		const ranges = [
 			focusRootLineDecoration.range(bullet.lineFrom),
 			hiddenFocusRootPrefix.range(bullet.lineFrom, bullet.contentFrom),

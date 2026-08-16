@@ -24,7 +24,7 @@ import {
 import { appendHomeIcon } from './home-icon';
 
 export const BULLET_OUTLINE_VIEW_TYPE = 'bullet-zoom-outline';
-export const BULLET_OUTLINE_VIEW_NAME = 'Bullet 大綱';
+export const BULLET_OUTLINE_VIEW_NAME = 'Bullet outline';
 
 const CARET_REFRESH_DELAY_MS = 40;
 
@@ -221,14 +221,14 @@ class BulletLabelPreviewModal extends Modal {
 	}
 
 	onOpen(): void {
-		this.titleEl.textContent = 'Bullet 全文';
+		this.titleEl.textContent = 'Bullet text';
 		const text = this.contentEl.ownerDocument.createElement('p');
 		text.className = 'bullet-zoom-outline-preview-text';
 		text.textContent = this.label;
 		const close = createButton(
 			this.contentEl.ownerDocument,
 			'bullet-zoom-outline-preview-close',
-			'關閉',
+			'Close',
 		);
 		close.addEventListener('click', () => this.close());
 		this.contentEl.replaceChildren(text, close);
@@ -481,15 +481,15 @@ export function renderOutlineSidebar(
 	if (model.status === 'unavailable') {
 		const state = document.createElement('div');
 		state.className = 'bullet-zoom-outline-sidebar-empty';
-		state.textContent = '請先開啟即時預覽模式的 Markdown 筆記';
+		state.textContent = 'Open a Markdown note in Live Preview to see its bullets.';
 		body.append(state);
 		return;
 	}
 
 	const root = createButton(document, 'bullet-zoom-outline-sidebar-root', '');
 	appendHomeIcon(root);
-	root.title = '回到全文';
-	root.setAttribute('aria-label', '回到全文');
+	root.title = 'Back to full note';
+	root.setAttribute('aria-label', 'Back to full note');
 	if (model.currentAnchor === null) {
 		root.classList.add('is-current');
 		root.setAttribute('aria-current', 'true');
@@ -502,18 +502,18 @@ export function renderOutlineSidebar(
 		state.className = 'bullet-zoom-outline-sidebar-empty';
 		state.textContent =
 			model.status === 'pending'
-				? '筆記結構仍在解析'
+				? 'Reading the note structure…'
 				: model.status === 'limited'
-					? '這份筆記的 Bullet 大綱過大，請縮小結構後再試'
-					: '這份筆記沒有可切換的 Bullet';
+					? 'This note has too many bullets to outline.'
+					: 'No bullets in this note yet.';
 		body.append(state);
 		if (model.status === 'pending') {
 			const retry = createButton(
 				document,
 				'bullet-zoom-outline-sidebar-retry',
-				'重新整理',
+				'Refresh',
 			);
-			retry.setAttribute('aria-label', '重新整理 Bullet 大綱');
+			retry.setAttribute('aria-label', 'Refresh the bullet outline');
 			retry.addEventListener('click', () => actions.onRetry(model.revision));
 			body.append(retry);
 		}
@@ -572,7 +572,7 @@ export function renderOutlineSidebar(
 				}
 				disclosure.setAttribute(
 					'aria-label',
-					`${isExpanded ? '收合' : '展開'}「${nodeLabel}」的子節點`,
+					`${isExpanded ? 'Collapse' : 'Expand'} ${nodeLabel}`,
 				);
 				disclosure.addEventListener('click', () =>
 					actions.onToggle(
@@ -598,7 +598,7 @@ export function renderOutlineSidebar(
 			labelText.textContent = label;
 			labelButton.append(labelText);
 			labelButton.title = label;
-			labelButton.setAttribute('aria-label', `聚焦「${label}」`);
+			labelButton.setAttribute('aria-label', `Zoom into ${label}`);
 			if (node.anchor === model.currentAnchor) {
 				labelButton.setAttribute('aria-current', 'true');
 			}
@@ -616,7 +616,7 @@ export function renderOutlineSidebar(
 				);
 				preview.append(createMagnifierIcon(document));
 				preview.hidden = true;
-				preview.setAttribute('aria-label', `查看「${label}」全文`);
+				preview.setAttribute('aria-label', `Show full text of ${label}`);
 				preview.addEventListener('click', () =>
 					actions.onPreview(
 						Object.freeze({ anchor: node.anchor, revision: model.revision }),
@@ -642,7 +642,7 @@ export function renderOutlineSidebar(
 	if (headings.length === 0) {
 		renderNodes(
 			model.outline,
-			createTree(`${model.noteTitle} Bullet 大綱`),
+			createTree(`Bullet outline for ${model.noteTitle}`),
 			0,
 			[],
 		);
@@ -681,8 +681,8 @@ export function renderOutlineSidebar(
 					group.nodes,
 					createTree(
 						group.heading === null
-							? `${model.noteTitle} Bullet 大綱`
-							: `${group.heading.label} 區段大綱`,
+							? `Bullet outline for ${model.noteTitle}`
+							: `Bullets under ${group.heading.label}`,
 					),
 					0,
 					[],

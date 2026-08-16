@@ -9,7 +9,7 @@ describe('parent focus command definition', () => {
 	it('registers a stable command without claiming a default hotkey', () => {
 		expect(PARENT_FOCUS_COMMAND).toEqual({
 			id: 'bullet-zoom-focus-parent',
-			name: '回到上一層 Bullet',
+			name: 'Go to parent bullet',
 		});
 		expect(PARENT_FOCUS_COMMAND).not.toHaveProperty('hotkeys');
 	});
@@ -17,7 +17,7 @@ describe('parent focus command definition', () => {
 	it('keeps the direct exit command available without changing its identity', () => {
 		expect(EXIT_FOCUS_COMMAND).toEqual({
 			id: 'bullet-zoom-exit',
-			name: '退出 Bullet 聚焦',
+			name: 'Exit bullet focus',
 		});
 	});
 });
