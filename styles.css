@@ -662,3 +662,21 @@ button.bullet-zoom-breadcrumb {
 	display: flex;
 	align-items: center;
 }
+
+/* 1.1.0: vertical indent guides on the focus page */
+.bullet-zoom-indent-guides .bullet-zoom-rebased-line {
+	background-image: repeating-linear-gradient(
+		to right,
+		var(--background-modifier-border) 0,
+		var(--background-modifier-border) 1px,
+		transparent 1px,
+		transparent var(--bullet-zoom-indent-unit, 1.2em)
+	);
+	background-size: calc(
+			var(--bullet-zoom-relative-depth, 0) *
+				var(--bullet-zoom-indent-unit, 1.2em)
+		)
+		100%;
+	background-repeat: no-repeat;
+	background-position: calc(var(--bullet-zoom-indent-unit, 1.2em) * 0.25) 0;
+}

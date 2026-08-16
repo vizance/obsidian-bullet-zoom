@@ -303,6 +303,17 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(this.containerEl)
+			.setName('Indent guides')
+			.setDesc('Show vertical lines that connect nested bullets.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.focusIndentGuides)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ focusIndentGuides: value });
+					}),
+			);
+
+		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
 		const vault = this.app.vault as unknown as {

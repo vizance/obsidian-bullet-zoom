@@ -6,6 +6,7 @@ import {
 	clearScaleVariables,
 	DEFAULT_SETTINGS,
 	normalizeSettings,
+	INDENT_GUIDES_CLASS,
 	OUTLINE_SCALE_PROPERTY,
 	SCALE_MAX,
 	SCALE_MIN,
@@ -32,6 +33,7 @@ describe('settings normalization', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 	});
 
@@ -48,6 +50,7 @@ describe('settings normalization', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -67,6 +70,7 @@ describe('scale variable application', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -105,6 +109,7 @@ describe('plugin settings lifecycle', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -119,6 +124,7 @@ describe('plugin settings lifecycle', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -154,6 +160,7 @@ describe('slider reset buttons', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -189,6 +196,7 @@ describe('marker detection toggles', () => {
 			extractTemplatePath: '',
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
+			focusIndentGuides: true,
 		});
 	});
 });
@@ -265,5 +273,32 @@ describe('extract open behavior setting', () => {
 		expect(
 			normalizeSettings({ extractOpenBehavior: 3 }).extractOpenBehavior,
 		).toBe('stay');
+	});
+});
+
+describe('focus indent guides setting', () => {
+	it('defaults to enabled and normalizes non-boolean values', () => {
+		expect(normalizeSettings({}).focusIndentGuides).toBe(true);
+		expect(
+			normalizeSettings({ focusIndentGuides: false }).focusIndentGuides,
+		).toBe(false);
+		expect(
+			normalizeSettings({ focusIndentGuides: 'yes' }).focusIndentGuides,
+		).toBe(true);
+	});
+
+	it('toggles the body class and clears it on unload', async () => {
+		const plugin = new BulletZoomPlugin({} as never, {} as never);
+		vi.spyOn(plugin, 'saveData').mockResolvedValue(undefined);
+
+		await plugin.updateSettings({ focusIndentGuides: true });
+		expect(document.body.classList.contains(INDENT_GUIDES_CLASS)).toBe(true);
+
+		await plugin.updateSettings({ focusIndentGuides: false });
+		expect(document.body.classList.contains(INDENT_GUIDES_CLASS)).toBe(false);
+
+		await plugin.updateSettings({ focusIndentGuides: true });
+		plugin.onunload();
+		expect(document.body.classList.contains(INDENT_GUIDES_CLASS)).toBe(false);
 	});
 });

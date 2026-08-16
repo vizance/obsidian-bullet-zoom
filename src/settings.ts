@@ -8,6 +8,7 @@ export interface BulletZoomSettings {
 	readonly extractTemplatePath: string;
 	readonly extractReplacement: ExtractReplacement;
 	readonly extractOpenBehavior: ExtractOpenBehavior;
+	readonly focusIndentGuides: boolean;
 }
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
@@ -32,8 +33,10 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	extractTemplatePath: '',
 	extractReplacement: 'link',
 	extractOpenBehavior: 'stay',
+	focusIndentGuides: true,
 });
 
+export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
 export const TITLE_SCALE_PROPERTY = '--bullet-zoom-title-scale';
 export const OUTLINE_SCALE_PROPERTY = '--bullet-zoom-outline-scale';
 
@@ -104,6 +107,10 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		extractOpenBehavior: normalizeOpenBehavior(
 			source['extractOpenBehavior'],
 		),
+		focusIndentGuides: normalizeBoolean(
+			source['focusIndentGuides'],
+			DEFAULT_SETTINGS.focusIndentGuides,
+		),
 	});
 }
 
@@ -111,6 +118,7 @@ export function applyScaleVariables(
 	body: HTMLElement,
 	settings: BulletZoomSettings,
 ): void {
+	body.classList.toggle(INDENT_GUIDES_CLASS, settings.focusIndentGuides);
 	body.style.setProperty(
 		TITLE_SCALE_PROPERTY,
 		String(settings.titleScale / 100),
@@ -122,6 +130,7 @@ export function applyScaleVariables(
 }
 
 export function clearScaleVariables(body: HTMLElement): void {
+	body.classList.remove(INDENT_GUIDES_CLASS);
 	body.style.removeProperty(TITLE_SCALE_PROPERTY);
 	body.style.removeProperty(OUTLINE_SCALE_PROPERTY);
 }
