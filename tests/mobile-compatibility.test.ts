@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('0.1.44');
+		expect(manifest.version).toBe('0.1.45');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('0.1.44');
-		expect(packageLock.version).toBe('0.1.44');
-		expect(packageLock.packages?.['']?.version).toBe('0.1.44');
+		expect(packageManifest.version).toBe('0.1.45');
+		expect(packageLock.version).toBe('0.1.45');
+		expect(packageLock.packages?.['']?.version).toBe('0.1.45');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -684,5 +684,23 @@ describe('size slider CSS contract (0.1.37)', () => {
 		expect(fontSizeOf('.is-mobile .bullet-zoom-outline-sidebar')).toContain(
 			'--bullet-zoom-outline-scale',
 		);
+	});
+});
+
+describe('drag scroll lock CSS contract (0.1.45)', () => {
+	it('disables touch scrolling on the outline body while dragging', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rule = Array.from(style.sheet?.cssRules ?? []).find(
+			(candidate): candidate is CSSStyleRule =>
+				candidate instanceof CSSStyleRule &&
+				candidate.selectorText ===
+					'.bullet-zoom-outline-sidebar-body.bullet-zoom-outline-dragging',
+		);
+		expect(rule).toBeDefined();
+		expect(rule?.style.getPropertyValue('touch-action').trim()).toBe('none');
+		expect(rule?.style.getPropertyValue('overflow').trim()).toBe('hidden');
 	});
 });

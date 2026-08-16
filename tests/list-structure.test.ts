@@ -10,6 +10,7 @@ import {
 	markerDetectionFacet,
 	planBranchMove,
 	planBulletExtract,
+	suggestExtractFileName,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
@@ -1101,5 +1102,22 @@ describe('planBulletExtract (0.1.44)', () => {
 	it('returns null when the position is not a supported bullet', () => {
 		const state = stateOf('Plain paragraph');
 		expect(planBulletExtract(state, 0, true)).toBeNull();
+	});
+});
+
+describe('suggestExtractFileName (0.1.45)', () => {
+	it('unwraps link syntax and strips illegal file-name characters', () => {
+		expect(suggestExtractFileName('關於 [[卡片盒]] / 筆記: 方法')).toBe(
+			'關於 卡片盒 筆記 方法',
+		);
+		expect(suggestExtractFileName('看 [文件](https://example.com) 說明')).toBe(
+			'看 文件 說明',
+		);
+		expect(suggestExtractFileName('[[別名|顯示文字]]')).toBe('顯示文字');
+	});
+
+	it('keeps plain text and handles blank labels', () => {
+		expect(suggestExtractFileName('  一般標題  ')).toBe('一般標題');
+		expect(suggestExtractFileName('')).toBe('');
 	});
 });

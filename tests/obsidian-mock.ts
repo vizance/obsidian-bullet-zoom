@@ -126,6 +126,43 @@ export class Setting {
 		callback(new ExtraButtonComponent(this.controlEl));
 		return this;
 	}
+
+	addText(callback: (text: TextComponent) => unknown): this {
+		callback(new TextComponent(this.controlEl));
+		return this;
+	}
+}
+
+export class TextComponent {
+	readonly inputEl = document.createElement('input');
+	private changeHandler: ((value: string) => unknown) | null = null;
+
+	constructor(containerEl: HTMLElement) {
+		this.inputEl.type = 'text';
+		this.inputEl.addEventListener('input', () => {
+			void this.changeHandler?.(this.inputEl.value);
+		});
+		containerEl.append(this.inputEl);
+	}
+
+	setPlaceholder(placeholder: string): this {
+		this.inputEl.placeholder = placeholder;
+		return this;
+	}
+
+	setValue(value: string): this {
+		this.inputEl.value = value;
+		return this;
+	}
+
+	getValue(): string {
+		return this.inputEl.value;
+	}
+
+	onChange(handler: (value: string) => unknown): this {
+		this.changeHandler = handler;
+		return this;
+	}
 }
 
 export class ExtraButtonComponent {

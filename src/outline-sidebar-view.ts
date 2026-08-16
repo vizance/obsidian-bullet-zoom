@@ -270,6 +270,7 @@ function attachOutlineDragController(
 	let dragging = false;
 	let holdTimer: number | null = null;
 	let indicator: HTMLElement | null = null;
+	let lockedScrollTop = 0;
 	let dropTarget: {
 		anchor: number;
 		placement: BranchMovePlacement;
@@ -284,7 +285,10 @@ function attachOutlineDragController(
 			window?.clearTimeout(holdTimer);
 			holdTimer = null;
 		}
-		body.classList.remove('bullet-zoom-outline-dragging');
+		if (dragging) {
+			body.classList.remove('bullet-zoom-outline-dragging');
+			body.scrollTop = lockedScrollTop;
+		}
 		clearIndicator();
 		dragging = false;
 		pointerId = null;
@@ -293,6 +297,7 @@ function attachOutlineDragController(
 	};
 	const beginDrag = (): void => {
 		dragging = true;
+		lockedScrollTop = body.scrollTop;
 		body.classList.add('bullet-zoom-outline-dragging');
 	};
 	const itemAnchor = (element: Element | null): number | null => {
@@ -357,6 +362,7 @@ function attachOutlineDragController(
 			}
 		}
 		event.preventDefault();
+		body.scrollTop = lockedScrollTop;
 		clearIndicator();
 		dropTarget = null;
 		const hitElement =
