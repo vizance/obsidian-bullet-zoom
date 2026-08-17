@@ -9,4 +9,4 @@
 
 - [x] 2.1 移除 `README.md` 與 `README.zh-TW.md` 中關於未聚焦整理的段落；同步四個版本檔為 `1.6.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
 - [x] 2.2 `npm run build` 產生 `main.js`；驗證：bundle 不再含非聚焦整理邏輯、無 Node.js 或 Electron runtime import。
-- [ ] 2.3 commit 推送 main，release guard preflight（`--version 1.6.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機一般清單編輯不再被干擾由使用者驗收。
+- [x] 2.3 commit 推送 main，release guard preflight（`--version 1.6.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機一般清單編輯不再被干擾由使用者驗收。
