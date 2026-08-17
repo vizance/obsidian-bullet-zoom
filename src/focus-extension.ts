@@ -25,6 +25,8 @@ import {
 	computeBranchRange,
 	findSupportedBullet,
 	markerDetectionFacet,
+	planStrayLineRepair,
+	scanStrayRange,
 	planAppendChildInsertion,
 	type Breadcrumb,
 	type BranchRange,
@@ -201,14 +203,15 @@ const focusDecorations = EditorView.decorations.compute(
 			return Decoration.none;
 		}
 
+		const stray = scanStrayRange(state, session.anchor);
+		const visibleTo =
+			stray === null ? session.branch.to : Math.max(session.branch.to, stray.to);
 		const ranges = [];
 		if (session.branch.from > 0) {
 			ranges.push(hiddenBlock.range(0, session.branch.from - 1));
 		}
-		if (session.branch.to < state.doc.length) {
-			ranges.push(
-				hiddenBlock.range(session.branch.to + 1, state.doc.length),
-			);
+		if (visibleTo < state.doc.length) {
+			ranges.push(hiddenBlock.range(visibleTo + 1, state.doc.length));
 		}
 		return Decoration.set(ranges, true);
 	},
@@ -1083,10 +1086,81 @@ export function runParentCommand(
 	return focusParent(view);
 }
 
+const STRAY_REPAIR_DELAY_MS = 600;
+
+const focusAutoFix = Facet.define<boolean, boolean>({
+	combine: (values) => values.at(0) ?? false,
+});
+
+class StrayLineRepairPlugin implements PluginValue {
+	private timer: number | null = null;
+	private timerWindow: Window | null = null;
+
+	constructor(private readonly view: EditorView) {}
+
+	update(update: ViewUpdate): void {
+		if (!update.docChanged) {
+			return;
+		}
+		if (
+			!update.state.facet(focusAutoFix) ||
+			getFocusSession(update.state) === null
+		) {
+			this.cancel();
+			return;
+		}
+		this.schedule();
+	}
+
+	destroy(): void {
+		this.cancel();
+	}
+
+	private cancel(): void {
+		if (this.timer !== null) {
+			this.timerWindow?.clearTimeout(this.timer);
+		}
+		this.timer = null;
+		this.timerWindow = null;
+	}
+
+	private schedule(): void {
+		this.cancel();
+		const window = this.view.dom.ownerDocument.defaultView;
+		if (window === null || window === undefined) {
+			return;
+		}
+		this.timerWindow = window;
+		this.timer = window.setTimeout(() => {
+			this.timer = null;
+			this.timerWindow = null;
+			this.repair();
+		}, STRAY_REPAIR_DELAY_MS);
+	}
+
+	private repair(): void {
+		const session = getFocusSession(this.view.state);
+		if (session === null || !this.view.state.facet(focusAutoFix)) {
+			return;
+		}
+		const change = planStrayLineRepair(this.view.state, session.anchor);
+		if (change === null) {
+			return;
+		}
+		this.view.dispatch({
+			changes: change,
+			annotations: isolateHistory.of('before'),
+		});
+	}
+}
+
+const strayLineRepairPlugin = ViewPlugin.fromClass(StrayLineRepairPlugin);
+
 export function createFocusExtension({
 	isPhone,
 	isMobile,
 	markerDetection,
+	autoFixStrayLines = false,
 	onEditorReady,
 	onEditorUpdate,
 	onEditorDestroy,
@@ -1095,6 +1169,7 @@ export function createFocusExtension({
 	isPhone: boolean;
 	isMobile: boolean;
 	markerDetection?: MarkerDetection;
+	autoFixStrayLines?: boolean;
 	onEditorReady?: (view: EditorView) => void;
 	onEditorUpdate?: (update: ViewUpdate) => void;
 	onEditorDestroy?: (view: EditorView) => void;
@@ -1111,6 +1186,8 @@ export function createFocusExtension({
 		...(markerDetection !== undefined
 			? [markerDetectionFacet.of(markerDetection)]
 			: []),
+		focusAutoFix.of(autoFixStrayLines),
+		strayLineRepairPlugin,
 		focusPhoneMode.of(isPhone),
 		focusMobileMode.of(isMobile),
 		focusNoticeHandler.of(notify),

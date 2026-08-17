@@ -43,6 +43,10 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 - Click the home icon to return to the whole note.
 - Run **Go to parent bullet**, or **Exit bullet focus** to leave immediately.
 
+### Dictation and AI tools keep working
+
+Voice-to-text and AI writing tools sometimes insert paragraphs that break the list structure. Those lines normally fall outside the focused branch and disappear from view. Bullet Zoom keeps them visible, and about half a second after you stop typing it indents them back in as child bullets of the focused item — your text is untouched, and one undo reverts just the fix. Turn it off with **Fix broken bullets** under **Focus page**.
+
 ### Folding is separate from zooming
 
 Obsidian's native fold arrow only collapses and expands a thread — it never zooms. The bullet marker zooms. On phones the fold arrow's tap area is kept narrow so tapping a bullet reliably zooms instead of folding.
@@ -102,7 +106,7 @@ Settings are grouped into four sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
-- **Focus page** — scale the title shown after zooming, and toggle indent guides.
+- **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.

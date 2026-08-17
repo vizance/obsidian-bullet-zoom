@@ -11,6 +11,8 @@ import {
 	planBranchMove,
 	planBulletExtract,
 	planBulletRemovalRange,
+	planStrayLineRepair,
+	scanStrayRange,
 	suggestExtractFileName,
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
@@ -1154,5 +1156,65 @@ describe('planBulletRemovalRange (0.1.49)', () => {
 
 	it('keeps the range unchanged when the branch is the whole document', () => {
 		expect(removeAt('- Topic\n  - P1', 1)).toBe('');
+	});
+});
+
+describe('stray line repair (1.2.0)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function repair(document: string): string | null {
+		const state = stateOf(document);
+		const change = planStrayLineRepair(state, 0);
+		if (change === null) {
+			return null;
+		}
+		return state.update({ changes: change }).state.doc.toString();
+	}
+
+	it('turns a stray plain line into a child bullet', () => {
+		expect(repair('- Topic\n  - A\n\ndictated text')).toBe(
+			'- Topic\n  - A\n\n  - dictated text',
+		);
+	});
+
+	it('rebases a stray block while keeping its relative levels', () => {
+		expect(repair('- Topic\n  - A\n\nfirst\n  - second')).toBe(
+			'- Topic\n  - A\n\n  - first\n    - second',
+		);
+	});
+
+	it('repairs every stray paragraph in one pass', () => {
+		expect(repair('- Topic\n  - A\n\nfirst\n\nsecond')).toBe(
+			'- Topic\n  - A\n\n  - first\n\n  - second',
+		);
+	});
+
+	it('leaves the repaired branch alone on a second pass', () => {
+		expect(repair('- Topic\n  - A\n\n  - dictated text')).toBeNull();
+	});
+
+	it('stops at a sibling bullet, a heading, or a code fence', () => {
+		expect(repair('- Topic\n  - A\n\n- Sibling')).toBeNull();
+		expect(
+			scanStrayRange(stateOf('- Topic\n  - A\n\n# Heading'), 0),
+		).toBeNull();
+		expect(scanStrayRange(stateOf('- Topic\n  - A\n\n```'), 0)).toBeNull();
+	});
+
+	it('returns null for a clean branch', () => {
+		expect(planStrayLineRepair(stateOf('- Topic\n  - A'), 0)).toBeNull();
+		expect(scanStrayRange(stateOf('- Topic\n  - A'), 0)).toBeNull();
+	});
+
+	it('ignores trailing blank lines when scanning', () => {
+		const source = '- Topic\n  - A\n\nstray\n\n';
+		const state = stateOf(source);
+		const stray = scanStrayRange(state, 0);
+		expect(stray).not.toBeNull();
+		expect(
+			state.doc.sliceString(stray?.from ?? 0, stray?.to ?? 0).trimStart(),
+		).toBe('stray');
 	});
 });

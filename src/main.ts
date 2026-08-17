@@ -314,6 +314,17 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(this.containerEl)
+			.setName('Fix broken bullets')
+			.setDesc('While zoomed, indent stray lines back into the focused bullet.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.autoFixStrayLines)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ autoFixStrayLines: value });
+					}),
+			);
+
+		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
 		const vault = this.app.vault as unknown as {
@@ -434,6 +445,7 @@ export default class BulletZoomPlugin extends Plugin {
 					bullets: this.settings.zoomBullets,
 					numbered: this.settings.zoomNumbered,
 				},
+				autoFixStrayLines: this.settings.autoFixStrayLines,
 				notify: showNotice,
 				onEditorReady: (view) => outlineCoordinator.notifyEditorReady(view),
 				onEditorUpdate: (update) =>
@@ -463,7 +475,8 @@ export default class BulletZoomPlugin extends Plugin {
 		applyScaleVariables(document.body, this.settings);
 		if (
 			previous.zoomBullets !== this.settings.zoomBullets ||
-			previous.zoomNumbered !== this.settings.zoomNumbered
+			previous.zoomNumbered !== this.settings.zoomNumbered ||
+			previous.autoFixStrayLines !== this.settings.autoFixStrayLines
 		) {
 			this.rebuildEditorExtensions();
 		}
