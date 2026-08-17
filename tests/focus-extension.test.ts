@@ -1198,7 +1198,7 @@ describe('focus page rebase (0.1.36)', () => {
 	});
 });
 
-describe('stray line handling (1.2.0)', () => {
+describe('stray line handling (1.4.0)', () => {
 	function createStrayView(
 		documentText: string,
 		autoFix: boolean,
@@ -1276,7 +1276,7 @@ describe('stray line handling (1.2.0)', () => {
 		);
 		await vi.advanceTimersByTimeAsync(700);
 		expect(view.state.doc.toString()).toBe(
-			'- Topic\n  - A\n\n  - first idea\n\n  - second idea',
+			'- Topic\n  - A\n    - first idea\n    - second idea',
 		);
 		undo(view);
 		expect(view.state.doc.toString()).toBe(
