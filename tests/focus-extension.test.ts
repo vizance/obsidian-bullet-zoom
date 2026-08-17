@@ -1226,6 +1226,26 @@ describe('stray line handling (1.2.0)', () => {
 		return { parent, view };
 	}
 
+	it('never shrinks the visible end while focused', () => {
+		const { parent, view } = createStrayView('- Topic\n  - A\n- Later', false);
+		expect(enterFocusAt(view, 0)).toBe(true);
+		const before = getFocusSession(view.state);
+		expect(before?.visibleTo).toBe(view.state.doc.line(2).to);
+		view.dispatch({
+			changes: { from: before?.visibleTo ?? 0, insert: '\n\ndictated text' },
+		});
+		const after = getFocusSession(view.state);
+		const strayLine = view.state.doc.line(4);
+		expect(strayLine.text).toBe('dictated text');
+		expect(after?.visibleTo).toBeGreaterThanOrEqual(strayLine.to);
+		const covering = decorationRanges(view.state).filter(
+			(range) => range.from <= strayLine.from && range.to >= strayLine.to,
+		);
+		expect(covering).toHaveLength(0);
+		view.destroy();
+		parent.remove();
+	});
+
 	it('keeps stray lines visible instead of hiding them', () => {
 		const { parent, view } = createStrayView(
 			'- Topic\n  - A\n\ndictated text',
