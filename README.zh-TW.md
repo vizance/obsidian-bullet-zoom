@@ -45,7 +45,7 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 
 ### 語音轉文字與 AI 工具照樣能用
 
-語音轉文字或 AI 寫作工具有時會插入破壞清單格式的段落，這些行原本會落在聚焦分支之外、整段看不到。Bullet Zoom 會讓它們照常顯示，並在你停止輸入約半秒後自動縮排回聚焦 Bullet 的子項目——文字內容不變，按一次 Undo 只會還原這個修復。可在 **Focus page** 區塊的 **Fix broken bullets** 關閉。
+語音轉文字或 AI 寫作工具常會插入破壞清單格式的段落。Bullet Zoom 會讓這些內容照常顯示，並在你停止輸入約半秒後，把聚焦區域內的每一行都變成子 Bullet：一個換行就是下一個 Bullet，文字一個字都不會被改寫，原本正確的巢狀層級維持不變，程式碼區塊不動。按一次 Undo 只還原這個修復。可在 **Focus page** 區塊的 **Fix broken bullets** 關閉。
 
 ### 摺疊與 Zoom 是兩件事
 

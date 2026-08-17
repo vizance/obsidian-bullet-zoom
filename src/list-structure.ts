@@ -1235,38 +1235,62 @@ export function scanStrayRange(
 	});
 }
 
-export function planStrayLineRepair(
+export function planFocusStructureRepair(
 	state: EditorState,
 	anchor: number,
+	visibleTo: number,
 ): Readonly<{ from: number; to: number; insert: string }> | null {
 	const bullet = findSupportedBullet(state, anchor);
-	const stray = scanStrayRange(state, anchor);
-	if (bullet === null || stray === null) {
+	if (bullet === null) {
+		return null;
+	}
+	const regionEnd = Math.min(Math.max(visibleTo, bullet.lineTo), state.doc.length);
+	const firstLineNumber = bullet.lineNumber + 1;
+	const lastLineNumber = state.doc.lineAt(regionEnd).number;
+	if (firstLineNumber > lastLineNumber) {
 		return null;
 	}
 	const indent = childIndentText(state, bullet);
-	const lines = state.doc.sliceString(stray.from, stray.to).split('\n');
-	const common = minimalCommonIndent(lines);
-	const repaired = lines
-		.map((line) => {
-			if (line.trim().length === 0) {
-				return '';
-			}
-			const rebased = line.startsWith(common)
-				? line.slice(common.length)
-				: line.trimStart();
-			return ANY_LIST_MARKER_PATTERN.test(rebased)
-				? `${indent}${rebased}`
-				: `${indent}- ${rebased.trimStart()}`;
-		})
-		.join('\n');
-	if (repaired === state.doc.sliceString(stray.from, stray.to)) {
+	const repairedLines: string[] = [];
+	let changed = false;
+	let stoppedAtLineNumber: number | null = null;
+	for (
+		let lineNumber = firstLineNumber;
+		lineNumber <= lastLineNumber;
+		lineNumber += 1
+	) {
+		const text = state.doc.line(lineNumber).text;
+		if (CODE_FENCE_PATTERN.test(text)) {
+			stoppedAtLineNumber = lineNumber;
+			break;
+		}
+		if (text.trim().length === 0) {
+			repairedLines.push(text);
+			continue;
+		}
+		const leading = /^[\t ]*/.exec(text)?.[0] ?? '';
+		const column = countColumn(leading, state.tabSize);
+		const isListItem = ANY_LIST_MARKER_PATTERN.test(text);
+		if (isListItem && column > bullet.indent) {
+			repairedLines.push(text);
+			continue;
+		}
+		const body = text.slice(leading.length);
+		const repaired = isListItem ? `${indent}${body}` : `${indent}- ${body}`;
+		repairedLines.push(repaired);
+		if (repaired !== text) {
+			changed = true;
+		}
+	}
+	if (!changed) {
 		return null;
 	}
+	const lastRepairedLine =
+		stoppedAtLineNumber === null ? lastLineNumber : stoppedAtLineNumber - 1;
 	return Object.freeze({
-		from: stray.from,
-		to: stray.to,
-		insert: repaired,
+		from: state.doc.line(firstLineNumber).from,
+		to: state.doc.line(lastRepairedLine).to,
+		insert: repairedLines.join('\n'),
 	});
 }
 

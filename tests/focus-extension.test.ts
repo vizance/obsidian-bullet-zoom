@@ -1268,16 +1268,20 @@ describe('stray line handling (1.2.0)', () => {
 		view.dispatch({
 			changes: {
 				from: view.state.doc.length,
-				insert: '\n\ndictated text',
+				insert: '\n\nfirst idea\n\nsecond idea',
 			},
 		});
-		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
+		expect(view.state.doc.toString()).toBe(
+			'- Topic\n  - A\n\nfirst idea\n\nsecond idea',
+		);
 		await vi.advanceTimersByTimeAsync(700);
 		expect(view.state.doc.toString()).toBe(
-			'- Topic\n  - A\n\n  - dictated text',
+			'- Topic\n  - A\n\n  - first idea\n\n  - second idea',
 		);
 		undo(view);
-		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
+		expect(view.state.doc.toString()).toBe(
+			'- Topic\n  - A\n\nfirst idea\n\nsecond idea',
+		);
 		vi.useRealTimers();
 		view.destroy();
 		parent.remove();

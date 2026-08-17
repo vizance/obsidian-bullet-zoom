@@ -25,7 +25,7 @@ import {
 	computeBranchRange,
 	findSupportedBullet,
 	markerDetectionFacet,
-	planStrayLineRepair,
+	planFocusStructureRepair,
 	scanStrayRange,
 	planAppendChildInsertion,
 	type Breadcrumb,
@@ -1159,7 +1159,11 @@ class StrayLineRepairPlugin implements PluginValue {
 		if (session === null || !this.view.state.facet(focusAutoFix)) {
 			return;
 		}
-		const change = planStrayLineRepair(this.view.state, session.anchor);
+		const change = planFocusStructureRepair(
+			this.view.state,
+			session.anchor,
+			session.visibleTo,
+		);
 		if (change === null) {
 			return;
 		}

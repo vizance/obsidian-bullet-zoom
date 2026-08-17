@@ -45,7 +45,7 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 
 ### Dictation and AI tools keep working
 
-Voice-to-text and AI writing tools sometimes insert paragraphs that break the list structure. Those lines normally fall outside the focused branch and disappear from view. Bullet Zoom keeps them visible, and about half a second after you stop typing it indents them back in as child bullets of the focused item — your text is untouched, and one undo reverts just the fix. Turn it off with **Fix broken bullets** under **Focus page**.
+Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it turns every line in the focused area into a child bullet: each line break becomes the next bullet, the wording is never rewritten, valid nested bullets keep their level, and code fences are left alone. One undo reverts just the fix. Turn it off with **Fix broken bullets** under **Focus page**.
 
 ### Folding is separate from zooming
 
