@@ -34,6 +34,7 @@ describe('settings normalization', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 	});
 
@@ -51,6 +52,7 @@ describe('settings normalization', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -71,6 +73,7 @@ describe('scale variable application', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -110,6 +113,7 @@ describe('plugin settings lifecycle', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -125,6 +129,7 @@ describe('plugin settings lifecycle', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -161,6 +166,7 @@ describe('slider reset buttons', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -197,6 +203,7 @@ describe('marker detection toggles', () => {
 			extractReplacement: 'link',
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
+			autoFixStrayLines: true,
 		});
 	});
 });
@@ -300,5 +307,17 @@ describe('focus indent guides setting', () => {
 		await plugin.updateSettings({ focusIndentGuides: true });
 		plugin.onunload();
 		expect(document.body.classList.contains(INDENT_GUIDES_CLASS)).toBe(false);
+	});
+});
+
+describe('auto fix stray lines setting', () => {
+	it('defaults to enabled and normalizes non-boolean values', () => {
+		expect(normalizeSettings({}).autoFixStrayLines).toBe(true);
+		expect(
+			normalizeSettings({ autoFixStrayLines: false }).autoFixStrayLines,
+		).toBe(false);
+		expect(
+			normalizeSettings({ autoFixStrayLines: 'on' }).autoFixStrayLines,
+		).toBe(true);
 	});
 });

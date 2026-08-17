@@ -43,6 +43,10 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 - 點房子圖示回到完整筆記。
 - 執行 **Go to parent bullet**，或用 **Exit bullet focus** 直接離開聚焦。
 
+### 語音轉文字與 AI 工具照樣能用
+
+語音轉文字或 AI 寫作工具有時會插入破壞清單格式的段落，這些行原本會落在聚焦分支之外、整段看不到。Bullet Zoom 會讓它們照常顯示，並在你停止輸入約半秒後自動縮排回聚焦 Bullet 的子項目——文字內容不變，按一次 Undo 只會還原這個修復。可在 **Focus page** 區塊的 **Fix broken bullets** 關閉。
+
 ### 摺疊與 Zoom 是兩件事
 
 Obsidian 原生的摺疊箭頭只負責收合與展開，不會觸發 Zoom；Bullet 圓點才是 Zoom。手機上摺疊箭頭的觸控範圍已限縮，點 Bullet 不會誤觸摺疊。
@@ -102,7 +106,7 @@ Bullet 會連同整個縮排子樹一起搬，縮排自動換算成目標位置�
 
 - **Zoom**：一般 Bullet 與編號清單可各自開關偵測。
 - **Outline**：調整大綱文字大小，調小可一次看到更多行。
-- **Focus page**：調整 Zoom 後的標題大小，並可開關縮排引導線。
+- **Focus page**：調整 Zoom 後的標題大小，可開關縮排引導線與自動修復破損的 Bullet。
 - **Extract to new note**：上面列出的拆分選項。
 
 兩個大小滑桿範圍都是 60% 到 160%，各有一顆重設按鈕。縮排引導線會在聚焦頁畫出連接巢狀 Bullet 的垂直線，預設開啟。

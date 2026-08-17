@@ -1198,6 +1198,86 @@ describe('focus page rebase (0.1.36)', () => {
 	});
 });
 
+describe('stray line handling (1.2.0)', () => {
+	function createStrayView(
+		documentText: string,
+		autoFix: boolean,
+	): { parent: HTMLDivElement; view: EditorView } {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: EditorState.create({
+				doc: documentText,
+				extensions: [
+					markdown(),
+					history(),
+					focusFilePath.of('Ideas.md'),
+					focusNoteTitle.of('Ideas'),
+					focusLivePreview.of(true),
+					createFocusExtension({
+						isPhone: false,
+						isMobile: false,
+						autoFixStrayLines: autoFix,
+					}),
+				],
+			}),
+		});
+		return { parent, view };
+	}
+
+	it('keeps stray lines visible instead of hiding them', () => {
+		const { parent, view } = createStrayView(
+			'- Topic\n  - A\n\ndictated text',
+			false,
+		);
+		expect(enterFocusAt(view, 0)).toBe(true);
+		const strayLine = view.state.doc.line(4);
+		const hidden = decorationRanges(view.state).filter(
+			(range) => range.from <= strayLine.from && range.to >= strayLine.to,
+		);
+		expect(hidden).toHaveLength(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('repairs stray lines after edits settle and keeps one undo step', async () => {
+		vi.useFakeTimers();
+		const { parent, view } = createStrayView('- Topic\n  - A', true);
+		expect(enterFocusAt(view, 0)).toBe(true);
+		view.dispatch({
+			changes: {
+				from: view.state.doc.length,
+				insert: '\n\ndictated text',
+			},
+		});
+		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
+		await vi.advanceTimersByTimeAsync(700);
+		expect(view.state.doc.toString()).toBe(
+			'- Topic\n  - A\n\n  - dictated text',
+		);
+		undo(view);
+		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('does not touch the document when auto-fix is disabled', async () => {
+		vi.useFakeTimers();
+		const { parent, view } = createStrayView('- Topic\n  - A', false);
+		expect(enterFocusAt(view, 0)).toBe(true);
+		view.dispatch({
+			changes: { from: view.state.doc.length, insert: '\n\ndictated text' },
+		});
+		await vi.advanceTimersByTimeAsync(700);
+		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+});
+
 describe('plugin commands and safe failures', () => {
 	function createView(
 		documentText: string,

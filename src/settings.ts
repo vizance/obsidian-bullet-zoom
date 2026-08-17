@@ -9,6 +9,7 @@ export interface BulletZoomSettings {
 	readonly extractReplacement: ExtractReplacement;
 	readonly extractOpenBehavior: ExtractOpenBehavior;
 	readonly focusIndentGuides: boolean;
+	readonly autoFixStrayLines: boolean;
 }
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	extractReplacement: 'link',
 	extractOpenBehavior: 'stay',
 	focusIndentGuides: true,
+	autoFixStrayLines: true,
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -110,6 +112,10 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		focusIndentGuides: normalizeBoolean(
 			source['focusIndentGuides'],
 			DEFAULT_SETTINGS.focusIndentGuides,
+		),
+		autoFixStrayLines: normalizeBoolean(
+			source['autoFixStrayLines'],
+			DEFAULT_SETTINGS.autoFixStrayLines,
 		),
 	});
 }

@@ -1194,6 +1194,82 @@ export function suggestExtractFileName(label: string): string {
 		.trim();
 }
 
+const HEADING_LINE_PATTERN = /^#{1,6}\s/;
+
+export function scanStrayRange(
+	state: EditorState,
+	anchor: number,
+): Readonly<{ from: number; to: number }> | null {
+	const bullet = findSupportedBullet(state, anchor);
+	const branch = computeBranchRange(state, anchor);
+	if (bullet === null || branch === null) {
+		return null;
+	}
+	const branchLastLine = state.doc.lineAt(branch.to).number;
+	let strayLastLine: number | null = null;
+	for (
+		let lineNumber = branchLastLine + 1;
+		lineNumber <= state.doc.lines;
+		lineNumber += 1
+	) {
+		const line = state.doc.line(lineNumber);
+		const text = line.text;
+		if (CODE_FENCE_PATTERN.test(text) || HEADING_LINE_PATTERN.test(text.trimStart())) {
+			break;
+		}
+		if (text.trim().length === 0) {
+			continue;
+		}
+		const candidate = findSupportedBullet(state, line.from);
+		if (candidate !== null && candidate.indent <= bullet.indent) {
+			break;
+		}
+		strayLastLine = lineNumber;
+	}
+	if (strayLastLine === null) {
+		return null;
+	}
+	return Object.freeze({
+		from: state.doc.line(branchLastLine + 1).from,
+		to: state.doc.line(strayLastLine).to,
+	});
+}
+
+export function planStrayLineRepair(
+	state: EditorState,
+	anchor: number,
+): Readonly<{ from: number; to: number; insert: string }> | null {
+	const bullet = findSupportedBullet(state, anchor);
+	const stray = scanStrayRange(state, anchor);
+	if (bullet === null || stray === null) {
+		return null;
+	}
+	const indent = childIndentText(state, bullet);
+	const lines = state.doc.sliceString(stray.from, stray.to).split('\n');
+	const common = minimalCommonIndent(lines);
+	const repaired = lines
+		.map((line) => {
+			if (line.trim().length === 0) {
+				return '';
+			}
+			const rebased = line.startsWith(common)
+				? line.slice(common.length)
+				: line.trimStart();
+			return ANY_LIST_MARKER_PATTERN.test(rebased)
+				? `${indent}${rebased}`
+				: `${indent}- ${rebased.trimStart()}`;
+		})
+		.join('\n');
+	if (repaired === state.doc.sliceString(stray.from, stray.to)) {
+		return null;
+	}
+	return Object.freeze({
+		from: stray.from,
+		to: stray.to,
+		insert: repaired,
+	});
+}
+
 export function planBulletExtract(
 	state: EditorState,
 	anchor: number,
