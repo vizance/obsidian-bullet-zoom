@@ -1064,65 +1064,59 @@ The plugin SHALL support a focusIndentGuides setting, default enabled and expose
 ---
 ### Requirement: Keep stray lines visible and repair them automatically
 
-While a focus session is active the plugin SHALL treat lines that follow the focused branch — typically paragraphs separated from the list by a blank line, which Markdown parses outside the branch — as stray lines until it reaches a supported list item indented no deeper than the focused bullet, a Markdown heading, or a code fence, excluding trailing blank lines, and SHALL keep those stray lines visible instead of hiding them behind the focus mask, without adding any marker, highlight, or notice. Independently of any parsing, a focus session SHALL remember its visible end and never shrink it while the session lasts: on every document change the remembered end SHALL be mapped through the change and the mask SHALL start after the widest of the branch end, the mapped remembered end, and the scanned stray end, so content typed or inserted at the end of the focused area can never disappear. When the autoFixStrayLines setting is enabled, default on and exposed as a toggle, the plugin SHALL — after document changes settle for about 600 milliseconds — rewrite stray lines into children of the focused bullet: plain lines gain a bullet marker at the child indent, lines that already carry a list marker keep their text and marker while their indent is rebased by the block's minimal common indent, and blank lines are preserved. The repair SHALL be dispatched as its own history step so a single undo reverts the repair without removing the content, and no transaction SHALL be dispatched when there are no stray lines.
+While a focus session is active the plugin SHALL keep the focused area visible without hiding content that arrives at its end, remembering the session's visible end and never shrinking it while the session lasts, mapping that end through every document change, and adding no marker, highlight, or notice. When the autoFixStrayLines setting is enabled, default on and exposed as a toggle, the plugin SHALL — after document changes settle for about 600 milliseconds — repair the lines between the focused bullet and the remembered visible end using only regular-expression and indentation-column classification, never the syntax tree. Lines already indented deeper than the focused bullet and carrying a list marker SHALL be left untouched. Every other non-blank line SHALL be indented one level below the nearest preceding list item, or below the focused bullet when there is none, with all lines of the same repaired run sharing that one indentation so they stay siblings rather than nesting further with each line; lines that already carry a list marker SHALL keep their marker and text while every other line SHALL keep its text verbatim and gain a `- ` marker. Blank lines inside the repaired region SHALL be removed. Repair SHALL stop at a code fence, SHALL be dispatched as its own history step, and SHALL dispatch nothing when no line needs changing.
 
-#### Scenario: A stray line stays visible
+#### Scenario: Dictated lines nest under the preceding bullet
 
-- **WHEN** a line without a list marker is inserted directly after the focused branch
-- **THEN** it renders inside the focus page instead of being hidden
+- **WHEN** plain lines follow an existing child bullet inside the focused area
+- **THEN** they become bullets one level below that child bullet and remain siblings of each other
 
-##### Example: Dictated paragraph
+##### Example: Continuing the last bullet
 
-- **GIVEN** the document `- Topic\n  - A\n\ndictated text` with the focus anchor on `Topic`
-- **WHEN** the focus decorations recompute
-- **THEN** no hidden-block decoration covers the `dictated text` line
-
-#### Scenario: The visible end never shrinks during a session
-
-- **WHEN** text is inserted at the end of the focused area and the parser no longer treats it as part of the branch
-- **THEN** the session's remembered visible end grows with the insertion and the text stays outside the mask
-
-##### Example: Insertion at the branch end
-
-- **GIVEN** a focus session on `Topic` in `- Topic\n  - A\n- Later` whose visible end is the end of `- A`
-- **WHEN** `\n\ndictated text` is inserted at that end
-- **THEN** the session's visible end covers the inserted text and no hidden decoration overlaps it
-
-#### Scenario: Stray lines become children
-
-- **WHEN** the repair runs on stray lines while auto-fix is enabled
-- **THEN** each stray line becomes a child bullet of the focused bullet with its text unchanged
-
-##### Example: Repair a plain line
-
-- **GIVEN** the document `- Topic\n  - A\n\ndictated text` with the focus anchor on `Topic`
+- **GIVEN** the document `- Topic\n  - A\n\nfirst idea\n\nsecond idea` focused on `Topic` with the visible end at the document end
 - **WHEN** the repair plan is applied
-- **THEN** the document becomes `- Topic\n  - A\n\n  - dictated text`
+- **THEN** the document becomes `- Topic\n  - A\n    - first idea\n    - second idea`
 
-##### Example: Rebase a stray block
+#### Scenario: Lines directly under the focused bullet
 
-- **GIVEN** the document `- Topic\n  - A\n\nfirst\n  - second` with the focus anchor on `Topic`
+- **WHEN** the repaired lines have no preceding list item other than the focused bullet
+- **THEN** they become direct children of the focused bullet
+
+##### Example: No sibling above
+
+- **GIVEN** the document `- Topic\n\nfirst idea\nsecond idea` focused on `Topic` with the visible end at the document end
 - **WHEN** the repair plan is applied
-- **THEN** the document becomes `- Topic\n  - A\n\n  - first\n    - second`
+- **THEN** the document becomes `- Topic\n  - first idea\n  - second idea`
 
-#### Scenario: Legitimate structure is left alone
+#### Scenario: Existing structure is preserved
 
-- **WHEN** the scan reaches a list item indented no deeper than the focused bullet, a heading, or a code fence
-- **THEN** scanning stops there and that content is neither shown as stray nor repaired
+- **WHEN** the region contains valid nested bullets and list items that escaped to the top level
+- **THEN** valid nested bullets keep their indentation and escaped items keep their marker and text while moving below the nearest preceding item
 
-##### Example: Sibling bullet stops the scan
+##### Example: Mixed region
 
-- **GIVEN** the document `- Topic\n  - A\n\n- Sibling` with the focus anchor on `Topic`
-- **WHEN** the repair plan is computed
-- **THEN** it reports no changes and `- Sibling` is untouched
+- **GIVEN** the document `- Topic\n  - A\n    - A1\n- escaped` focused on `Topic` with the visible end at the document end
+- **WHEN** the repair plan is applied
+- **THEN** the document becomes `- Topic\n  - A\n    - A1\n      - escaped`
+
+#### Scenario: Code fences stop the repair
+
+- **WHEN** the region contains a code fence
+- **THEN** repair stops at that fence and the fenced content is untouched
+
+##### Example: Fence boundary
+
+- **GIVEN** the document `- Topic\n\nstray\n\n```\ncode\n```` focused on `Topic` with the visible end at the document end
+- **WHEN** the repair plan is applied
+- **THEN** only `stray` becomes a bullet and the fenced block is unchanged
 
 #### Scenario: Nothing to repair produces no transaction
 
-- **WHEN** the focused branch has no stray lines
-- **THEN** the planner returns no changes
+- **WHEN** every line in the region already sits at a valid level with no blank lines to remove
+- **THEN** the planner returns null
 
 ##### Example: Clean branch
 
-- **GIVEN** the document `- Topic\n  - A` with the focus anchor on `Topic`
+- **GIVEN** the document `- Topic\n  - A` focused on `Topic` with the visible end at the document end
 - **WHEN** the repair plan is computed
 - **THEN** it returns null
