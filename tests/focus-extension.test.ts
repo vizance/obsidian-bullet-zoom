@@ -1287,6 +1287,38 @@ describe('stray line handling (1.4.0)', () => {
 		parent.remove();
 	});
 
+	it('tidies dictated lines inside a list without any focus session', async () => {
+		vi.useFakeTimers();
+		const { parent, view } = createStrayView('- A', true);
+		expect(getFocusSession(view.state)).toBeNull();
+		view.dispatch({
+			changes: {
+				from: view.state.doc.length,
+				insert: '\n\nfirst idea\n\nsecond idea',
+			},
+		});
+		await vi.advanceTimersByTimeAsync(700);
+		expect(view.state.doc.toString()).toBe(
+			'- A\n\n  - first idea\n  - second idea',
+		);
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('leaves prose alone when there is no list above the edit', async () => {
+		vi.useFakeTimers();
+		const { parent, view } = createStrayView('Some prose', true);
+		view.dispatch({
+			changes: { from: view.state.doc.length, insert: '\n\ndictated text' },
+		});
+		await vi.advanceTimersByTimeAsync(700);
+		expect(view.state.doc.toString()).toBe('Some prose\n\ndictated text');
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
 	it('does not touch the document when auto-fix is disabled', async () => {
 		vi.useFakeTimers();
 		const { parent, view } = createStrayView('- Topic\n  - A', false);

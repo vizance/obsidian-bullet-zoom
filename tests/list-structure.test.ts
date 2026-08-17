@@ -11,6 +11,7 @@ import {
 	planBranchMove,
 	planBulletExtract,
 	planBulletRemovalRange,
+	planEditedListRepair,
 	planFocusStructureRepair,
 	scanStrayRange,
 	suggestExtractFileName,
@@ -1215,6 +1216,57 @@ describe('focus structure repair (1.4.0)', () => {
 	it('never rewrites the text of a line', () => {
 		expect(repair('- Topic\n\n口述的一段話，含標點與 English')).toBe(
 			'- Topic\n  - 口述的一段話，含標點與 English',
+		);
+	});
+});
+
+describe('edited list repair without focus (1.5.0)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function tidy(document: string, changedText: string): string | null {
+		const state = stateOf(document);
+		const from = document.indexOf(changedText);
+		expect(from).toBeGreaterThanOrEqual(0);
+		const change = planEditedListRepair(
+			state,
+			from,
+			from + changedText.length,
+		);
+		if (change === null) {
+			return null;
+		}
+		return state.update({ changes: change }).state.doc.toString();
+	}
+
+	it('tidies dictated lines under the list item above them', () => {
+		expect(tidy('- A\n\nfirst idea\n\nsecond idea', 'first idea\n\nsecond idea')).toBe(
+			'- A\n\n  - first idea\n  - second idea',
+		);
+	});
+
+	it('does nothing when the nearest line above is prose', () => {
+		expect(tidy('Some prose\n\ndictated text', 'dictated text')).toBeNull();
+		expect(tidy('# Heading\n\ndictated text', 'dictated text')).toBeNull();
+		expect(tidy('dictated text', 'dictated text')).toBeNull();
+	});
+
+	it('never re-indents existing list items', () => {
+		expect(tidy('- A\n- B\nstray', 'stray')).toBe('- A\n- B\n  - stray');
+	});
+
+	it('keeps blank lines outside the converted span', () => {
+		expect(tidy('- A\n\nstray\n\n', 'stray')).toBe('- A\n\n  - stray\n\n');
+	});
+
+	it('returns null when the range has no plain lines to convert', () => {
+		expect(tidy('- A\n  - B', '  - B')).toBeNull();
+	});
+
+	it('stops at a code fence', () => {
+		expect(tidy('- A\nstray\n```\ncode\n```', 'stray')).toBe(
+			'- A\n  - stray\n```\ncode\n```',
 		);
 	});
 });
