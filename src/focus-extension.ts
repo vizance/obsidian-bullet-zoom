@@ -53,6 +53,7 @@ export type FocusSession = Readonly<{
 	anchor: number;
 	branch: BranchRange;
 	breadcrumbs: readonly Breadcrumb[];
+	visibleTo: number;
 }>;
 
 export const focusFilePath = Facet.define<string | null, string | null>({
@@ -147,6 +148,7 @@ function createFocusSession(
 		anchor: bullet.markerFrom,
 		branch,
 		breadcrumbs,
+		visibleTo: branch.to,
 	});
 }
 
@@ -185,11 +187,22 @@ export const focusStateField = StateField.define<FocusSession | null>({
 		const mappedAnchor = transaction.docChanged
 			? transaction.changes.mapPos(next.anchor, 1)
 			: next.anchor;
-		return createFocusSession(
+		const rebuilt = createFocusSession(
 			transaction.state,
 			mappedAnchor,
 			next.filePath,
 		);
+		if (rebuilt === null || !transaction.docChanged) {
+			return rebuilt;
+		}
+		const mappedVisibleTo = Math.min(
+			transaction.changes.mapPos(next.visibleTo, 1),
+			transaction.state.doc.length,
+		);
+		if (mappedVisibleTo <= rebuilt.visibleTo) {
+			return rebuilt;
+		}
+		return Object.freeze({ ...rebuilt, visibleTo: mappedVisibleTo });
 	},
 });
 
@@ -204,8 +217,11 @@ const focusDecorations = EditorView.decorations.compute(
 		}
 
 		const stray = scanStrayRange(state, session.anchor);
-		const visibleTo =
-			stray === null ? session.branch.to : Math.max(session.branch.to, stray.to);
+		const visibleTo = Math.max(
+			session.branch.to,
+			session.visibleTo,
+			stray?.to ?? 0,
+		);
 		const ranges = [];
 		if (session.branch.from > 0) {
 			ranges.push(hiddenBlock.range(0, session.branch.from - 1));
