@@ -11,7 +11,7 @@ import {
 	planBranchMove,
 	planBulletExtract,
 	planBulletRemovalRange,
-	planStrayLineRepair,
+	planFocusStructureRepair,
 	scanStrayRange,
 	suggestExtractFileName,
 	buildHyperMdBulletOutline,
@@ -1159,62 +1159,50 @@ describe('planBulletRemovalRange (0.1.49)', () => {
 	});
 });
 
-describe('stray line repair (1.2.0)', () => {
+describe('focus structure repair (1.3.0)', () => {
 	function stateOf(document: string): EditorState {
 		return EditorState.create({ doc: document, extensions: [markdown()] });
 	}
 
 	function repair(document: string): string | null {
 		const state = stateOf(document);
-		const change = planStrayLineRepair(state, 0);
+		const change = planFocusStructureRepair(state, 0, state.doc.length);
 		if (change === null) {
 			return null;
 		}
 		return state.update({ changes: change }).state.doc.toString();
 	}
 
-	it('turns a stray plain line into a child bullet', () => {
-		expect(repair('- Topic\n  - A\n\ndictated text')).toBe(
-			'- Topic\n  - A\n\n  - dictated text',
+	it('turns dictated paragraphs into child bullets', () => {
+		expect(repair('- Topic\n  - A\n\nfirst idea\n\nsecond idea')).toBe(
+			'- Topic\n  - A\n\n  - first idea\n\n  - second idea',
 		);
 	});
 
-	it('rebases a stray block while keeping its relative levels', () => {
-		expect(repair('- Topic\n  - A\n\nfirst\n  - second')).toBe(
-			'- Topic\n  - A\n\n  - first\n    - second',
+	it('keeps valid children and re-indents escaped list items', () => {
+		expect(repair('- Topic\n  - A\n    - A1\n- escaped')).toBe(
+			'- Topic\n  - A\n    - A1\n  - escaped',
 		);
 	});
 
-	it('repairs every stray paragraph in one pass', () => {
-		expect(repair('- Topic\n  - A\n\nfirst\n\nsecond')).toBe(
-			'- Topic\n  - A\n\n  - first\n\n  - second',
+	it('keeps heading text inside the new bullet', () => {
+		expect(repair('- Topic\n\n## Section')).toBe('- Topic\n\n  - ## Section');
+	});
+
+	it('stops at a code fence and leaves the fenced block untouched', () => {
+		expect(repair('- Topic\n\nstray\n\n```\ncode\n```')).toBe(
+			'- Topic\n\n  - stray\n\n```\ncode\n```',
 		);
 	});
 
-	it('leaves the repaired branch alone on a second pass', () => {
-		expect(repair('- Topic\n  - A\n\n  - dictated text')).toBeNull();
+	it('returns null when nothing needs changing', () => {
+		expect(repair('- Topic\n  - A')).toBeNull();
+		expect(repair('- Topic')).toBeNull();
 	});
 
-	it('stops at a sibling bullet, a heading, or a code fence', () => {
-		expect(repair('- Topic\n  - A\n\n- Sibling')).toBeNull();
-		expect(
-			scanStrayRange(stateOf('- Topic\n  - A\n\n# Heading'), 0),
-		).toBeNull();
-		expect(scanStrayRange(stateOf('- Topic\n  - A\n\n```'), 0)).toBeNull();
-	});
-
-	it('returns null for a clean branch', () => {
-		expect(planStrayLineRepair(stateOf('- Topic\n  - A'), 0)).toBeNull();
-		expect(scanStrayRange(stateOf('- Topic\n  - A'), 0)).toBeNull();
-	});
-
-	it('ignores trailing blank lines when scanning', () => {
-		const source = '- Topic\n  - A\n\nstray\n\n';
-		const state = stateOf(source);
-		const stray = scanStrayRange(state, 0);
-		expect(stray).not.toBeNull();
-		expect(
-			state.doc.sliceString(stray?.from ?? 0, stray?.to ?? 0).trimStart(),
-		).toBe('stray');
+	it('never rewrites the text of a line', () => {
+		const source = '- Topic\n\n口述的一段話，含標點與 English';
+		const result = repair(source);
+		expect(result).toBe('- Topic\n\n  - 口述的一段話，含標點與 English');
 	});
 });
