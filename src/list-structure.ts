@@ -1235,6 +1235,24 @@ export function scanStrayRange(
 	});
 }
 
+const LIST_MARKER_CAPTURE = /^([\t ]*)((?:[-+*]|\d+[.)])[\t ]+)/;
+
+function childIndentOfListLine(
+	state: EditorState,
+	text: string,
+): string | null {
+	const match = LIST_MARKER_CAPTURE.exec(text);
+	if (match?.[1] === undefined || match[2] === undefined) {
+		return null;
+	}
+	const ownColumn = countColumn(match[1], state.tabSize);
+	const contentColumn = countColumn(match[1] + match[2], state.tabSize);
+	return indentString(
+		state,
+		Math.max(contentColumn, ownColumn + getIndentUnit(state)),
+	);
+}
+
 export function planFocusStructureRepair(
 	state: EditorState,
 	anchor: number,
@@ -1244,16 +1262,20 @@ export function planFocusStructureRepair(
 	if (bullet === null) {
 		return null;
 	}
-	const regionEnd = Math.min(Math.max(visibleTo, bullet.lineTo), state.doc.length);
+	const regionEnd = Math.min(
+		Math.max(visibleTo, bullet.lineTo),
+		state.doc.length,
+	);
 	const firstLineNumber = bullet.lineNumber + 1;
 	const lastLineNumber = state.doc.lineAt(regionEnd).number;
 	if (firstLineNumber > lastLineNumber) {
 		return null;
 	}
-	const indent = childIndentText(state, bullet);
 	const repairedLines: string[] = [];
 	let changed = false;
 	let stoppedAtLineNumber: number | null = null;
+	let baseIndent = childIndentText(state, bullet);
+	let runIndent: string | null = null;
 	for (
 		let lineNumber = firstLineNumber;
 		lineNumber <= lastLineNumber;
@@ -1265,7 +1287,7 @@ export function planFocusStructureRepair(
 			break;
 		}
 		if (text.trim().length === 0) {
-			repairedLines.push(text);
+			changed = true;
 			continue;
 		}
 		const leading = /^[\t ]*/.exec(text)?.[0] ?? '';
@@ -1273,8 +1295,12 @@ export function planFocusStructureRepair(
 		const isListItem = ANY_LIST_MARKER_PATTERN.test(text);
 		if (isListItem && column > bullet.indent) {
 			repairedLines.push(text);
+			baseIndent = childIndentOfListLine(state, text) ?? baseIndent;
+			runIndent = null;
 			continue;
 		}
+		const indent: string = runIndent ?? baseIndent;
+		runIndent = indent;
 		const body = text.slice(leading.length);
 		const repaired = isListItem ? `${indent}${body}` : `${indent}- ${body}`;
 		repairedLines.push(repaired);
@@ -1282,7 +1308,7 @@ export function planFocusStructureRepair(
 			changed = true;
 		}
 	}
-	if (!changed) {
+	if (!changed || repairedLines.length === 0) {
 		return null;
 	}
 	const lastRepairedLine =

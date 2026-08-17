@@ -1159,7 +1159,7 @@ describe('planBulletRemovalRange (0.1.49)', () => {
 	});
 });
 
-describe('focus structure repair (1.3.0)', () => {
+describe('focus structure repair (1.4.0)', () => {
 	function stateOf(document: string): EditorState {
 		return EditorState.create({ doc: document, extensions: [markdown()] });
 	}
@@ -1173,25 +1173,37 @@ describe('focus structure repair (1.3.0)', () => {
 		return state.update({ changes: change }).state.doc.toString();
 	}
 
-	it('turns dictated paragraphs into child bullets', () => {
+	it('nests dictated lines under the preceding bullet as siblings', () => {
 		expect(repair('- Topic\n  - A\n\nfirst idea\n\nsecond idea')).toBe(
-			'- Topic\n  - A\n\n  - first idea\n\n  - second idea',
+			'- Topic\n  - A\n    - first idea\n    - second idea',
 		);
 	});
 
-	it('keeps valid children and re-indents escaped list items', () => {
+	it('uses the focused bullet when no list item precedes the lines', () => {
+		expect(repair('- Topic\n\nfirst idea\nsecond idea')).toBe(
+			'- Topic\n  - first idea\n  - second idea',
+		);
+	});
+
+	it('keeps valid nested bullets and moves escaped items below them', () => {
 		expect(repair('- Topic\n  - A\n    - A1\n- escaped')).toBe(
-			'- Topic\n  - A\n    - A1\n  - escaped',
+			'- Topic\n  - A\n    - A1\n      - escaped',
+		);
+	});
+
+	it('removes blank lines inside the repaired region', () => {
+		expect(repair('- Topic\n\n\nonly idea\n\n')).toBe(
+			'- Topic\n  - only idea',
 		);
 	});
 
 	it('keeps heading text inside the new bullet', () => {
-		expect(repair('- Topic\n\n## Section')).toBe('- Topic\n\n  - ## Section');
+		expect(repair('- Topic\n\n## Section')).toBe('- Topic\n  - ## Section');
 	});
 
 	it('stops at a code fence and leaves the fenced block untouched', () => {
 		expect(repair('- Topic\n\nstray\n\n```\ncode\n```')).toBe(
-			'- Topic\n\n  - stray\n\n```\ncode\n```',
+			'- Topic\n  - stray\n```\ncode\n```',
 		);
 	});
 
@@ -1201,8 +1213,8 @@ describe('focus structure repair (1.3.0)', () => {
 	});
 
 	it('never rewrites the text of a line', () => {
-		const source = '- Topic\n\n口述的一段話，含標點與 English';
-		const result = repair(source);
-		expect(result).toBe('- Topic\n\n  - 口述的一段話，含標點與 English');
+		expect(repair('- Topic\n\n口述的一段話，含標點與 English')).toBe(
+			'- Topic\n  - 口述的一段話，含標點與 English',
+		);
 	});
 });
