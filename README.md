@@ -45,9 +45,7 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 
 ### Dictation and AI tools keep working
 
-Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level and code fences are left alone. One undo reverts just the fix.
-
-The same tidying works outside zoom. When you dictate or paste into a list in a normal note, the new lines become bullets under the list item above them. Outside zoom the rules are stricter: existing list items are never re-indented, and nothing happens at all unless the nearest line above the edit is a list item — so ordinary prose is left alone. Turn it off with **Fix broken bullets** under **Focus page**.
+Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level and code fences are left alone. One undo reverts just the fix. Tidying runs only while you are zoomed in, so ordinary editing outside zoom is never touched. Turn it off with **Fix broken bullets** under **Focus page**.
 
 ### Folding is separate from zooming
 

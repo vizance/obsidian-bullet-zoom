@@ -25,7 +25,6 @@ import {
 	computeBranchRange,
 	findSupportedBullet,
 	markerDetectionFacet,
-	planEditedListRepair,
 	planFocusStructureRepair,
 	scanStrayRange,
 	planAppendChildInsertion,
@@ -1112,8 +1111,6 @@ const focusAutoFix = Facet.define<boolean, boolean>({
 class StrayLineRepairPlugin implements PluginValue {
 	private timer: number | null = null;
 	private timerWindow: Window | null = null;
-	private pendingFrom: number | null = null;
-	private pendingTo: number | null = null;
 
 	constructor(private readonly view: EditorView) {}
 
@@ -1121,20 +1118,13 @@ class StrayLineRepairPlugin implements PluginValue {
 		if (!update.docChanged) {
 			return;
 		}
-		if (!update.state.facet(focusAutoFix)) {
+		if (
+			!update.state.facet(focusAutoFix) ||
+			getFocusSession(update.state) === null
+		) {
 			this.cancel();
 			return;
 		}
-		if (this.pendingFrom !== null && this.pendingTo !== null) {
-			this.pendingFrom = update.changes.mapPos(this.pendingFrom, -1);
-			this.pendingTo = update.changes.mapPos(this.pendingTo, 1);
-		}
-		update.changes.iterChangedRanges((_fromA, _toA, fromB, toB) => {
-			this.pendingFrom =
-				this.pendingFrom === null ? fromB : Math.min(this.pendingFrom, fromB);
-			this.pendingTo =
-				this.pendingTo === null ? toB : Math.max(this.pendingTo, toB);
-		});
 		this.schedule();
 	}
 
@@ -1165,24 +1155,15 @@ class StrayLineRepairPlugin implements PluginValue {
 	}
 
 	private repair(): void {
-		const pendingFrom = this.pendingFrom;
-		const pendingTo = this.pendingTo;
-		this.pendingFrom = null;
-		this.pendingTo = null;
-		if (!this.view.state.facet(focusAutoFix)) {
+		const session = getFocusSession(this.view.state);
+		if (session === null || !this.view.state.facet(focusAutoFix)) {
 			return;
 		}
-		const session = getFocusSession(this.view.state);
-		const change =
-			session !== null
-				? planFocusStructureRepair(
-						this.view.state,
-						session.anchor,
-						session.visibleTo,
-					)
-				: pendingFrom === null || pendingTo === null
-					? null
-					: planEditedListRepair(this.view.state, pendingFrom, pendingTo);
+		const change = planFocusStructureRepair(
+			this.view.state,
+			session.anchor,
+			session.visibleTo,
+		);
 		if (change === null) {
 			return;
 		}
