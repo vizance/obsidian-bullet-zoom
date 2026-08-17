@@ -2487,7 +2487,7 @@ The plugin SHALL support a focusIndentGuides setting, default enabled and expose
 ---
 ### Requirement: Keep stray lines visible and repair them automatically
 
-While a focus session is active the plugin SHALL keep the focused area visible without hiding content that arrives at its end, remembering the session's visible end and never shrinking it while the session lasts, mapping that end through every document change, and adding no marker, highlight, or notice. When the autoFixStrayLines setting is enabled, default on and exposed as a toggle, the plugin SHALL — after document changes settle for about 600 milliseconds — repair the lines between the focused bullet and the remembered visible end using only regular-expression and indentation-column classification, never the syntax tree. Lines already indented deeper than the focused bullet and carrying a list marker SHALL be left untouched. Every other non-blank line SHALL be indented one level below the nearest preceding list item, or below the focused bullet when there is none, with all lines of the same repaired run sharing that one indentation so they stay siblings rather than nesting further with each line; lines that already carry a list marker SHALL keep their marker and text while every other line SHALL keep its text verbatim and gain a `- ` marker. Blank lines inside the repaired region SHALL be removed. Repair SHALL stop at a code fence, SHALL be dispatched as its own history step, and SHALL dispatch nothing when no line needs changing.
+While a focus session is active the plugin SHALL keep the focused area visible without hiding content that arrives at its end, remembering the session's visible end and never shrinking it while the session lasts, mapping that end through every document change, and adding no marker, highlight, or notice. When the autoFixStrayLines setting is enabled, default on and exposed as a toggle, the plugin SHALL — after document changes settle for about 600 milliseconds and only while a focus session is active — repair the lines between the focused bullet and the remembered visible end using only regular-expression and indentation-column classification, never the syntax tree. Lines already indented deeper than the focused bullet and carrying a list marker SHALL be left untouched. Every other non-blank line SHALL be indented one level below the nearest preceding list item, or below the focused bullet when there is none, with all lines of the same repaired run sharing that one indentation so they stay siblings; lines that already carry a list marker SHALL keep their marker and text while every other line SHALL keep its text verbatim and gain a `- ` marker. Blank lines inside the repaired region SHALL be removed. Repair SHALL stop at a code fence, SHALL be dispatched as its own history step, and SHALL dispatch nothing when no line needs changing. When no focus session is active the plugin SHALL NOT modify the document.
 
 #### Scenario: Dictated lines nest under the preceding bullet
 
@@ -2500,16 +2500,16 @@ While a focus session is active the plugin SHALL keep the focused area visible w
 - **WHEN** the repair plan is applied
 - **THEN** the document becomes `- Topic\n  - A\n    - first idea\n    - second idea`
 
-#### Scenario: Lines directly under the focused bullet
+#### Scenario: No focus session means no changes
 
-- **WHEN** the repaired lines have no preceding list item other than the focused bullet
-- **THEN** they become direct children of the focused bullet
+- **WHEN** the user edits a list while no focus session is active
+- **THEN** the plugin dispatches no repair transaction at all
 
-##### Example: No sibling above
+##### Example: Editing outside zoom
 
-- **GIVEN** the document `- Topic\n\nfirst idea\nsecond idea` focused on `Topic` with the visible end at the document end
-- **WHEN** the repair plan is applied
-- **THEN** the document becomes `- Topic\n  - first idea\n  - second idea`
+- **GIVEN** the document `- A` with no focus session and auto-fix enabled
+- **WHEN** `\n\ndictated text` is appended and the debounce elapses
+- **THEN** the document still reads `- A\n\ndictated text`
 
 #### Scenario: Existing structure is preserved
 
@@ -2543,52 +2543,3 @@ While a focus session is active the plugin SHALL keep the focused area visible w
 - **GIVEN** the document `- Topic\n  - A` focused on `Topic` with the visible end at the document end
 - **WHEN** the repair plan is computed
 - **THEN** it returns null
-
----
-### Requirement: Tidy dictated lines inside lists without zooming
-
-When no focus session is active and the autoFixStrayLines setting is enabled, the plugin SHALL accumulate the document range touched by recent changes, map it through later changes, and — after edits settle for about 600 milliseconds — tidy only that range. It SHALL first look upward from the range's first line, skipping blank lines, for the nearest list item; if the first non-blank line found is not a list item, or none exists, the plugin SHALL do nothing. Within the range below that anchor the plugin SHALL convert only non-blank lines that carry no list marker, giving each the indentation one level below the nearest preceding list item and a `- ` marker while keeping the text verbatim, with all lines of the same run sharing that indentation. Lines that already carry a list marker SHALL be left exactly as they are, blank lines between the first and last converted line SHALL be removed while blank lines outside that span SHALL be kept, a code fence SHALL stop the tidy, and the change SHALL be dispatched as its own history step only when at least one line is converted.
-
-#### Scenario: Dictation inside a list is tidied
-
-- **WHEN** plain lines are inserted after a list item while no focus session is active
-- **THEN** they become bullets one level below that item and stay siblings of each other
-
-##### Example: Dictating under a bullet
-
-- **GIVEN** the document `- A\n\nfirst idea\n\nsecond idea` and a recent change covering the last two lines
-- **WHEN** the tidy plan is computed
-- **THEN** the document becomes `- A\n  - first idea\n  - second idea`
-
-#### Scenario: Editing outside a list does nothing
-
-- **WHEN** the change range's nearest preceding non-blank line is a paragraph or heading rather than a list item
-- **THEN** the planner returns null and the document is untouched
-
-##### Example: Plain prose
-
-- **GIVEN** the document `Some prose\n\ndictated text` and a recent change covering the last line
-- **WHEN** the tidy plan is computed
-- **THEN** it returns null
-
-#### Scenario: Existing list items are never re-indented
-
-- **WHEN** the range contains list items alongside plain lines
-- **THEN** only the plain lines change and every existing list item keeps its original indentation
-
-##### Example: Mixed range
-
-- **GIVEN** the document `- A\n- B\nstray` and a recent change covering the last line
-- **WHEN** the tidy plan is applied
-- **THEN** the document becomes `- A\n- B\n  - stray`
-
-#### Scenario: Blank lines outside the converted span survive
-
-- **WHEN** blank lines sit before the first converted line or after the last one
-- **THEN** those blank lines remain in the document
-
-##### Example: Leading blank kept
-
-- **GIVEN** the document `- A\n\nstray\n\n` and a recent change covering `stray`
-- **WHEN** the tidy plan is applied
-- **THEN** the blank line between `- A` and the new bullet is preserved
