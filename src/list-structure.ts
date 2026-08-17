@@ -1320,6 +1320,104 @@ export function planFocusStructureRepair(
 	});
 }
 
+export function planEditedListRepair(
+	state: EditorState,
+	changedFrom: number,
+	changedTo: number,
+): Readonly<{ from: number; to: number; insert: string }> | null {
+	const docLength = state.doc.length;
+	const startLine = state.doc.lineAt(Math.min(Math.max(changedFrom, 0), docLength));
+	const endLine = state.doc.lineAt(Math.min(Math.max(changedTo, 0), docLength));
+
+	let anchorLineNumber: number | null = null;
+	for (
+		let lineNumber = startLine.number;
+		lineNumber >= 1;
+		lineNumber -= 1
+	) {
+		const text = state.doc.line(lineNumber).text;
+		if (text.trim().length === 0) {
+			continue;
+		}
+		if (ANY_LIST_MARKER_PATTERN.test(text)) {
+			anchorLineNumber = lineNumber;
+			break;
+		}
+		if (lineNumber === startLine.number) {
+			// The edited line itself is newly dictated text; keep looking upward.
+			continue;
+		}
+		break;
+	}
+	if (anchorLineNumber === null || anchorLineNumber >= endLine.number) {
+		return null;
+	}
+
+	const firstLineNumber = anchorLineNumber + 1;
+	const lastLineNumber = endLine.number;
+	let baseIndent =
+		childIndentOfListLine(state, state.doc.line(anchorLineNumber).text) ??
+		indentString(state, getIndentUnit(state));
+	let runIndent: string | null = null;
+	const entries: Array<{ text: string; blank: boolean; converted: boolean }> = [];
+	let stoppedAtLineNumber: number | null = null;
+	for (
+		let lineNumber = firstLineNumber;
+		lineNumber <= lastLineNumber;
+		lineNumber += 1
+	) {
+		const text = state.doc.line(lineNumber).text;
+		if (CODE_FENCE_PATTERN.test(text)) {
+			stoppedAtLineNumber = lineNumber;
+			break;
+		}
+		if (text.trim().length === 0) {
+			entries.push({ text, blank: true, converted: false });
+			continue;
+		}
+		if (ANY_LIST_MARKER_PATTERN.test(text)) {
+			entries.push({ text, blank: false, converted: false });
+			baseIndent = childIndentOfListLine(state, text) ?? baseIndent;
+			runIndent = null;
+			continue;
+		}
+		const indent: string = runIndent ?? baseIndent;
+		runIndent = indent;
+		const leading = /^[\t ]*/.exec(text)?.[0] ?? '';
+		entries.push({
+			text: `${indent}- ${text.slice(leading.length)}`,
+			blank: false,
+			converted: true,
+		});
+	}
+
+	const firstConverted = entries.findIndex((entry) => entry.converted);
+	if (firstConverted === -1) {
+		return null;
+	}
+	let lastConverted = firstConverted;
+	for (const [index, entry] of entries.entries()) {
+		if (entry.converted) {
+			lastConverted = index;
+		}
+	}
+	const repairedLines = entries
+		.filter(
+			(entry, index) =>
+				!(entry.blank && index > firstConverted && index < lastConverted),
+		)
+		.map((entry) => entry.text);
+	const lastRepairedLine =
+		stoppedAtLineNumber === null ? lastLineNumber : stoppedAtLineNumber - 1;
+	const from = state.doc.line(firstLineNumber).from;
+	const to = state.doc.line(lastRepairedLine).to;
+	const insert = repairedLines.join('\n');
+	if (insert === state.doc.sliceString(from, to)) {
+		return null;
+	}
+	return Object.freeze({ from, to, insert });
+}
+
 export function planBulletExtract(
 	state: EditorState,
 	anchor: number,

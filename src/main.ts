@@ -315,7 +315,9 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 		new Setting(this.containerEl)
 			.setName('Fix broken bullets')
-			.setDesc('While zoomed, indent stray lines back into the focused bullet.')
+			.setDesc(
+				'Turn dictated or pasted lines into bullets under the list item above them, in or out of zoom.',
+			)
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.autoFixStrayLines)
