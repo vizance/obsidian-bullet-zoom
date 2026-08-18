@@ -341,27 +341,62 @@ describe('visible viewport handling (1.14.0)', () => {
 		}
 	});
 
-	it('flips the caption above a centre near the bottom', () => {
+	it('places the caption above every item and the centre', () => {
 		openRadialMenu({
 			document,
 			x: 40,
-			y: 390,
+			y: 400,
 			viewportWidth: 400,
-			viewportHeight: 400,
+			viewportHeight: 800,
 			viewportTop: 0,
-			segments: computeMenuSegments(slots('copy')),
+			segments: computeMenuSegments(slots('a', 'b', 'c', 'd')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const captionY = Number.parseFloat(
+			document.querySelector<HTMLElement>('.bullet-zoom-radial-caption')
+				?.style.top ?? '0',
+		);
+		const centreY = Number.parseFloat(
+			document.querySelector<HTMLElement>('.bullet-zoom-radial-cancel')
+				?.style.top ?? '0',
+		);
+		const itemYs = Array.from(
+			document.querySelectorAll<HTMLElement>('.bullet-zoom-radial-item'),
+		).map((item) => Number.parseFloat(item.style.top));
+		expect(captionY).toBeLessThan(centreY);
+		for (const y of itemYs) {
+			expect(captionY).toBeLessThan(y);
+		}
+	});
+
+	it('flips the caption below a menu near the top and keeps it on screen', () => {
+		openRadialMenu({
+			document,
+			x: 40,
+			y: 60,
+			viewportWidth: 400,
+			viewportHeight: 800,
+			viewportTop: 0,
+			segments: computeMenuSegments(slots('a', 'b', 'c', 'd')),
 			renderIcon: () => undefined,
 			onSelect: vi.fn(),
 		});
 		const caption = document.querySelector<HTMLElement>(
 			'.bullet-zoom-radial-caption',
 		);
-		const centre = document.querySelector<HTMLElement>(
-			'.bullet-zoom-radial-cancel',
-		);
-		expect(Number.parseFloat(caption?.style.top ?? '0')).toBeLessThan(
-			Number.parseFloat(centre?.style.top ?? '0'),
-		);
+		const captionY = Number.parseFloat(caption?.style.top ?? '0');
+		const captionX = Number.parseFloat(caption?.style.left ?? '0');
+		const itemYs = Array.from(
+			document.querySelectorAll<HTMLElement>('.bullet-zoom-radial-item'),
+		).map((item) => Number.parseFloat(item.style.top));
+		expect(caption?.classList.contains('is-below')).toBe(true);
+		for (const y of itemYs) {
+			expect(captionY).toBeGreaterThan(y);
+		}
+		expect(captionY).toBeLessThanOrEqual(800);
+		expect(captionX).toBeGreaterThan(0);
+		expect(captionX).toBeLessThan(400);
 	});
 
 	it('staggers the entrance delay per item', () => {

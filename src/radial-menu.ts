@@ -154,7 +154,32 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		bandTop,
 	);
 	const centreY = Math.min(Math.max(options.y, bandTop), bandBottom);
-	const captionBelow = centreY + 44 <= bandBottom;
+	// The caption must clear the whole menu, not just the centre, so a thumb
+	// resting on the cancel control never covers it.
+	const BUTTON_RADIUS = 26;
+	const CAPTION_GAP = 14;
+	const boxTop = Math.min(
+		centreY,
+		...layout.items.map((item) => item.y),
+	) - BUTTON_RADIUS;
+	const boxBottom = Math.max(
+		centreY,
+		...layout.items.map((item) => item.y),
+	) + BUTTON_RADIUS;
+	const boxCentreX =
+		layout.items.length === 0
+			? options.x
+			: (Math.min(options.x, ...layout.items.map((item) => item.x)) +
+					Math.max(options.x, ...layout.items.map((item) => item.x))) /
+				2;
+	const captionAbove = boxTop - CAPTION_GAP >= bandTop;
+	const captionY = captionAbove
+		? boxTop - CAPTION_GAP
+		: Math.min(boxBottom + CAPTION_GAP, bandBottom);
+	const captionX = Math.min(
+		Math.max(boxCentreX, RADIAL_EDGE_PADDING_PX * 2),
+		Math.max(viewportWidth - RADIAL_EDGE_PADDING_PX * 2, 0),
+	);
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
@@ -170,8 +195,9 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 
 	const caption = doc.createElement('div');
 	caption.className = 'bullet-zoom-radial-caption';
-	caption.style.left = `${options.x}px`;
-	caption.style.top = `${captionBelow ? centreY + 44 : centreY - 60}px`;
+	caption.style.left = `${captionX}px`;
+	caption.style.top = `${captionY}px`;
+	caption.classList.toggle('is-below', !captionAbove);
 	caption.classList.add('is-empty');
 	overlay.append(caption);
 
