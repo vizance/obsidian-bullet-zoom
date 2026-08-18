@@ -13,5 +13,5 @@
 ## 3. 文件、版本與發布
 
 - [x] 3.1 更新 `README.md` 與 `README.zh-TW.md` 新增徑向選單章節與設定說明；同步四個版本檔為 `1.12.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
-- [ ] 3.2 `npm run build` 產生 `main.js`；驗證：bundle 含選單邏輯、無 Node.js 或 Electron runtime import。
-- [ ] 3.3 commit 推送 main，release guard preflight（`--version 1.12.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機長按與選單操作由使用者驗收。
+- [x] 3.2 `npm run build` 產生 `main.js`；驗證：bundle 含選單邏輯、無 Node.js 或 Electron runtime import。
+- [x] 3.3 commit 推送 main，release guard preflight（`--version 1.12.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機長按與選單操作由使用者驗收。
