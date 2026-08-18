@@ -10,7 +10,29 @@ export interface BulletZoomSettings {
 	readonly extractOpenBehavior: ExtractOpenBehavior;
 	readonly focusIndentGuides: boolean;
 	readonly autoFixStrayLines: boolean;
+	readonly bulletCopyScope: BulletCopyScope;
+	readonly bulletPrefixText: string;
+	readonly radialMenuEnabled: boolean;
+	readonly radialPressDuration: number;
+	readonly radialSlots: readonly string[];
 }
+
+export type BulletCopyScope = 'text' | 'branch';
+
+export const RADIAL_SLOT_COUNT = 8;
+export const RADIAL_PRESS_MIN = 250;
+export const RADIAL_PRESS_MAX = 1000;
+export const DEFAULT_BULLET_PREFIX = '> [!note] ';
+export const DEFAULT_RADIAL_SLOTS: readonly string[] = Object.freeze([
+	'bullet-zoom:copy-bullet',
+	'bullet-zoom:delete-bullet',
+	'bullet-zoom:insert-bullet-prefix',
+	'bullet-zoom:bullet-zoom-focus-current',
+	'bullet-zoom:extract-bullet-to-note',
+	'',
+	'',
+	'',
+]);
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
 
@@ -36,6 +58,11 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	extractOpenBehavior: 'stay',
 	focusIndentGuides: true,
 	autoFixStrayLines: true,
+	bulletCopyScope: 'text',
+	bulletPrefixText: DEFAULT_BULLET_PREFIX,
+	radialMenuEnabled: true,
+	radialPressDuration: 450,
+	radialSlots: DEFAULT_RADIAL_SLOTS,
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -58,6 +85,36 @@ function normalizeScale(value: unknown, fallback: number): number {
 
 function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 	return typeof value === 'boolean' ? value : fallback;
+}
+
+function normalizeCopyScope(value: unknown): BulletCopyScope {
+	return value === 'branch' ? 'branch' : 'text';
+}
+
+function normalizePressDuration(value: unknown): number {
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return DEFAULT_SETTINGS.radialPressDuration;
+	}
+	const rounded = Math.round(value);
+	if (rounded < RADIAL_PRESS_MIN) {
+		return RADIAL_PRESS_MIN;
+	}
+	if (rounded > RADIAL_PRESS_MAX) {
+		return RADIAL_PRESS_MAX;
+	}
+	return rounded;
+}
+
+function normalizeSlots(value: unknown): readonly string[] {
+	if (!Array.isArray(value)) {
+		return DEFAULT_RADIAL_SLOTS;
+	}
+	const slots: string[] = [];
+	for (let index = 0; index < RADIAL_SLOT_COUNT; index += 1) {
+		const entry: unknown = value[index];
+		slots.push(typeof entry === 'string' ? entry.trim() : '');
+	}
+	return Object.freeze(slots);
 }
 
 function normalizeReplacement(value: unknown): ExtractReplacement {
@@ -117,6 +174,17 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 			source['autoFixStrayLines'],
 			DEFAULT_SETTINGS.autoFixStrayLines,
 		),
+		bulletCopyScope: normalizeCopyScope(source['bulletCopyScope']),
+		bulletPrefixText:
+			typeof source['bulletPrefixText'] === 'string'
+				? source['bulletPrefixText']
+				: DEFAULT_BULLET_PREFIX,
+		radialMenuEnabled: normalizeBoolean(
+			source['radialMenuEnabled'],
+			DEFAULT_SETTINGS.radialMenuEnabled,
+		),
+		radialPressDuration: normalizePressDuration(source['radialPressDuration']),
+		radialSlots: normalizeSlots(source['radialSlots']),
 	});
 }
 

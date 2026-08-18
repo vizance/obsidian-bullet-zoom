@@ -47,6 +47,20 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 
 語音轉文字或 AI 寫作工具常會插入破壞清單格式的段落。Bullet Zoom 會讓這些內容照常顯示，並在你停止輸入約半秒後整理聚焦區域：每一行都變成 Bullet，縮排到它前面那個 Bullet 的下一層，同一批的行彼此平輩，空行直接移除，文字一個字都不會被改寫。原本就巢狀在更深層的 Bullet 維持不變，程式碼區塊不動。按一次 Undo 只還原這個修復。整理只在 Zoom 狀態下運作，沒有聚焦時的一般編輯完全不受影響。可在 **Focus page** 區塊的 **Fix broken bullets** 關閉。
 
+### 徑向選單
+
+在手機上長按 Bullet 圓點，指令會排成一圈出現在拇指周圍。手指不放直接滑到某一格再放開就執行；也可以放開後再點某一格。點中央按鈕、點選單外或按 Escape 則關閉選單、不執行任何動作。
+
+八個插槽各綁一個 Obsidian 指令 ID，所以選單可以放外掛自己的 Bullet 指令，也可以放其他外掛的任何指令。預設前五格是複製、刪除、加前綴、Zoom、拆分成新筆記。
+
+外掛附帶三個 Bullet 指令，在指令面板也能用：
+
+- **Copy bullet**：複製該 Bullet 的文字，或依複製範圍設定連子項目一起複製。
+- **Delete bullet**：刪除該 Bullet 與其下所有巢狀內容，含換行。
+- **Insert prefix text**：在標記後插入設定的前綴，已存在時則移除。
+
+設定在 **Radial menu** 區塊：啟用開關、長按時間，以及每一格的指令選擇。短按仍然是 Zoom，手指移動則取消手勢，捲動不受影響。
+
 ### 摺疊與 Zoom 是兩件事
 
 Obsidian 原生的摺疊箭頭只負責收合與展開，不會觸發 Zoom；Bullet 圓點才是 Zoom。每一行清單會依實際量測的座標切成三區：圓點左邊的摺疊箭頭、圓點本身，以及後面的文字。因為分區來自量測而不是即時預覽怎麼渲染那一行，所以不論編輯器有沒有焦點，點圓點都會 Zoom。摺疊區涵蓋圓點左邊的整片空間（含縮排），可摺疊的行在這片區域內任何位置點擊都能收合；沒有東西可摺疊的行完全不會被攔截，摺疊箭頭也維持 Obsidian 原本的大小與對齊。
@@ -102,11 +116,12 @@ Bullet 會連同整個縮排子樹一起搬，縮排自動換算成目標位置�
 
 ## 設定
 
-設定分成四區：
+設定分成五區：
 
 - **Zoom**：一般 Bullet 與編號清單可各自開關偵測。
 - **Outline**：調整大綱文字大小，調小可一次看到更多行。
 - **Focus page**：調整 Zoom 後的標題大小，可開關縮排引導線與自動修復破損的 Bullet。
+- **Radial menu**：長按選單的開關、長按時間與每一格的指令。
 - **Extract to new note**：上面列出的拆分選項。
 
 兩個大小滑桿範圍都是 60% 到 160%，各有一顆重設按鈕。縮排引導線會在聚焦頁畫出連接巢狀 Bullet 的垂直線，預設開啟。
@@ -120,6 +135,9 @@ Bullet Zoom 不預設快捷鍵，避免和 Outliner 或你自己的設定衝突�
 - `Bullet Zoom: Exit bullet focus`
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`
+- `Bullet Zoom: Copy bullet`
+- `Bullet Zoom: Delete bullet`
+- `Bullet Zoom: Insert prefix text`
 
 手機上可以把常用指令加進工具列。
 

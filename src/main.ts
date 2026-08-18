@@ -33,11 +33,14 @@ import {
 	runParentCommand,
 } from './focus-extension';
 import {
+	collectBulletCopyText,
 	findSupportedBullet,
 	planBulletExtract,
+	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
+import { computeMenuSegments, openRadialMenu } from './radial-menu';
 import {
 	collectFolderPaths,
 	collectMarkdownPaths,
@@ -54,6 +57,9 @@ import {
 	BulletOutlineSidebarView,
 } from './outline-sidebar-view';
 import {
+	RADIAL_PRESS_MAX,
+	RADIAL_PRESS_MIN,
+	RADIAL_SLOT_COUNT,
 	applyScaleVariables,
 	clearScaleVariables,
 	DEFAULT_SETTINGS,
@@ -165,6 +171,35 @@ function attachPathAutocomplete(
 		}
 	});
 	return render;
+}
+
+async function copyTextToClipboard(
+	view: EditorView,
+	text: string,
+): Promise<boolean> {
+	try {
+		const clipboard = view.dom.ownerDocument.defaultView?.navigator?.clipboard;
+		if (clipboard !== undefined) {
+			await clipboard.writeText(text);
+			return true;
+		}
+	} catch {
+		// Fall through to the legacy path below.
+	}
+	try {
+		const ownerDocument = view.dom.ownerDocument;
+		const holder = ownerDocument.createElement('textarea');
+		holder.value = text;
+		holder.style.position = 'fixed';
+		holder.style.opacity = '0';
+		ownerDocument.body.append(holder);
+		holder.select();
+		const copied = ownerDocument.execCommand('copy');
+		holder.remove();
+		return copied;
+	} catch {
+		return false;
+	}
 }
 
 class ExtractNameModal extends Modal {
@@ -326,6 +361,53 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(this.containerEl).setName('Radial menu').setHeading();
+		new Setting(this.containerEl)
+			.setName('Enable radial menu')
+			.setDesc('Press and hold a bullet marker to open a ring of commands. Mobile only.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.radialMenuEnabled)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ radialMenuEnabled: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('Press duration')
+			.setDesc('How long to hold before the menu opens, in milliseconds.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
+					.setValue(this.plugin.settings.radialPressDuration)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ radialPressDuration: value });
+					}),
+			);
+		const allCommands = (
+			(this.app as unknown as { commands?: unknown }).commands as {
+				listCommands?: () => Array<{ id: string; name: string }>;
+			}
+		).listCommands?.() ?? [];
+		for (let slot = 0; slot < RADIAL_SLOT_COUNT; slot += 1) {
+			const index = slot;
+			new Setting(this.containerEl)
+				.setName(`Slot ${index + 1}`)
+				.addDropdown((dropdown) => {
+					dropdown.addOption('', 'Empty');
+					for (const command of allCommands) {
+						dropdown.addOption(command.id, command.name);
+					}
+					dropdown
+						.setValue(this.plugin.settings.radialSlots[index] ?? '')
+						.onChange((value) => {
+							const slots = [...this.plugin.settings.radialSlots];
+							slots[index] = value;
+							void this.plugin.updateSettings({ radialSlots: slots });
+						});
+				});
+		}
+
 		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
@@ -448,6 +530,13 @@ export default class BulletZoomPlugin extends Plugin {
 					numbered: this.settings.zoomNumbered,
 				},
 				autoFixStrayLines: this.settings.autoFixStrayLines,
+				radialMenu: {
+					enabled: Platform.isMobile && this.settings.radialMenuEnabled,
+					pressDuration: this.settings.radialPressDuration,
+					onLongPress: (view, markerFrom, clientX, clientY, pointerId) => {
+						this.openBulletMenu(view, markerFrom, clientX, clientY, pointerId);
+					},
+				},
 				notify: showNotice,
 				onEditorReady: (view) => outlineCoordinator.notifyEditorReady(view),
 				onEditorUpdate: (update) =>
@@ -478,7 +567,10 @@ export default class BulletZoomPlugin extends Plugin {
 		if (
 			previous.zoomBullets !== this.settings.zoomBullets ||
 			previous.zoomNumbered !== this.settings.zoomNumbered ||
-			previous.autoFixStrayLines !== this.settings.autoFixStrayLines
+			previous.autoFixStrayLines !== this.settings.autoFixStrayLines ||
+			previous.radialMenuEnabled !== this.settings.radialMenuEnabled ||
+			previous.radialPressDuration !== this.settings.radialPressDuration ||
+			previous.radialSlots !== this.settings.radialSlots
 		) {
 			this.rebuildEditorExtensions();
 		}
@@ -556,6 +648,69 @@ export default class BulletZoomPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: 'copy-bullet',
+			name: 'Copy bullet',
+			editorCheckCallback: (checking, editor) =>
+				this.runBulletCommand(editor, checking, (view, markerFrom) => {
+					const text = collectBulletCopyText(
+						view.state,
+						markerFrom,
+						this.settings.bulletCopyScope,
+					);
+					if (text === null || text.length === 0) {
+						showNotice('Nothing to copy.');
+						return;
+					}
+					void copyTextToClipboard(view, text)
+						.then((copied) => {
+							showNotice(
+								copied ? 'Bullet copied.' : 'Could not copy the bullet.',
+							);
+						})
+						.catch(() => {
+							showNotice('Could not copy the bullet.');
+						});
+				}),
+		});
+
+		this.addCommand({
+			id: 'delete-bullet',
+			name: 'Delete bullet',
+			editorCheckCallback: (checking, editor) =>
+				this.runBulletCommand(editor, checking, (view, markerFrom) => {
+					const plan = planBulletExtract(view.state, markerFrom, false);
+					if (plan === null) {
+						return;
+					}
+					const removal = planBulletRemovalRange(
+						view.state,
+						plan.replaceFrom,
+						plan.replaceTo,
+					);
+					view.dispatch({
+						changes: { from: removal.from, to: removal.to, insert: '' },
+					});
+				}),
+		});
+
+		this.addCommand({
+			id: 'insert-bullet-prefix',
+			name: 'Insert prefix text',
+			editorCheckCallback: (checking, editor) =>
+				this.runBulletCommand(editor, checking, (view, markerFrom) => {
+					const change = planBulletPrefixToggle(
+						view.state,
+						markerFrom,
+						this.settings.bulletPrefixText,
+					);
+					if (change === null) {
+						return;
+					}
+					view.dispatch({ changes: change });
+				}),
+		});
+
+		this.addCommand({
 			id: 'extract-bullet-to-note',
 			name: 'Extract bullet to new note',
 			editorCheckCallback: (checking, editor) => {
@@ -597,6 +752,66 @@ export default class BulletZoomPlugin extends Plugin {
 				runParentCommand(getEditorView(editor), showNotice);
 			},
 		});
+	}
+
+	private openBulletMenu(
+		view: EditorView,
+		markerFrom: number,
+		clientX: number,
+		clientY: number,
+		pointerId: number,
+	): void {
+		const commands = (this.app as unknown as { commands?: unknown })
+			.commands as {
+			listCommands?: () => Array<{ id: string; name: string }>;
+			executeCommandById?: (id: string) => unknown;
+		};
+		const names = new Map<string, string>();
+		for (const command of commands.listCommands?.() ?? []) {
+			names.set(command.id, command.name);
+		}
+		const segments = computeMenuSegments(
+			this.settings.radialSlots,
+			(id) => names.get(id) ?? id,
+		);
+		if (segments.length === 0) {
+			return;
+		}
+		view.dispatch({ selection: { anchor: markerFrom } });
+		view.focus();
+		openRadialMenu({
+			document: view.dom.ownerDocument,
+			x: clientX,
+			y: clientY,
+			segments,
+			pointerId,
+			onSelect: (segment) => {
+				commands.executeCommandById?.(segment.commandId);
+			},
+		});
+	}
+
+	private runBulletCommand(
+		editor: Editor,
+		checking: boolean,
+		run: (view: EditorView, markerFrom: number) => void,
+	): boolean {
+		const view = getEditorView(editor);
+		if (view === null) {
+			return false;
+		}
+		const bullet = findSupportedBullet(
+			view.state,
+			view.state.selection.main.head,
+		);
+		if (bullet === null) {
+			return false;
+		}
+		if (checking) {
+			return true;
+		}
+		run(view, bullet.markerFrom);
+		return true;
 	}
 
 	private async extractBulletToNote(
