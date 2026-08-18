@@ -12,4 +12,4 @@
 
 - [x] 3.1 同步四個版本檔為 `1.17.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
 - [x] 3.2 `npm run build` 產生 `main.js`；驗證：build 成功。
-- [ ] 3.3 commit 推送 main，release guard preflight（`--version 1.17.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機遮罩效果與設定頁寬度由使用者驗收。
+- [x] 3.3 commit 推送 main，release guard preflight（`--version 1.17.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機遮罩效果與設定頁寬度由使用者驗收。
