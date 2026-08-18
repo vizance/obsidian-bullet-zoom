@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	computeFanLayout,
@@ -7,6 +7,14 @@ import {
 	RADIAL_DEAD_ZONE_PX,
 	resolveNearestItem,
 } from '../src/radial-menu';
+
+afterEach(() => {
+	for (const overlay of document.querySelectorAll(
+		'.bullet-zoom-radial-overlay',
+	)) {
+		overlay.remove();
+	}
+});
 
 function slots(...entries: Array<string | [string, boolean]>) {
 	return entries.map((entry) =>
@@ -295,5 +303,85 @@ describe('icons and caption', () => {
 		Object.defineProperty(back, 'pointerId', { value: 7 });
 		overlay?.dispatchEvent(back);
 		expect(caption?.textContent).toBe('Release to cancel');
+	});
+});
+
+describe('visible viewport handling (1.14.0)', () => {
+	it('keeps items above a keyboard that covers the lower half', () => {
+		const layout = computeFanLayout({
+			x: 30,
+			y: 380,
+			count: 4,
+			viewportWidth: 400,
+			viewportHeight: 400,
+			viewportTop: 0,
+			radius: 96,
+		});
+		for (const item of layout.items) {
+			expect(item.y).toBeGreaterThanOrEqual(0);
+			expect(item.y).toBeLessThanOrEqual(400);
+		}
+	});
+
+	it('respects a visible band that starts below the top', () => {
+		const layout = computeFanLayout({
+			x: 30,
+			y: 380,
+			count: 4,
+			viewportWidth: 400,
+			viewportHeight: 300,
+			viewportTop: 100,
+			radius: 96,
+		});
+		for (const item of layout.items) {
+			expect(item.y).toBeGreaterThanOrEqual(100);
+			expect(item.y).toBeLessThanOrEqual(400);
+		}
+	});
+
+	it('flips the caption above a centre near the bottom', () => {
+		openRadialMenu({
+			document,
+			x: 40,
+			y: 390,
+			viewportWidth: 400,
+			viewportHeight: 400,
+			viewportTop: 0,
+			segments: computeMenuSegments(slots('copy')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const caption = document.querySelector<HTMLElement>(
+			'.bullet-zoom-radial-caption',
+		);
+		const centre = document.querySelector<HTMLElement>(
+			'.bullet-zoom-radial-cancel',
+		);
+		expect(Number.parseFloat(caption?.style.top ?? '0')).toBeLessThan(
+			Number.parseFloat(centre?.style.top ?? '0'),
+		);
+	});
+
+	it('staggers the entrance delay per item', () => {
+		openRadialMenu({
+			document,
+			x: 40,
+			y: 200,
+			viewportWidth: 400,
+			viewportHeight: 800,
+			segments: computeMenuSegments(slots('a', 'b', 'c')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const delays = Array.from(
+			document.querySelectorAll<HTMLElement>('.bullet-zoom-radial-item'),
+		).map((item) =>
+			Number.parseFloat(
+				item.style.getPropertyValue('--bullet-zoom-radial-delay'),
+			),
+		);
+		expect(delays).toHaveLength(3);
+		expect(delays[1]).toBeGreaterThan(delays[0] ?? 0);
+		expect(delays[2]).toBeGreaterThan(delays[1] ?? 0);
 	});
 });

@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.13.0');
+		expect(manifest.version).toBe('1.14.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.13.0');
-		expect(packageLock.version).toBe('1.13.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.13.0');
+		expect(packageManifest.version).toBe('1.14.0');
+		expect(packageLock.version).toBe('1.14.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.14.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -632,5 +632,18 @@ describe('focus indent guides CSS contract (1.1.0)', () => {
 		expect(guideRule?.style.getPropertyValue('background-repeat').trim()).toBe(
 			'no-repeat',
 		);
+	});
+});
+
+describe('menu motion contract (1.14.0)', () => {
+	it('disables the menu animation when reduced motion is requested', () => {
+		const stylesheet = readProjectFile('styles.css');
+		expect(stylesheet).toContain('prefers-reduced-motion: reduce');
+		const reducedBlock = stylesheet.slice(
+			stylesheet.indexOf('prefers-reduced-motion: reduce'),
+		);
+		expect(reducedBlock).toContain('.bullet-zoom-radial-item');
+		expect(reducedBlock).toContain('animation: none');
+		expect(reducedBlock).toContain('transition: none');
 	});
 });

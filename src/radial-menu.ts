@@ -52,9 +52,12 @@ export function computeFanLayout(input: {
 	readonly count: number;
 	readonly viewportWidth: number;
 	readonly viewportHeight: number;
+	readonly viewportTop?: number;
 	readonly radius?: number;
 }): FanLayout {
 	const radius = input.radius ?? RADIAL_RADIUS_PX;
+	const top = input.viewportTop ?? 0;
+	const bottom = top + input.viewportHeight;
 	const side: 'left' | 'right' =
 		input.x <= input.viewportWidth / 2 ? 'right' : 'left';
 	const direction = side === 'right' ? 1 : -1;
@@ -64,11 +67,8 @@ export function computeFanLayout(input: {
 
 	// The fan opens as a half circle, narrowed when the press sits close to the
 	// top or bottom so no item leaves the viewport.
-	const roomAbove = Math.max(input.y - RADIAL_EDGE_PADDING_PX, 0);
-	const roomBelow = Math.max(
-		input.viewportHeight - input.y - RADIAL_EDGE_PADDING_PX,
-		0,
-	);
+	const roomAbove = Math.max(input.y - top - RADIAL_EDGE_PADDING_PX, 0);
+	const roomBelow = Math.max(bottom - input.y - RADIAL_EDGE_PADDING_PX, 0);
 	const upSpan = Math.asin(Math.min(roomAbove / radius, 1));
 	const downSpan = Math.asin(Math.min(roomBelow / radius, 1));
 	const items: FanItem[] = [];
@@ -84,8 +84,8 @@ export function computeFanLayout(input: {
 					Math.max(input.viewportWidth - RADIAL_EDGE_PADDING_PX, 0),
 				),
 				y: Math.min(
-					Math.max(rawY, RADIAL_EDGE_PADDING_PX),
-					Math.max(input.viewportHeight - RADIAL_EDGE_PADDING_PX, 0),
+					Math.max(rawY, top + RADIAL_EDGE_PADDING_PX),
+					Math.max(bottom - RADIAL_EDGE_PADDING_PX, top),
 				),
 			}),
 		);
@@ -127,6 +127,7 @@ export interface RadialMenuOptions {
 	readonly pointerId?: number;
 	readonly viewportWidth?: number;
 	readonly viewportHeight?: number;
+	readonly viewportTop?: number;
 	readonly cancelHint?: string;
 	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
@@ -138,13 +139,22 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	const view = doc.defaultView;
 	const viewportWidth = options.viewportWidth ?? view?.innerWidth ?? 0;
 	const viewportHeight = options.viewportHeight ?? view?.innerHeight ?? 0;
+	const viewportTop = options.viewportTop ?? 0;
 	const layout = computeFanLayout({
 		x: options.x,
 		y: options.y,
 		count: segments.length,
 		viewportWidth,
 		viewportHeight,
+		viewportTop,
 	});
+	const bandTop = viewportTop + RADIAL_EDGE_PADDING_PX;
+	const bandBottom = Math.max(
+		viewportTop + viewportHeight - RADIAL_EDGE_PADDING_PX,
+		bandTop,
+	);
+	const centreY = Math.min(Math.max(options.y, bandTop), bandBottom);
+	const captionBelow = centreY + 44 <= bandBottom;
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
@@ -155,13 +165,13 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	centre.setAttribute('aria-label', 'Close menu');
 	centre.textContent = '×';
 	centre.style.left = `${options.x}px`;
-	centre.style.top = `${options.y}px`;
+	centre.style.top = `${centreY}px`;
 	overlay.append(centre);
 
 	const caption = doc.createElement('div');
 	caption.className = 'bullet-zoom-radial-caption';
 	caption.style.left = `${options.x}px`;
-	caption.style.top = `${options.y + 44}px`;
+	caption.style.top = `${captionBelow ? centreY + 44 : centreY - 60}px`;
 	const cancelHint = options.cancelHint ?? 'Release to cancel';
 	caption.textContent = cancelHint;
 	overlay.append(caption);
@@ -177,7 +187,19 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		button.setAttribute('aria-label', segment.label);
 		button.title = segment.label;
 		button.style.left = `${position?.x ?? options.x}px`;
-		button.style.top = `${position?.y ?? options.y}px`;
+		button.style.top = `${position?.y ?? centreY}px`;
+		button.style.setProperty(
+			'--bullet-zoom-radial-delay',
+			`${index * 24}ms`,
+		);
+		button.style.setProperty(
+			'--bullet-zoom-radial-origin-x',
+			`${options.x - (position?.x ?? options.x)}px`,
+		);
+		button.style.setProperty(
+			'--bullet-zoom-radial-origin-y',
+			`${centreY - (position?.y ?? centreY)}px`,
+		);
 		if (options.renderIcon === undefined) {
 			button.textContent = segment.label.slice(0, 1);
 		} else {
