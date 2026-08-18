@@ -17,4 +17,4 @@
 
 - [x] 4.1 更新 `README.md` 與 `README.zh-TW.md` 說明點擊圓點預設開啟選單、Zoom 為選單中的一格；同步四個版本檔為 `1.16.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
 - [x] 4.2 `npm run build` 產生 `main.js`；驗證：build 成功且 bundle 含新設定。
-- [ ] 4.3 commit 推送 main，release guard preflight（`--version 1.16.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機點擊開啟與設定頁寬度由使用者驗收。
+- [x] 4.3 commit 推送 main，release guard preflight（`--version 1.16.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機點擊開啟與設定頁寬度由使用者驗收。
