@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.16.0');
+		expect(manifest.version).toBe('1.17.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.16.0');
-		expect(packageLock.version).toBe('1.16.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.16.0');
+		expect(packageManifest.version).toBe('1.17.0');
+		expect(packageLock.version).toBe('1.17.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.17.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -708,5 +708,40 @@ describe('settings width contract (1.16.0)', () => {
 		expect(control?.style.getPropertyValue('min-width').trim()).toBe('0');
 		expect(inputs?.style.getPropertyValue('max-width').trim()).toBe('100%');
 		expect(inputs?.style.getPropertyValue('min-width').trim()).toBe('0');
+	});
+});
+
+describe('menu scrim contract (1.17.0)', () => {
+	it('dims and blurs the note behind the menu and clips the settings tab', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const overlay = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-radial-overlay',
+		);
+		expect(overlay?.style.getPropertyValue('background')).toContain(
+			'--background-modifier-cover',
+		);
+		expect(overlay?.style.getPropertyValue('backdrop-filter')).toContain(
+			'blur',
+		);
+
+		const settings = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-settings',
+		);
+		expect(settings?.style.getPropertyValue('overflow-x').trim()).toBe(
+			'hidden',
+		);
+		expect(settings?.style.getPropertyValue('max-width').trim()).toBe('100%');
+
+		const stylesheet = readProjectFile('styles.css');
+		const reduced = stylesheet.slice(
+			stylesheet.indexOf('prefers-reduced-motion: reduce'),
+		);
+		expect(reduced).toContain('.bullet-zoom-radial-overlay');
 	});
 });

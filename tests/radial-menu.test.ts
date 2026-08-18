@@ -477,3 +477,26 @@ describe('close callback (1.15.0)', () => {
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('menu scrim and ring (1.17.0)', () => {
+	it('draws a marker ring at the menu origin and removes it on close', () => {
+		const close = openRadialMenu({
+			document,
+			x: 40,
+			y: 200,
+			viewportWidth: 400,
+			viewportHeight: 800,
+			segments: computeMenuSegments(slots('copy')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const ring = document.querySelector<HTMLElement>(
+			'.bullet-zoom-radial-ring',
+		);
+		expect(ring).not.toBeNull();
+		expect(ring?.style.left).toBe('40px');
+		expect(ring?.style.top).toBe('200px');
+		close();
+		expect(document.querySelector('.bullet-zoom-radial-ring')).toBeNull();
+	});
+});
