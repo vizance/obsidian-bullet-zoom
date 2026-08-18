@@ -670,6 +670,33 @@ button.bullet-zoom-breadcrumb {
 	background: transparent;
 }
 
+@keyframes bullet-zoom-radial-in {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -50%)
+			translate(
+				var(--bullet-zoom-radial-origin-x, 0),
+				var(--bullet-zoom-radial-origin-y, 0)
+			)
+			scale(0.6);
+	}
+
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
+
+@keyframes bullet-zoom-radial-fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
 .bullet-zoom-radial-item,
 .bullet-zoom-radial-cancel {
 	position: absolute;
@@ -686,6 +713,16 @@ button.bullet-zoom-breadcrumb {
 	border-radius: 50%;
 	box-shadow: var(--shadow-s);
 	color: var(--text-normal);
+	transition: transform 120ms ease, background-color 120ms ease;
+}
+
+.bullet-zoom-radial-item {
+	animation: bullet-zoom-radial-in 180ms ease-out backwards;
+	animation-delay: var(--bullet-zoom-radial-delay, 0ms);
+}
+
+.bullet-zoom-radial-cancel {
+	animation: bullet-zoom-radial-fade 140ms ease-out backwards;
 }
 
 .bullet-zoom-radial-cancel {
@@ -715,4 +752,12 @@ button.bullet-zoom-breadcrumb {
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.bullet-zoom-radial-item,
+	.bullet-zoom-radial-cancel {
+		animation: none;
+		transition: none;
+	}
 }

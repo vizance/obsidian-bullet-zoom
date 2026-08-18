@@ -805,12 +805,18 @@ export default class BulletZoomPlugin extends Plugin {
 		if (segments.length === 0) {
 			return;
 		}
+		// Deliberately not focusing the editor: on mobile that raises the
+		// keyboard, which would cover the menu we are about to open.
 		view.dispatch({ selection: { anchor: markerFrom } });
-		view.focus();
+		const ownerWindow = view.dom.ownerDocument.defaultView;
+		const visual = ownerWindow?.visualViewport ?? null;
 		openRadialMenu({
 			document: view.dom.ownerDocument,
 			x: clientX,
 			y: clientY,
+			viewportWidth: visual?.width ?? ownerWindow?.innerWidth ?? 0,
+			viewportHeight: visual?.height ?? ownerWindow?.innerHeight ?? 0,
+			viewportTop: visual?.offsetTop ?? 0,
 			segments,
 			pointerId,
 			renderIcon: (element, segment) => {
