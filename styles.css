@@ -767,3 +767,11 @@ button.bullet-zoom-breadcrumb {
 		transition: none;
 	}
 }
+
+/* 1.15.0: freeze the editor while the bullet menu is open */
+.bullet-zoom-menu-open .cm-content {
+	caret-color: transparent;
+	user-select: none;
+	-webkit-user-select: none;
+	pointer-events: none;
+}

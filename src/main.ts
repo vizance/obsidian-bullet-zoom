@@ -73,6 +73,8 @@ import {
 
 type EditorWithCodeMirror = Editor & { cm?: unknown };
 
+const MENU_OPEN_CLASS = 'bullet-zoom-menu-open';
+
 export function getEditorView(editor: Editor): EditorView | null {
 	return resolveCodeMirrorView((editor as EditorWithCodeMirror).cm);
 }
@@ -808,6 +810,11 @@ export default class BulletZoomPlugin extends Plugin {
 		// Deliberately not focusing the editor: on mobile that raises the
 		// keyboard, which would cover the menu we are about to open.
 		view.dispatch({ selection: { anchor: markerFrom } });
+		// While the menu is up the editor must not take part in the gesture,
+		// otherwise the same finger keeps dragging the caret underneath it.
+		const hadFocus = view.hasFocus;
+		view.dom.classList.add(MENU_OPEN_CLASS);
+		view.contentDOM.blur();
 		const ownerWindow = view.dom.ownerDocument.defaultView;
 		const visual = ownerWindow?.visualViewport ?? null;
 		openRadialMenu({
@@ -824,6 +831,12 @@ export default class BulletZoomPlugin extends Plugin {
 			},
 			onSelect: (segment) => {
 				commands.executeCommandById?.(segment.commandId);
+			},
+			onClose: () => {
+				view.dom.classList.remove(MENU_OPEN_CLASS);
+				if (hadFocus) {
+					view.focus();
+				}
 			},
 		});
 	}

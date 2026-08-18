@@ -387,3 +387,58 @@ describe('visible viewport handling (1.14.0)', () => {
 		expect(delays[2]).toBeGreaterThan(delays[1] ?? 0);
 	});
 });
+
+describe('close callback (1.15.0)', () => {
+	function openWithClose(onClose: () => void, pointerId?: number): void {
+		openRadialMenu({
+			document,
+			x: 40,
+			y: 200,
+			viewportWidth: 400,
+			viewportHeight: 800,
+			segments: computeMenuSegments(slots('copy', 'delete')),
+			pointerId,
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+			onClose,
+		});
+	}
+
+	it('fires once when an item is chosen', () => {
+		const onClose = vi.fn();
+		openWithClose(onClose);
+		document
+			.querySelectorAll<HTMLButtonElement>('.bullet-zoom-radial-item')[0]
+			?.click();
+		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+
+	it('fires once when the centre cancels', () => {
+		const onClose = vi.fn();
+		openWithClose(onClose);
+		document
+			.querySelector<HTMLButtonElement>('.bullet-zoom-radial-cancel')
+			?.click();
+		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+
+	it('fires once when tapping outside', () => {
+		const onClose = vi.fn();
+		openWithClose(onClose);
+		const overlay = document.querySelector('.bullet-zoom-radial-overlay');
+		overlay?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+
+	it('fires once on Escape and not again afterwards', () => {
+		const onClose = vi.fn();
+		openWithClose(onClose);
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+});

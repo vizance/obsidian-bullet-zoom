@@ -131,6 +131,7 @@ export interface RadialMenuOptions {
 	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
 	readonly onCancel?: () => void;
+	readonly onClose?: () => void;
 }
 
 export function openRadialMenu(options: RadialMenuOptions): () => void {
@@ -215,6 +216,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		closed = true;
 		doc.removeEventListener('keydown', onKeyDown, true);
 		overlay.remove();
+		options.onClose?.();
 	};
 	const cancel = (): void => {
 		close();
