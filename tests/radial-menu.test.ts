@@ -264,7 +264,7 @@ describe('icons and caption', () => {
 		expect(item?.textContent).toBe('');
 	});
 
-	it('shows the highlighted name and falls back to the cancel hint', () => {
+	it('shows the highlighted name and stays empty otherwise', () => {
 		openRadialMenu({
 			document,
 			x: 40,
@@ -275,7 +275,6 @@ describe('icons and caption', () => {
 				id === 'copy' ? 'Copy bullet' : 'Delete bullet',
 			),
 			pointerId: 7,
-			cancelHint: 'Release to cancel',
 			renderIcon: () => undefined,
 			onSelect: vi.fn(),
 		});
@@ -284,7 +283,8 @@ describe('icons and caption', () => {
 		const target = document.querySelectorAll<HTMLElement>(
 			'.bullet-zoom-radial-item',
 		)[0];
-		expect(caption?.textContent).toBe('Release to cancel');
+		expect(caption?.textContent).toBe('');
+		expect(caption?.classList.contains('is-empty')).toBe(true);
 
 		const move = new MouseEvent('pointermove', {
 			bubbles: true,
@@ -294,6 +294,7 @@ describe('icons and caption', () => {
 		Object.defineProperty(move, 'pointerId', { value: 7 });
 		overlay?.dispatchEvent(move);
 		expect(caption?.textContent).toBe('Copy bullet');
+		expect(caption?.classList.contains('is-empty')).toBe(false);
 
 		const back = new MouseEvent('pointermove', {
 			bubbles: true,
@@ -302,7 +303,8 @@ describe('icons and caption', () => {
 		});
 		Object.defineProperty(back, 'pointerId', { value: 7 });
 		overlay?.dispatchEvent(back);
-		expect(caption?.textContent).toBe('Release to cancel');
+		expect(caption?.textContent).toBe('');
+		expect(caption?.classList.contains('is-empty')).toBe(true);
 	});
 });
 
