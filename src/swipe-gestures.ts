@@ -26,6 +26,7 @@ export function classifySwipe(
 export interface SwipeExtensionOptions {
 	readonly rightAction: SwipeAction;
 	readonly leftAction: SwipeAction;
+	readonly edgeZone?: number;
 	readonly onAction: (
 		view: EditorView,
 		position: number,
@@ -40,6 +41,7 @@ export function createSwipeExtension(
 		return [];
 	}
 
+	const edgeZone = options.edgeZone ?? SWIPE_EDGE_MARGIN_PX;
 	let pointerId: number | null = null;
 	let startX = 0;
 	let startY = 0;
@@ -61,8 +63,8 @@ export function createSwipeExtension(
 			const window = view.dom.ownerDocument.defaultView;
 			const width = window?.innerWidth ?? 0;
 			if (
-				event.clientX <= SWIPE_EDGE_MARGIN_PX ||
-				(width > 0 && event.clientX >= width - SWIPE_EDGE_MARGIN_PX)
+				event.clientX <= edgeZone ||
+				(width > 0 && event.clientX >= width - edgeZone)
 			) {
 				return false;
 			}
@@ -128,4 +130,85 @@ export function createSwipeExtension(
 			return true;
 		},
 	});
+}
+
+export const DRAWER_EDGE_ZONE_MIN = 8;
+export const DRAWER_EDGE_ZONE_MAX = 80;
+
+export function shouldBlockDrawerGesture(input: {
+	readonly startX: number;
+	readonly viewportWidth: number;
+	readonly edgeZone: number;
+	readonly startedInEditor: boolean;
+}): boolean {
+	if (!input.startedInEditor) {
+		return false;
+	}
+	if (input.startX <= input.edgeZone) {
+		return false;
+	}
+	if (
+		input.viewportWidth > 0 &&
+		input.startX >= input.viewportWidth - input.edgeZone
+	) {
+		return false;
+	}
+	return true;
+}
+
+interface DrawerGuardWindow {
+	addEventListener: Window['addEventListener'];
+	removeEventListener: Window['removeEventListener'];
+	innerWidth?: number;
+}
+
+export function installDrawerEdgeGuard(
+	target: DrawerGuardWindow,
+	options: { readonly getEdgeZone: () => number },
+): () => void {
+	let startX = 0;
+	let startedInEditor = false;
+
+	const isInsideEditor = (node: EventTarget | null): boolean =>
+		node instanceof Element && node.closest('.cm-content') !== null;
+
+	const onTouchStart = (event: Event): void => {
+		const touch = (event as TouchEvent).touches?.[0];
+		if (touch === undefined) {
+			startedInEditor = false;
+			return;
+		}
+		startX = touch.clientX;
+		startedInEditor = isInsideEditor(event.target);
+	};
+
+	const onTouchMove = (event: Event): void => {
+		if (
+			shouldBlockDrawerGesture({
+				startX,
+				viewportWidth: target.innerWidth ?? 0,
+				edgeZone: options.getEdgeZone(),
+				startedInEditor,
+			})
+		) {
+			// Only stop other handlers; never preventDefault so scrolling and
+			// text selection keep their native behaviour.
+			event.stopPropagation();
+		}
+	};
+
+	const onTouchEnd = (): void => {
+		startedInEditor = false;
+	};
+
+	target.addEventListener('touchstart', onTouchStart, true);
+	target.addEventListener('touchmove', onTouchMove, true);
+	target.addEventListener('touchend', onTouchEnd, true);
+	target.addEventListener('touchcancel', onTouchEnd, true);
+	return () => {
+		target.removeEventListener('touchstart', onTouchStart, true);
+		target.removeEventListener('touchmove', onTouchMove, true);
+		target.removeEventListener('touchend', onTouchEnd, true);
+		target.removeEventListener('touchcancel', onTouchEnd, true);
+	};
 }

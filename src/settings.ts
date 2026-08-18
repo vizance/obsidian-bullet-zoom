@@ -14,12 +14,16 @@ export interface BulletZoomSettings {
 	readonly swipeLeftAction: SwipeAction;
 	readonly swipePrefixText: string;
 	readonly swipeCopyScope: BulletCopyScope;
+	readonly limitDrawerToEdges: boolean;
+	readonly drawerEdgeZone: number;
 }
 
 export type SwipeAction = 'none' | 'prefix' | 'copy';
 export type BulletCopyScope = 'text' | 'branch';
 
 export const DEFAULT_SWIPE_PREFIX = '> [!note] ';
+export const DRAWER_EDGE_MIN = 8;
+export const DRAWER_EDGE_MAX = 80;
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
 
@@ -49,6 +53,8 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	swipeLeftAction: 'copy',
 	swipePrefixText: DEFAULT_SWIPE_PREFIX,
 	swipeCopyScope: 'text',
+	limitDrawerToEdges: true,
+	drawerEdgeZone: 24,
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -81,6 +87,20 @@ function normalizeOpenBehavior(value: unknown): ExtractOpenBehavior {
 	return value === 'current' || value === 'tab' || value === 'split'
 		? value
 		: 'stay';
+}
+
+function normalizeEdgeZone(value: unknown): number {
+	if (typeof value !== 'number' || Number.isNaN(value)) {
+		return DEFAULT_SETTINGS.drawerEdgeZone;
+	}
+	const rounded = Math.round(value);
+	if (rounded < DRAWER_EDGE_MIN) {
+		return DRAWER_EDGE_MIN;
+	}
+	if (rounded > DRAWER_EDGE_MAX) {
+		return DRAWER_EDGE_MAX;
+	}
+	return rounded;
 }
 
 function normalizeSwipeAction(
@@ -156,6 +176,11 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 				? source['swipePrefixText']
 				: DEFAULT_SWIPE_PREFIX,
 		swipeCopyScope: normalizeCopyScope(source['swipeCopyScope']),
+		limitDrawerToEdges: normalizeBoolean(
+			source['limitDrawerToEdges'],
+			DEFAULT_SETTINGS.limitDrawerToEdges,
+		),
+		drawerEdgeZone: normalizeEdgeZone(source['drawerEdgeZone']),
 	});
 }
 

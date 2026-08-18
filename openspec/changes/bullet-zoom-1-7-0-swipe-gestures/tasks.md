@@ -9,4 +9,4 @@
 
 - [x] 2.1 更新 `README.md` 與 `README.zh-TW.md` 新增手勢章節與設定說明；同步四個版本檔為 `1.7.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
 - [x] 2.2 `npm run build` 產生 `main.js`；驗證：bundle 含手勢邏輯、無 Node.js 或 Electron runtime import。
-- [ ] 2.3 commit 推送 main，release guard preflight（`--version 1.7.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機手勢與剪貼簿由使用者驗收。
+- [x] 2.3 commit 推送 main，release guard preflight（`--version 1.7.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機手勢與剪貼簿由使用者驗收。
