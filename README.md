@@ -47,6 +47,20 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 
 Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level and code fences are left alone. One undo reverts just the fix. Tidying runs only while you are zoomed in, so ordinary editing outside zoom is never touched. Turn it off with **Fix broken bullets** under **Focus page**.
 
+### Radial menu
+
+Press and hold a bullet marker on mobile to open a ring of commands around your thumb. Keep holding and slide to a segment, then lift to run it; or lift first and tap a segment. The centre button, a tap outside, or Escape closes the menu without running anything.
+
+Each of the eight slots holds an Obsidian command id, so the menu can run the plugin's own bullet commands or anything from another plugin. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
+
+Three bullet commands come with the plugin and also work from the command palette:
+
+- **Copy bullet** — copies the bullet's text, or the bullet with its children when the copy scope says so.
+- **Delete bullet** — removes the bullet and everything nested under it, line break included.
+- **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
+
+Settings live under **Radial menu**: an enable toggle, the press duration, and a command picker per slot. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
+
 ### Folding is separate from zooming
 
 Obsidian's native fold arrow only collapses and expands a thread — it never zooms. The bullet marker zooms. Each list line is split by measured coordinates into three zones: the fold arrow before the marker, the marker itself, and the text after it. Because the split comes from measurement rather than from how Live Preview renders the line, tapping the marker zooms whether or not the editor already has focus. The fold zone covers everything left of the marker, including the indentation, so a foldable line can be collapsed from anywhere in that space; lines with nothing to fold are never intercepted, and the fold arrow keeps Obsidian's own size and alignment.
@@ -102,11 +116,12 @@ Placeholders are case-insensitive and tolerate inner spaces. If the template has
 
 ## Settings
 
-Settings are grouped into four sections:
+Settings are grouped into five sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
+- **Radial menu** — enable the long-press menu, its press duration, and the command in each slot.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.
@@ -120,6 +135,9 @@ Bullet Zoom ships without default hotkeys so it never clashes with Outliner or y
 - `Bullet Zoom: Exit bullet focus`
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`
+- `Bullet Zoom: Copy bullet`
+- `Bullet Zoom: Delete bullet`
+- `Bullet Zoom: Insert prefix text`
 
 On mobile you can add them to the toolbar.
 

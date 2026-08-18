@@ -661,3 +661,55 @@ button.bullet-zoom-breadcrumb {
 	background-repeat: no-repeat;
 	background-position: calc(var(--bullet-zoom-indent-unit, 1.2em) * 0.25) 0;
 }
+
+/* 1.12.0: radial bullet menu */
+.bullet-zoom-radial-overlay {
+	position: fixed;
+	z-index: var(--layer-modal, 100);
+	inset: 0;
+	background: transparent;
+}
+
+.bullet-zoom-radial-menu {
+	position: absolute;
+	width: 0;
+	height: 0;
+}
+
+.bullet-zoom-radial-item,
+.bullet-zoom-radial-cancel {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	min-width: 64px;
+	min-height: 44px;
+	max-width: 104px;
+	padding: 0 var(--size-4-2, 8px);
+	overflow: hidden;
+	transform: translate(-50%, -50%);
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-l, 12px);
+	box-shadow: var(--shadow-s);
+	color: var(--text-normal);
+	font-size: var(--font-ui-smaller, 0.85em);
+	line-height: 1.2;
+	text-align: center;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.bullet-zoom-radial-cancel {
+	min-width: 44px;
+	border-radius: 50%;
+	background: var(--background-modifier-error, var(--background-secondary));
+	color: var(--text-on-accent, var(--text-normal));
+	font-size: var(--font-ui-medium, 1em);
+}
+
+.bullet-zoom-radial-item.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}

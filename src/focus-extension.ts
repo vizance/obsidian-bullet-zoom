@@ -520,6 +520,32 @@ function resolveExpandedMobileMarker(
 	}
 }
 
+export interface RadialMenuConfig {
+	readonly enabled: boolean;
+	readonly pressDuration: number;
+	readonly onLongPress: (
+		view: EditorView,
+		markerFrom: number,
+		clientX: number,
+		clientY: number,
+		pointerId: number,
+	) => void;
+}
+
+const DEFAULT_RADIAL_CONFIG: RadialMenuConfig = Object.freeze({
+	enabled: false,
+	pressDuration: 450,
+	onLongPress: () => undefined,
+});
+
+export const radialMenuConfig = Facet.define<RadialMenuConfig, RadialMenuConfig>(
+	{
+		combine: (values) => values.at(0) ?? DEFAULT_RADIAL_CONFIG,
+	},
+);
+
+export const PRESS_CANCEL_PX = 12;
+
 export const MARKER_TAP_TOLERANCE_PX = 6;
 
 export type LineTapZone = 'fold' | 'marker' | 'content';
@@ -620,19 +646,120 @@ function resolveLineTapZone(
 
 class MarkerPointerPlugin implements PluginValue {
 	private readonly pointerHandler: (event: PointerEvent) => void;
+	private readonly moveHandler: (event: PointerEvent) => void;
+	private readonly upHandler: (event: PointerEvent) => void;
+	private readonly cancelHandler: (event: PointerEvent) => void;
 	private readonly clickHandler: (event: MouseEvent) => void;
 	private handledGesture = false;
+	private pressPointerId: number | null = null;
+	private pressMarkerFrom = 0;
+	private pressStartX = 0;
+	private pressStartY = 0;
+	private pressTimer: number | null = null;
+	private pressWindow: Window | null = null;
 
 	constructor(private readonly view: EditorView) {
 		this.pointerHandler = (event) => this.handlePointerDown(event);
+		this.moveHandler = (event) => this.handlePointerMove(event);
+		this.upHandler = (event) => this.handlePointerUp(event);
+		this.cancelHandler = (event) => this.handlePointerCancel(event);
 		this.clickHandler = (event) => this.handleClick(event);
 		view.dom.addEventListener('pointerdown', this.pointerHandler, true);
+		view.dom.addEventListener('pointermove', this.moveHandler, true);
+		view.dom.addEventListener('pointerup', this.upHandler, true);
+		view.dom.addEventListener('pointercancel', this.cancelHandler, true);
 		view.dom.addEventListener('click', this.clickHandler, true);
 	}
 
 	destroy(): void {
+		this.clearPress();
 		this.view.dom.removeEventListener('pointerdown', this.pointerHandler, true);
+		this.view.dom.removeEventListener('pointermove', this.moveHandler, true);
+		this.view.dom.removeEventListener('pointerup', this.upHandler, true);
+		this.view.dom.removeEventListener(
+			'pointercancel',
+			this.cancelHandler,
+			true,
+		);
 		this.view.dom.removeEventListener('click', this.clickHandler, true);
+	}
+
+	private clearPress(): void {
+		if (this.pressTimer !== null) {
+			this.pressWindow?.clearTimeout(this.pressTimer);
+		}
+		this.pressTimer = null;
+		this.pressWindow = null;
+		this.pressPointerId = null;
+	}
+
+	private beginMarkerPress(
+		event: PointerEvent,
+		markerFrom: number,
+		config: RadialMenuConfig,
+	): void {
+		this.clearPress();
+		this.pressPointerId = event.pointerId;
+		this.pressMarkerFrom = markerFrom;
+		this.pressStartX = event.clientX;
+		this.pressStartY = event.clientY;
+		this.handledGesture = true;
+		event.preventDefault();
+		event.stopPropagation();
+		const window = this.view.dom.ownerDocument.defaultView;
+		if (window === null || window === undefined) {
+			return;
+		}
+		this.pressWindow = window;
+		this.pressTimer = window.setTimeout(() => {
+			this.pressTimer = null;
+			const pointerId = this.pressPointerId;
+			this.pressPointerId = null;
+			if (pointerId === null) {
+				return;
+			}
+			config.onLongPress(
+				this.view,
+				this.pressMarkerFrom,
+				this.pressStartX,
+				this.pressStartY,
+				pointerId,
+			);
+		}, config.pressDuration);
+	}
+
+	private handlePointerMove(event: PointerEvent): void {
+		if (this.pressPointerId !== event.pointerId) {
+			return;
+		}
+		const distance = Math.hypot(
+			event.clientX - this.pressStartX,
+			event.clientY - this.pressStartY,
+		);
+		if (distance > PRESS_CANCEL_PX) {
+			this.clearPress();
+		}
+	}
+
+	private handlePointerUp(event: PointerEvent): void {
+		if (this.pressPointerId !== event.pointerId) {
+			return;
+		}
+		const markerFrom = this.pressMarkerFrom;
+		const pending = this.pressTimer !== null;
+		this.clearPress();
+		if (!pending) {
+			return;
+		}
+		if (activateBulletMarker(this.view, markerFrom)) {
+			this.view.focus();
+		}
+	}
+
+	private handlePointerCancel(event: PointerEvent): void {
+		if (this.pressPointerId === event.pointerId) {
+			this.clearPress();
+		}
 	}
 
 	private handlePointerDown(event: PointerEvent): void {
@@ -642,6 +769,13 @@ class MarkerPointerPlugin implements PluginValue {
 		const tap = resolveLineTapZone(this.view, event.clientX, event.clientY);
 		if (tap === null || tap.zone === 'content') {
 			return;
+		}
+		if (tap.zone === 'marker') {
+			const config = this.view.state.facet(radialMenuConfig);
+			if (config.enabled && event.pointerType !== 'mouse') {
+				this.beginMarkerPress(event, tap.markerFrom, config);
+				return;
+			}
 		}
 		if (tap.zone === 'fold') {
 			const plan = planFoldToggle(this.view.state, tap.markerFrom);
@@ -1345,6 +1479,7 @@ export function createFocusExtension({
 	isMobile,
 	markerDetection,
 	autoFixStrayLines = false,
+	radialMenu,
 	onEditorReady,
 	onEditorUpdate,
 	onEditorDestroy,
@@ -1354,6 +1489,7 @@ export function createFocusExtension({
 	isMobile: boolean;
 	markerDetection?: MarkerDetection;
 	autoFixStrayLines?: boolean;
+	radialMenu?: RadialMenuConfig;
 	onEditorReady?: (view: EditorView) => void;
 	onEditorUpdate?: (update: ViewUpdate) => void;
 	onEditorDestroy?: (view: EditorView) => void;
@@ -1371,6 +1507,7 @@ export function createFocusExtension({
 			? [markerDetectionFacet.of(markerDetection)]
 			: []),
 		focusAutoFix.of(autoFixStrayLines),
+		...(radialMenu === undefined ? [] : [radialMenuConfig.of(radialMenu)]),
 		strayLineRepairPlugin,
 		focusPhoneMode.of(isPhone),
 		focusMobileMode.of(isMobile),

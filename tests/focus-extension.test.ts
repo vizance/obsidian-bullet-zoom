@@ -1321,6 +1321,129 @@ describe('stray line handling (1.4.0)', () => {
 	});
 });
 
+describe('long press menu gesture (1.12.0)', () => {
+	function mountMarkerView(
+		onLongPress: (
+			view: EditorView,
+			markerFrom: number,
+			clientX: number,
+			clientY: number,
+			pointerId: number,
+		) => void,
+	): {
+		parent: HTMLDivElement;
+		view: EditorView;
+	} {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: EditorState.create({
+				doc: '- Parent\n  - Child',
+				extensions: [
+					markdown(),
+					focusFilePath.of('Ideas.md'),
+					focusNoteTitle.of('Ideas'),
+					focusLivePreview.of(true),
+					createFocusExtension({
+						isPhone: true,
+						isMobile: true,
+						radialMenu: {
+							enabled: true,
+							pressDuration: 450,
+							onLongPress,
+						},
+					}),
+				],
+			}),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) {
+				return { left: 40, right: 46, top: 10, bottom: 30 };
+			}
+			if (position === 1) {
+				return { left: 46, right: 52, top: 10, bottom: 30 };
+			}
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+		return { parent, view };
+	}
+
+	function marker(
+		type: string,
+		x: number,
+		y: number,
+		pointerType = 'touch',
+	): Event {
+		const event = new MouseEvent(type, {
+			bubbles: true,
+			cancelable: true,
+			clientX: x,
+			clientY: y,
+		});
+		Object.defineProperties(event, {
+			pointerId: { value: 3 },
+			pointerType: { value: pointerType },
+			isPrimary: { value: true },
+		});
+		return event;
+	}
+
+	it('zooms when the press is released before the timer', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const { parent, view } = mountMarkerView(onLongPress);
+		view.contentDOM.dispatchEvent(marker('pointerdown', 46, 20));
+		await vi.advanceTimersByTimeAsync(120);
+		view.contentDOM.dispatchEvent(marker('pointerup', 46, 20));
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		expect(onLongPress).not.toHaveBeenCalled();
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('opens the menu when the press is held', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const { parent, view } = mountMarkerView(onLongPress);
+		view.contentDOM.dispatchEvent(marker('pointerdown', 46, 20));
+		await vi.advanceTimersByTimeAsync(500);
+		expect(onLongPress).toHaveBeenCalledTimes(1);
+		expect(onLongPress.mock.calls[0]?.[1]).toBe(0);
+		expect(getFocusSession(view.state)).toBeNull();
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('abandons the gesture when the pointer moves away', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const { parent, view } = mountMarkerView(onLongPress);
+		view.contentDOM.dispatchEvent(marker('pointerdown', 46, 20));
+		view.contentDOM.dispatchEvent(marker('pointermove', 46, 60));
+		await vi.advanceTimersByTimeAsync(500);
+		view.contentDOM.dispatchEvent(marker('pointerup', 46, 60));
+		expect(onLongPress).not.toHaveBeenCalled();
+		expect(getFocusSession(view.state)).toBeNull();
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('keeps zooming immediately for mouse presses', () => {
+		const onLongPress = vi.fn();
+		const { parent, view } = mountMarkerView(onLongPress);
+		view.contentDOM.dispatchEvent(marker('pointerdown', 46, 20, 'mouse'));
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		expect(onLongPress).not.toHaveBeenCalled();
+		view.destroy();
+		parent.remove();
+	});
+});
+
 describe('fold gutter (1.11.0)', () => {
 	function mountFoldView(documentText: string): {
 		parent: HTMLDivElement;

@@ -35,6 +35,20 @@ describe('settings normalization', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 	});
 
@@ -53,6 +67,20 @@ describe('settings normalization', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -74,6 +102,20 @@ describe('scale variable application', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -114,6 +156,20 @@ describe('plugin settings lifecycle', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -130,6 +186,20 @@ describe('plugin settings lifecycle', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -167,6 +237,20 @@ describe('slider reset buttons', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -204,6 +288,20 @@ describe('marker detection toggles', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			bulletCopyScope: 'text',
+			bulletPrefixText: '> [!note] ',
+			radialMenuEnabled: true,
+			radialPressDuration: 450,
+			radialSlots: [
+				'bullet-zoom:copy-bullet',
+				'bullet-zoom:delete-bullet',
+				'bullet-zoom:insert-bullet-prefix',
+				'bullet-zoom:bullet-zoom-focus-current',
+				'bullet-zoom:extract-bullet-to-note',
+				'',
+				'',
+				'',
+			],
 		});
 	});
 });

@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.11.0');
+		expect(manifest.version).toBe('1.12.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.11.0');
-		expect(packageLock.version).toBe('1.11.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.11.0');
+		expect(packageManifest.version).toBe('1.12.0');
+		expect(packageLock.version).toBe('1.12.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.12.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -258,7 +258,15 @@ describe('mobile-compatible plugin bundle contract', () => {
 		expect(styles).toContain('.bullet-zoom-breadcrumb.is-current');
 		expect(styles).toContain('var(--interactive-accent)');
 		expect(styles).toContain('border-bottom');
-		expect(styles).not.toContain('var(--text-on-accent)');
+		// The accent text colour belongs on accent-filled surfaces only, so it
+		// must never appear on a breadcrumb rule.
+		const breadcrumbBlocks = styles
+			.split('}')
+			.filter((block) => block.includes('.bullet-zoom-breadcrumb'));
+		expect(breadcrumbBlocks.length).toBeGreaterThan(0);
+		for (const block of breadcrumbBlocks) {
+			expect(block).not.toContain('var(--text-on-accent)');
+		}
 	});
 
 	it.each(['theme-light', 'theme-dark'])(
