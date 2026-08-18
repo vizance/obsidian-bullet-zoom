@@ -3,8 +3,15 @@ export const PRESS_DURATION_MIN = 250;
 export const PRESS_DURATION_MAX = 1000;
 export const PRESS_DURATION_DEFAULT = 450;
 export const PRESS_CANCEL_PX = 12;
-export const RADIAL_DEAD_ZONE_PX = 28;
-export const RADIAL_RADIUS_PX = 96;
+export const RADIAL_DEAD_ZONE_PX = 32;
+export const RADIAL_RADIUS_PX = 104;
+export const RADIAL_HIT_RADIUS_PX = 60;
+export const RADIAL_EDGE_PADDING_PX = 32;
+
+export interface RadialSlot {
+	readonly commandId: string;
+	readonly enabled: boolean;
+}
 
 export interface RadialSegment {
 	readonly slot: number;
@@ -12,55 +19,104 @@ export interface RadialSegment {
 	readonly label: string;
 }
 
+export interface FanItem {
+	readonly x: number;
+	readonly y: number;
+}
+
+export interface FanLayout {
+	readonly side: 'left' | 'right';
+	readonly items: readonly FanItem[];
+}
+
 export function computeMenuSegments(
-	slots: readonly string[],
+	slots: readonly RadialSlot[],
 	resolveLabel: (commandId: string) => string = (id) => id,
 ): readonly RadialSegment[] {
 	const segments: RadialSegment[] = [];
-	for (const [slot, commandId] of slots.entries()) {
-		const trimmed = commandId.trim();
-		if (trimmed.length === 0) {
+	for (const [slot, entry] of slots.entries()) {
+		const commandId = entry.commandId.trim();
+		if (!entry.enabled || commandId.length === 0) {
 			continue;
 		}
 		segments.push(
-			Object.freeze({ slot, commandId: trimmed, label: resolveLabel(trimmed) }),
+			Object.freeze({ slot, commandId, label: resolveLabel(commandId) }),
 		);
 	}
 	return Object.freeze(segments);
 }
 
-export function resolveSegmentAtPoint(input: {
-	readonly dx: number;
-	readonly dy: number;
-	readonly segmentCount: number;
-	readonly deadZone?: number;
-}): number | null {
-	if (input.segmentCount <= 0) {
-		return null;
+export function computeFanLayout(input: {
+	readonly x: number;
+	readonly y: number;
+	readonly count: number;
+	readonly viewportWidth: number;
+	readonly viewportHeight: number;
+	readonly radius?: number;
+}): FanLayout {
+	const radius = input.radius ?? RADIAL_RADIUS_PX;
+	const side: 'left' | 'right' =
+		input.x <= input.viewportWidth / 2 ? 'right' : 'left';
+	const direction = side === 'right' ? 1 : -1;
+	if (input.count <= 0) {
+		return Object.freeze({ side, items: Object.freeze([]) });
 	}
-	const deadZone = input.deadZone ?? RADIAL_DEAD_ZONE_PX;
-	const distance = Math.hypot(input.dx, input.dy);
-	if (distance < deadZone) {
-		return null;
+
+	// The fan opens as a half circle, narrowed when the press sits close to the
+	// top or bottom so no item leaves the viewport.
+	const roomAbove = Math.max(input.y - RADIAL_EDGE_PADDING_PX, 0);
+	const roomBelow = Math.max(
+		input.viewportHeight - input.y - RADIAL_EDGE_PADDING_PX,
+		0,
+	);
+	const upSpan = Math.asin(Math.min(roomAbove / radius, 1));
+	const downSpan = Math.asin(Math.min(roomBelow / radius, 1));
+	const items: FanItem[] = [];
+	for (let index = 0; index < input.count; index += 1) {
+		const ratio = input.count === 1 ? 0.5 : index / (input.count - 1);
+		const angle = -upSpan + (upSpan + downSpan) * ratio;
+		const rawX = input.x + direction * Math.cos(angle) * radius;
+		const rawY = input.y + Math.sin(angle) * radius;
+		items.push(
+			Object.freeze({
+				x: Math.min(
+					Math.max(rawX, RADIAL_EDGE_PADDING_PX),
+					Math.max(input.viewportWidth - RADIAL_EDGE_PADDING_PX, 0),
+				),
+				y: Math.min(
+					Math.max(rawY, RADIAL_EDGE_PADDING_PX),
+					Math.max(input.viewportHeight - RADIAL_EDGE_PADDING_PX, 0),
+				),
+			}),
+		);
 	}
-	// Angle measured clockwise from straight up, so segment 0 sits at the top.
-	const angle = Math.atan2(input.dx, -input.dy);
-	const normalized = (angle + Math.PI * 2) % (Math.PI * 2);
-	const step = (Math.PI * 2) / input.segmentCount;
-	return Math.round(normalized / step) % input.segmentCount;
+	return Object.freeze({ side, items: Object.freeze(items) });
 }
 
-export function segmentOffset(
-	index: number,
-	segmentCount: number,
-	radius: number = RADIAL_RADIUS_PX,
-): Readonly<{ x: number; y: number }> {
-	const step = (Math.PI * 2) / Math.max(segmentCount, 1);
-	const angle = step * index;
-	return Object.freeze({
-		x: Math.sin(angle) * radius,
-		y: -Math.cos(angle) * radius,
-	});
+export function resolveNearestItem(input: {
+	readonly x: number;
+	readonly y: number;
+	readonly originX: number;
+	readonly originY: number;
+	readonly items: readonly FanItem[];
+	readonly hitRadius?: number;
+	readonly deadZone?: number;
+}): number | null {
+	const deadZone = input.deadZone ?? RADIAL_DEAD_ZONE_PX;
+	if (Math.hypot(input.x - input.originX, input.y - input.originY) < deadZone) {
+		return null;
+	}
+	const hitRadius = input.hitRadius ?? RADIAL_HIT_RADIUS_PX;
+	let bestIndex: number | null = null;
+	let bestDistance = Number.POSITIVE_INFINITY;
+	for (const [index, item] of input.items.entries()) {
+		const distance = Math.hypot(input.x - item.x, input.y - item.y);
+		if (distance <= hitRadius && distance < bestDistance) {
+			bestDistance = distance;
+			bestIndex = index;
+		}
+	}
+	return bestIndex;
 }
 
 export interface RadialMenuOptions {
@@ -69,38 +125,65 @@ export interface RadialMenuOptions {
 	readonly y: number;
 	readonly segments: readonly RadialSegment[];
 	readonly pointerId?: number;
+	readonly viewportWidth?: number;
+	readonly viewportHeight?: number;
+	readonly cancelHint?: string;
+	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
 	readonly onCancel?: () => void;
 }
 
 export function openRadialMenu(options: RadialMenuOptions): () => void {
 	const { document: doc, segments } = options;
+	const view = doc.defaultView;
+	const viewportWidth = options.viewportWidth ?? view?.innerWidth ?? 0;
+	const viewportHeight = options.viewportHeight ?? view?.innerHeight ?? 0;
+	const layout = computeFanLayout({
+		x: options.x,
+		y: options.y,
+		count: segments.length,
+		viewportWidth,
+		viewportHeight,
+	});
+
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
-	const menu = doc.createElement('div');
-	menu.className = 'bullet-zoom-radial-menu';
-	menu.style.left = `${options.x}px`;
-	menu.style.top = `${options.y}px`;
-	overlay.append(menu);
 
 	const centre = doc.createElement('button');
 	centre.className = 'bullet-zoom-radial-cancel';
 	centre.type = 'button';
 	centre.setAttribute('aria-label', 'Close menu');
 	centre.textContent = '×';
-	menu.append(centre);
+	centre.style.left = `${options.x}px`;
+	centre.style.top = `${options.y}px`;
+	overlay.append(centre);
+
+	const caption = doc.createElement('div');
+	caption.className = 'bullet-zoom-radial-caption';
+	caption.style.left = `${options.x}px`;
+	caption.style.top = `${options.y + 44}px`;
+	const cancelHint = options.cancelHint ?? 'Release to cancel';
+	caption.textContent = cancelHint;
+	overlay.append(caption);
 
 	const buttons: HTMLButtonElement[] = [];
 	for (const [index, segment] of segments.entries()) {
-		const offset = segmentOffset(index, segments.length);
+		const position = layout.items[index];
 		const button = doc.createElement('button');
 		button.className = 'bullet-zoom-radial-item';
 		button.type = 'button';
 		button.dataset.slot = String(segment.slot);
 		button.dataset.commandId = segment.commandId;
-		button.textContent = segment.label;
-		button.style.transform = `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px)`;
-		menu.append(button);
+		button.setAttribute('aria-label', segment.label);
+		button.title = segment.label;
+		button.style.left = `${position?.x ?? options.x}px`;
+		button.style.top = `${position?.y ?? options.y}px`;
+		if (options.renderIcon === undefined) {
+			button.textContent = segment.label.slice(0, 1);
+		} else {
+			options.renderIcon(button, segment);
+		}
+		overlay.append(button);
 		buttons.push(button);
 	}
 
@@ -128,11 +211,22 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		}
 	}
 
+	const nearestAt = (x: number, y: number): number | null =>
+		resolveNearestItem({
+			x,
+			y,
+			originX: options.x,
+			originY: options.y,
+			items: layout.items,
+		});
+
 	const highlight = (index: number | null): void => {
 		for (const [buttonIndex, button] of buttons.entries()) {
 			button.classList.toggle('is-active', buttonIndex === index);
 		}
 		centre.classList.toggle('is-active', index === null);
+		caption.textContent =
+			index === null ? cancelHint : (segments[index]?.label ?? cancelHint);
 	};
 
 	overlay.addEventListener('pointermove', (event) => {
@@ -142,13 +236,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		) {
 			return;
 		}
-		highlight(
-			resolveSegmentAtPoint({
-				dx: event.clientX - options.x,
-				dy: event.clientY - options.y,
-				segmentCount: segments.length,
-			}),
-		);
+		highlight(nearestAt(event.clientX, event.clientY));
 	});
 	overlay.addEventListener('pointerup', (event) => {
 		if (
@@ -157,11 +245,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		) {
 			return;
 		}
-		const index = resolveSegmentAtPoint({
-			dx: event.clientX - options.x,
-			dy: event.clientY - options.y,
-			segmentCount: segments.length,
-		});
+		const index = nearestAt(event.clientX, event.clientY);
 		const segment = index === null ? undefined : segments[index];
 		if (segment === undefined) {
 			cancel();

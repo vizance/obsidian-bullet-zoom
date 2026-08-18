@@ -40,14 +40,14 @@ describe('settings normalization', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 	});
@@ -72,14 +72,14 @@ describe('settings normalization', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
@@ -107,14 +107,14 @@ describe('scale variable application', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 		expect(
@@ -161,14 +161,14 @@ describe('plugin settings lifecycle', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 		expect(
@@ -191,14 +191,14 @@ describe('plugin settings lifecycle', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 
@@ -242,14 +242,14 @@ describe('slider reset buttons', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 		expect(
@@ -293,14 +293,14 @@ describe('marker detection toggles', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			radialSlots: [
-				'bullet-zoom:copy-bullet',
-				'bullet-zoom:delete-bullet',
-				'bullet-zoom:insert-bullet-prefix',
-				'bullet-zoom:bullet-zoom-focus-current',
-				'bullet-zoom:extract-bullet-to-note',
-				'',
-				'',
-				'',
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
+				{ commandId: '', enabled: false },
 			],
 		});
 	});
@@ -417,5 +417,30 @@ describe('auto fix stray lines setting', () => {
 		expect(
 			normalizeSettings({ autoFixStrayLines: 'on' }).autoFixStrayLines,
 		).toBe(true);
+	});
+});
+
+describe('radial slot settings', () => {
+	it('keeps defaults and pads short arrays', () => {
+		expect(normalizeSettings({}).radialSlots).toHaveLength(8);
+		const padded = normalizeSettings({ radialSlots: [] }).radialSlots;
+		expect(padded).toHaveLength(8);
+		expect(padded[0]).toEqual({ commandId: '', enabled: false });
+	});
+
+	it('reads slots saved as plain command ids as enabled', () => {
+		const migrated = normalizeSettings({
+			radialSlots: ['copy', '', 'delete'],
+		}).radialSlots;
+		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true });
+		expect(migrated[1]).toEqual({ commandId: '', enabled: false });
+		expect(migrated[2]).toEqual({ commandId: 'delete', enabled: true });
+	});
+
+	it('keeps a disabled slot with its command id', () => {
+		const kept = normalizeSettings({
+			radialSlots: [{ commandId: 'delete', enabled: false }],
+		}).radialSlots;
+		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false });
 	});
 });
