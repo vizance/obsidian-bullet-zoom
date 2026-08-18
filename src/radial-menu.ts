@@ -184,6 +184,12 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
 
+	const ring = doc.createElement('div');
+	ring.className = 'bullet-zoom-radial-ring';
+	ring.style.left = `${options.x}px`;
+	ring.style.top = `${centreY}px`;
+	overlay.append(ring);
+
 	const centre = doc.createElement('button');
 	centre.className = 'bullet-zoom-radial-cancel';
 	centre.type = 'button';

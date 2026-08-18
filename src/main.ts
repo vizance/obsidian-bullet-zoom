@@ -276,6 +276,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 	display(): void {
 		this.containerEl.empty();
+		this.containerEl.classList.add('bullet-zoom-settings');
 
 		this.row().setName('Zoom').setHeading();
 		this.row()
