@@ -36,6 +36,7 @@ import {
 import {
 	collectBulletCopyText,
 	findSupportedBullet,
+	planBulletClear,
 	planBulletExtract,
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
@@ -267,11 +268,17 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
+	private row(): Setting {
+		const setting = new Setting(this.containerEl);
+		setting.settingEl.classList.add('bullet-zoom-setting');
+		return setting;
+	}
+
 	display(): void {
 		this.containerEl.empty();
 
-		new Setting(this.containerEl).setName('Zoom').setHeading();
-		new Setting(this.containerEl)
+		this.row().setName('Zoom').setHeading();
+		this.row()
 			.setName('Zoom bullets')
 			.setDesc('Detect bullets that start with a dash so you can zoom into them.')
 			.addToggle((toggle) =>
@@ -281,7 +288,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						void this.plugin.updateSettings({ zoomBullets: value });
 					}),
 			);
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Zoom numbered items')
 			.setDesc('Detect numbered list items such as 1. or 2) as well.')
 			.addToggle((toggle) =>
@@ -292,8 +299,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl).setName('Outline').setHeading();
-		new Setting(this.containerEl)
+		this.row().setName('Outline').setHeading();
+		this.row()
 			.setName('Outline text size')
 			.setDesc('Scale the outline text. Lower values fit more lines on screen.')
 			.addSlider((slider) =>
@@ -316,8 +323,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl).setName('Focus page').setHeading();
-		new Setting(this.containerEl)
+		this.row().setName('Focus page').setHeading();
+		this.row()
 			.setName('Focus title size')
 			.setDesc('Scale the title shown after you zoom into a bullet.')
 			.addSlider((slider) =>
@@ -340,7 +347,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Indent guides')
 			.setDesc('Show vertical lines that connect nested bullets.')
 			.addToggle((toggle) =>
@@ -351,7 +358,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Fix broken bullets')
 			.setDesc(
 				'While zoomed, tidy dictated lines into bullets under the item above them.',
@@ -364,8 +371,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl).setName('Radial menu').setHeading();
-		new Setting(this.containerEl)
+		this.row().setName('Radial menu').setHeading();
+		this.row()
 			.setName('Enable radial menu')
 			.setDesc('Press and hold a bullet marker to open a ring of commands. Mobile only.')
 			.addToggle((toggle) =>
@@ -375,7 +382,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						void this.plugin.updateSettings({ radialMenuEnabled: value });
 					}),
 			);
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Press duration')
 			.setDesc('How long to hold before the menu opens, in milliseconds.')
 			.addSlider((slider) =>
@@ -387,6 +394,20 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						void this.plugin.updateSettings({ radialPressDuration: value });
 					}),
 			);
+		this.row()
+			.setName('Marker tap')
+			.setDesc('What tapping a bullet marker does on mobile.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('menu', 'Open the menu')
+					.addOption('zoom', 'Zoom into the bullet')
+					.setValue(this.plugin.settings.markerTapAction)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							markerTapAction: value === 'zoom' ? 'zoom' : 'menu',
+						});
+					}),
+			);
 		const allCommands = (
 			(this.app as unknown as { commands?: unknown }).commands as {
 				listCommands?: () => Array<{ id: string; name: string }>;
@@ -395,7 +416,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
 			const index = position;
 			const current = this.plugin.settings.radialSlots[index];
-			new Setting(this.containerEl)
+			this.row()
 				.setName(`Slot ${index + 1}`)
 				.addDropdown((dropdown) => {
 					dropdown.addOption('', 'Empty');
@@ -428,13 +449,13 @@ class BulletZoomSettingTab extends PluginSettingTab {
 				);
 		}
 
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Extract to new note')
 			.setHeading();
 		const vault = this.app.vault as unknown as {
 			getAllLoadedFiles?: () => readonly unknown[];
 		};
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Destination folder')
 			.setDesc('Where new notes are created. Leave empty to use the current note\'s folder.')
 			.addText((text) => {
@@ -453,7 +474,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					render(value);
 				});
 			});
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Template file')
 			.setDesc(
 				'Markdown file used as the starting point. Placeholders: {{content}}, {{title}}, {{date}}, {{time}}, {{source}}.',
@@ -474,7 +495,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					render(value);
 				});
 			});
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Replacement text')
 			.setDesc('What stays in the original note after extracting.')
 			.addDropdown((dropdown) =>
@@ -490,7 +511,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						});
 					}),
 			);
-		new Setting(this.containerEl)
+		this.row()
 			.setName('After extracting')
 			.setDesc('What to do once the new note is created.')
 			.addDropdown((dropdown) =>
@@ -509,7 +530,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						});
 					}),
 			);
-		new Setting(this.containerEl)
+		this.row()
 			.setName('Remove the top bullet')
 			.setDesc('Keep only the child bullets in the new note.')
 			.addToggle((toggle) =>
@@ -552,6 +573,7 @@ export default class BulletZoomPlugin extends Plugin {
 				autoFixStrayLines: this.settings.autoFixStrayLines,
 				radialMenu: {
 					enabled: Platform.isMobile && this.settings.radialMenuEnabled,
+					openOnTap: this.settings.markerTapAction === 'menu',
 					pressDuration: this.settings.radialPressDuration,
 					onLongPress: (view, markerFrom, clientX, clientY, pointerId) => {
 						this.openBulletMenu(view, markerFrom, clientX, clientY, pointerId);
@@ -590,7 +612,8 @@ export default class BulletZoomPlugin extends Plugin {
 			previous.autoFixStrayLines !== this.settings.autoFixStrayLines ||
 			previous.radialMenuEnabled !== this.settings.radialMenuEnabled ||
 			previous.radialPressDuration !== this.settings.radialPressDuration ||
-			previous.radialSlots !== this.settings.radialSlots
+			previous.radialSlots !== this.settings.radialSlots ||
+			previous.markerTapAction !== this.settings.markerTapAction
 		) {
 			this.rebuildEditorExtensions();
 		}
@@ -692,6 +715,20 @@ export default class BulletZoomPlugin extends Plugin {
 						.catch(() => {
 							showNotice('Could not copy the bullet.');
 						});
+				}),
+		});
+
+		this.addCommand({
+			id: 'clear-bullet',
+			name: 'Clear bullet text',
+			icon: 'eraser',
+			editorCheckCallback: (checking, editor) =>
+				this.runBulletCommand(editor, checking, (view, markerFrom) => {
+					const change = planBulletClear(view.state, markerFrom);
+					if (change === null) {
+						return;
+					}
+					view.dispatch({ changes: change });
 				}),
 		});
 

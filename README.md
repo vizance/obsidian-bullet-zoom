@@ -49,7 +49,7 @@ Voice-to-text and AI writing tools often insert paragraphs that break the list s
 
 ### Radial menu
 
-Press and hold a bullet marker on mobile and the commands fan out beside your thumb. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
+Tap a bullet marker on mobile and the commands fan out beside it — zoom is simply one of the commands in the ring. A tap is more precise than a hold, since the menu is anchored on the marker and never drifts with your thumb. Prefer the old split? Set **Marker tap** to zoom, and a hold still opens the menu. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
 
 While the menu is open the editor is frozen: the caret is hidden and cannot be dragged, so the finger that opened the menu only drives the menu. Closing it restores the caret and the keyboard exactly as they were. Opening the menu never focuses the editor, so the keyboard stays down, and the layout uses the visible viewport — if the keyboard is already up, the fan still lands above it. Items spread out with a short entrance animation, which is skipped when your system asks for reduced motion.
 
@@ -60,6 +60,7 @@ Each of the eight slots holds an Obsidian command id plus an on/off switch, so t
 Three bullet commands come with the plugin and also work from the command palette:
 
 - **Copy bullet** — copies the bullet's text, or the bullet with its children when the copy scope says so.
+- **Clear bullet text** — empties the bullet but keeps it and its children, ready for retyping.
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
 

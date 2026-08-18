@@ -522,6 +522,7 @@ function resolveExpandedMobileMarker(
 
 export interface RadialMenuConfig {
 	readonly enabled: boolean;
+	readonly openOnTap: boolean;
 	readonly pressDuration: number;
 	readonly onLongPress: (
 		view: EditorView,
@@ -534,6 +535,7 @@ export interface RadialMenuConfig {
 
 const DEFAULT_RADIAL_CONFIG: RadialMenuConfig = Object.freeze({
 	enabled: false,
+	openOnTap: true,
 	pressDuration: 450,
 	onLongPress: () => undefined,
 });
@@ -657,6 +659,7 @@ class MarkerPointerPlugin implements PluginValue {
 	private pressStartY = 0;
 	private pressTimer: number | null = null;
 	private pressWindow: Window | null = null;
+	private pressOpensMenu = false;
 
 	constructor(private readonly view: EditorView) {
 		this.pointerHandler = (event) => this.handlePointerDown(event);
@@ -691,6 +694,7 @@ class MarkerPointerPlugin implements PluginValue {
 		this.pressTimer = null;
 		this.pressWindow = null;
 		this.pressPointerId = null;
+		this.pressOpensMenu = false;
 	}
 
 	private beginMarkerPress(
@@ -706,6 +710,13 @@ class MarkerPointerPlugin implements PluginValue {
 		this.handledGesture = true;
 		event.preventDefault();
 		event.stopPropagation();
+		if (config.openOnTap) {
+			// A plain tap is enough, so no timer runs and the finger cannot
+			// drift the menu away from the marker while holding.
+			this.pressOpensMenu = true;
+			return;
+		}
+		this.pressOpensMenu = false;
 		const window = this.view.dom.ownerDocument.defaultView;
 		if (window === null || window === undefined) {
 			return;
@@ -718,13 +729,7 @@ class MarkerPointerPlugin implements PluginValue {
 			if (pointerId === null) {
 				return;
 			}
-			config.onLongPress(
-				this.view,
-				this.pressMarkerFrom,
-				this.pressStartX,
-				this.pressStartY,
-				pointerId,
-			);
+			this.requestMenu(this.pressMarkerFrom, pointerId);
 		}, config.pressDuration);
 	}
 
@@ -746,14 +751,39 @@ class MarkerPointerPlugin implements PluginValue {
 			return;
 		}
 		const markerFrom = this.pressMarkerFrom;
+		const opensMenu = this.pressOpensMenu;
 		const pending = this.pressTimer !== null;
+		const pointerId = event.pointerId;
 		this.clearPress();
+		this.pressOpensMenu = false;
+		if (opensMenu) {
+			this.requestMenu(markerFrom, pointerId);
+			return;
+		}
 		if (!pending) {
 			return;
 		}
 		if (activateBulletMarker(this.view, markerFrom)) {
 			this.view.focus();
 		}
+	}
+
+	private requestMenu(markerFrom: number, pointerId: number): void {
+		const config = this.view.state.facet(radialMenuConfig);
+		// Anchor on the marker itself so the menu opens in the same place
+		// every time, whatever the finger did during the gesture.
+		let anchorX = this.pressStartX;
+		let anchorY = this.pressStartY;
+		try {
+			const coords = this.view.coordsAtPos(markerFrom);
+			if (coords !== null) {
+				anchorX = (coords.left + coords.right) / 2;
+				anchorY = (coords.top + coords.bottom) / 2;
+			}
+		} catch {
+			// Fall back to the press coordinates recorded above.
+		}
+		config.onLongPress(this.view, markerFrom, anchorX, anchorY, pointerId);
 	}
 
 	private handlePointerCancel(event: PointerEvent): void {
