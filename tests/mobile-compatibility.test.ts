@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.14.0');
+		expect(manifest.version).toBe('1.14.1');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.14.0');
-		expect(packageLock.version).toBe('1.14.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.14.0');
+		expect(packageManifest.version).toBe('1.14.1');
+		expect(packageLock.version).toBe('1.14.1');
+		expect(packageLock.packages?.['']?.version).toBe('1.14.1');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -645,5 +645,25 @@ describe('menu motion contract (1.14.0)', () => {
 		expect(reducedBlock).toContain('.bullet-zoom-radial-item');
 		expect(reducedBlock).toContain('animation: none');
 		expect(reducedBlock).toContain('transition: none');
+	});
+});
+
+describe('menu shadow contract (1.14.1)', () => {
+	it('raises the menu buttons and deepens the shadow while highlighted', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const base = rules.find((rule) =>
+			rule.selectorText.includes('.bullet-zoom-radial-item,'),
+		);
+		const active = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-radial-item.is-active',
+		);
+		expect(base?.style.getPropertyValue('box-shadow')).not.toBe('');
+		expect(active?.style.getPropertyValue('box-shadow')).not.toBe('');
 	});
 });

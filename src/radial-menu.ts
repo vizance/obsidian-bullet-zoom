@@ -128,7 +128,6 @@ export interface RadialMenuOptions {
 	readonly viewportWidth?: number;
 	readonly viewportHeight?: number;
 	readonly viewportTop?: number;
-	readonly cancelHint?: string;
 	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
 	readonly onCancel?: () => void;
@@ -172,8 +171,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	caption.className = 'bullet-zoom-radial-caption';
 	caption.style.left = `${options.x}px`;
 	caption.style.top = `${captionBelow ? centreY + 44 : centreY - 60}px`;
-	const cancelHint = options.cancelHint ?? 'Release to cancel';
-	caption.textContent = cancelHint;
+	caption.classList.add('is-empty');
 	overlay.append(caption);
 
 	const buttons: HTMLButtonElement[] = [];
@@ -247,8 +245,9 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 			button.classList.toggle('is-active', buttonIndex === index);
 		}
 		centre.classList.toggle('is-active', index === null);
-		caption.textContent =
-			index === null ? cancelHint : (segments[index]?.label ?? cancelHint);
+		const label = index === null ? '' : (segments[index]?.label ?? '');
+		caption.textContent = label;
+		caption.classList.toggle('is-empty', label.length === 0);
 	};
 
 	overlay.addEventListener('pointermove', (event) => {
