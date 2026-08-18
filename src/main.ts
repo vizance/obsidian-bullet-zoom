@@ -5,6 +5,7 @@ import {
 	MarkdownView,
 	Modal,
 	Notice,
+	setIcon,
 	Platform,
 	Plugin,
 	PluginSettingTab,
@@ -389,8 +390,9 @@ class BulletZoomSettingTab extends PluginSettingTab {
 				listCommands?: () => Array<{ id: string; name: string }>;
 			}
 		).listCommands?.() ?? [];
-		for (let slot = 0; slot < RADIAL_SLOT_COUNT; slot += 1) {
-			const index = slot;
+		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
+			const index = position;
+			const current = this.plugin.settings.radialSlots[index];
 			new Setting(this.containerEl)
 				.setName(`Slot ${index + 1}`)
 				.addDropdown((dropdown) => {
@@ -399,13 +401,29 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						dropdown.addOption(command.id, command.name);
 					}
 					dropdown
-						.setValue(this.plugin.settings.radialSlots[index] ?? '')
+						.setValue(current?.commandId ?? '')
 						.onChange((value) => {
 							const slots = [...this.plugin.settings.radialSlots];
-							slots[index] = value;
+							slots[index] = {
+								commandId: value,
+								enabled: value.length > 0,
+							};
 							void this.plugin.updateSettings({ radialSlots: slots });
 						});
-				});
+				})
+				.addToggle((toggle) =>
+					toggle
+						.setValue(current?.enabled ?? false)
+						.onChange((value) => {
+							const slots = [...this.plugin.settings.radialSlots];
+							const existing = slots[index];
+							slots[index] = {
+								commandId: existing?.commandId ?? '',
+								enabled: value,
+							};
+							void this.plugin.updateSettings({ radialSlots: slots });
+						}),
+				);
 		}
 
 		new Setting(this.containerEl)
@@ -642,6 +660,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addCommand({
 			id: 'bullet-zoom-focus-current',
 			name: 'Zoom into current bullet',
+			icon: 'search',
 			editorCallback: (editor) => {
 				runFocusCommand(getEditorView(editor), showNotice);
 			},
@@ -650,6 +669,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addCommand({
 			id: 'copy-bullet',
 			name: 'Copy bullet',
+			icon: 'copy',
 			editorCheckCallback: (checking, editor) =>
 				this.runBulletCommand(editor, checking, (view, markerFrom) => {
 					const text = collectBulletCopyText(
@@ -676,6 +696,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addCommand({
 			id: 'delete-bullet',
 			name: 'Delete bullet',
+			icon: 'trash-2',
 			editorCheckCallback: (checking, editor) =>
 				this.runBulletCommand(editor, checking, (view, markerFrom) => {
 					const plan = planBulletExtract(view.state, markerFrom, false);
@@ -696,6 +717,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addCommand({
 			id: 'insert-bullet-prefix',
 			name: 'Insert prefix text',
+			icon: 'quote',
 			editorCheckCallback: (checking, editor) =>
 				this.runBulletCommand(editor, checking, (view, markerFrom) => {
 					const change = planBulletPrefixToggle(
@@ -713,6 +735,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addCommand({
 			id: 'extract-bullet-to-note',
 			name: 'Extract bullet to new note',
+			icon: 'file-output',
 			editorCheckCallback: (checking, editor) => {
 				const view = getEditorView(editor);
 				if (view === null) {
@@ -767,8 +790,13 @@ export default class BulletZoomPlugin extends Plugin {
 			executeCommandById?: (id: string) => unknown;
 		};
 		const names = new Map<string, string>();
+		const icons = new Map<string, string>();
 		for (const command of commands.listCommands?.() ?? []) {
 			names.set(command.id, command.name);
+			const icon = (command as { icon?: unknown }).icon;
+			if (typeof icon === 'string' && icon.length > 0) {
+				icons.set(command.id, icon);
+			}
 		}
 		const segments = computeMenuSegments(
 			this.settings.radialSlots,
@@ -785,6 +813,9 @@ export default class BulletZoomPlugin extends Plugin {
 			y: clientY,
 			segments,
 			pointerId,
+			renderIcon: (element, segment) => {
+				setIcon(element, icons.get(segment.commandId) ?? 'circle-dot');
+			},
 			onSelect: (segment) => {
 				commands.executeCommandById?.(segment.commandId);
 			},

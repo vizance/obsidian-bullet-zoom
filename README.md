@@ -49,9 +49,11 @@ Voice-to-text and AI writing tools often insert paragraphs that break the list s
 
 ### Radial menu
 
-Press and hold a bullet marker on mobile to open a ring of commands around your thumb. Keep holding and slide to a segment, then lift to run it; or lift first and tap a segment. The centre button, a tap outside, or Escape closes the menu without running anything.
+Press and hold a bullet marker on mobile and the commands fan out beside your thumb. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
 
-Each of the eight slots holds an Obsidian command id, so the menu can run the plugin's own bullet commands or anything from another plugin. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
+The fan opens toward whichever side of the screen has more room — to the right for a bullet near the left edge — and its spread narrows near the top or bottom, so no item ever lands off screen. Items show icons rather than names, and the name of the item under your thumb appears just below the centre.
+
+Each of the eight slots holds an Obsidian command id plus an on/off switch, so the menu can run the plugin's own bullet commands or anything from another plugin, and you can hide a slot without losing its command. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
 
 Three bullet commands come with the plugin and also work from the command palette:
 
@@ -121,7 +123,7 @@ Settings are grouped into five sections:
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
-- **Radial menu** — enable the long-press menu, its press duration, and the command in each slot.
+- **Radial menu** — enable the long-press menu, its press duration, and the command and on/off switch in each slot.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.

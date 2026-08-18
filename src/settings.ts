@@ -14,7 +14,7 @@ export interface BulletZoomSettings {
 	readonly bulletPrefixText: string;
 	readonly radialMenuEnabled: boolean;
 	readonly radialPressDuration: number;
-	readonly radialSlots: readonly string[];
+	readonly radialSlots: readonly RadialSlot[];
 }
 
 export type BulletCopyScope = 'text' | 'branch';
@@ -23,15 +23,24 @@ export const RADIAL_SLOT_COUNT = 8;
 export const RADIAL_PRESS_MIN = 250;
 export const RADIAL_PRESS_MAX = 1000;
 export const DEFAULT_BULLET_PREFIX = '> [!note] ';
-export const DEFAULT_RADIAL_SLOTS: readonly string[] = Object.freeze([
-	'bullet-zoom:copy-bullet',
-	'bullet-zoom:delete-bullet',
-	'bullet-zoom:insert-bullet-prefix',
-	'bullet-zoom:bullet-zoom-focus-current',
-	'bullet-zoom:extract-bullet-to-note',
-	'',
-	'',
-	'',
+export interface RadialSlot {
+	readonly commandId: string;
+	readonly enabled: boolean;
+}
+
+function slot(commandId: string, enabled = true): RadialSlot {
+	return Object.freeze({ commandId, enabled });
+}
+
+export const DEFAULT_RADIAL_SLOTS: readonly RadialSlot[] = Object.freeze([
+	slot('bullet-zoom:copy-bullet'),
+	slot('bullet-zoom:delete-bullet'),
+	slot('bullet-zoom:insert-bullet-prefix'),
+	slot('bullet-zoom:bullet-zoom-focus-current'),
+	slot('bullet-zoom:extract-bullet-to-note'),
+	slot('', false),
+	slot('', false),
+	slot('', false),
 ]);
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
@@ -105,14 +114,33 @@ function normalizePressDuration(value: unknown): number {
 	return rounded;
 }
 
-function normalizeSlots(value: unknown): readonly string[] {
+function normalizeSlots(value: unknown): readonly RadialSlot[] {
 	if (!Array.isArray(value)) {
 		return DEFAULT_RADIAL_SLOTS;
 	}
-	const slots: string[] = [];
+	const slots: RadialSlot[] = [];
 	for (let index = 0; index < RADIAL_SLOT_COUNT; index += 1) {
 		const entry: unknown = value[index];
-		slots.push(typeof entry === 'string' ? entry.trim() : '');
+		if (typeof entry === 'string') {
+			// Settings saved before slots gained an enabled flag.
+			const commandId = entry.trim();
+			slots.push(slot(commandId, commandId.length > 0));
+			continue;
+		}
+		if (typeof entry === 'object' && entry !== null) {
+			const record = entry as Record<string, unknown>;
+			const commandId =
+				typeof record['commandId'] === 'string'
+					? record['commandId'].trim()
+					: '';
+			const enabled =
+				typeof record['enabled'] === 'boolean'
+					? record['enabled']
+					: commandId.length > 0;
+			slots.push(slot(commandId, enabled));
+			continue;
+		}
+		slots.push(slot('', false));
 	}
 	return Object.freeze(slots);
 }
