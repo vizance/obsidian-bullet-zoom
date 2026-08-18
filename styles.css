@@ -798,13 +798,37 @@ button.bullet-zoom-breadcrumb {
 /* 1.16.0: keep plugin settings inside the panel width */
 .bullet-zoom-setting .setting-item-control {
 	min-width: 0;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
+	gap: var(--size-4-2, 8px);
+}
+
+.bullet-zoom-setting .setting-item-info {
+	min-width: 7em;
+	flex: 1 1 auto;
+	overflow-wrap: break-word;
 }
 
 .bullet-zoom-setting .setting-item-control select,
 .bullet-zoom-setting .setting-item-control input[type='text'] {
+	flex: 1 1 auto;
 	min-width: 0;
 	max-width: 100%;
+}
+
+.bullet-zoom-setting .setting-item-control .checkbox-container {
+	flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+	.bullet-zoom-setting {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.bullet-zoom-setting .setting-item-control {
+		justify-content: flex-start;
+		width: 100%;
+	}
 }
 
 .bullet-zoom-setting .bullet-zoom-folder-suggest {
