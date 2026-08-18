@@ -51,7 +51,7 @@ Voice-to-text and AI writing tools often insert paragraphs that break the list s
 
 Press and hold a bullet marker on mobile and the commands fan out beside your thumb. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
 
-Opening the menu never focuses the editor, so the keyboard stays down, and the layout uses the visible viewport — if the keyboard is already up, the fan still lands above it. Items spread out with a short entrance animation, which is skipped when your system asks for reduced motion.
+While the menu is open the editor is frozen: the caret is hidden and cannot be dragged, so the finger that opened the menu only drives the menu. Closing it restores the caret and the keyboard exactly as they were. Opening the menu never focuses the editor, so the keyboard stays down, and the layout uses the visible viewport — if the keyboard is already up, the fan still lands above it. Items spread out with a short entrance animation, which is skipped when your system asks for reduced motion.
 
 The fan opens toward whichever side of the screen has more room — to the right for a bullet near the left edge — and its spread narrows near the top or bottom, so no item ever lands off screen. Items show icons rather than names, and the name of the item under your thumb appears just below the centre.
 
