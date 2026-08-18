@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.17.0');
+		expect(manifest.version).toBe('1.17.1');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.17.0');
-		expect(packageLock.version).toBe('1.17.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.17.0');
+		expect(packageManifest.version).toBe('1.17.1');
+		expect(packageLock.version).toBe('1.17.1');
+		expect(packageLock.packages?.['']?.version).toBe('1.17.1');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -687,8 +687,8 @@ describe('menu caret suppression contract (1.15.0)', () => {
 	});
 });
 
-describe('settings width contract (1.16.0)', () => {
-	it('lets plugin setting controls shrink inside the panel', () => {
+describe('settings row layout contract (1.17.1)', () => {
+	it('keeps the name readable and the controls on one line', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
@@ -700,14 +700,26 @@ describe('settings width contract (1.16.0)', () => {
 			(rule) =>
 				rule.selectorText === '.bullet-zoom-setting .setting-item-control',
 		);
+		const info = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-setting .setting-item-info',
+		);
 		const inputs = rules.find(
 			(rule) =>
 				rule.selectorText.includes('.bullet-zoom-setting') &&
 				rule.selectorText.includes('select'),
 		);
 		expect(control?.style.getPropertyValue('min-width').trim()).toBe('0');
+		expect(control?.style.getPropertyValue('flex-wrap').trim()).toBe('nowrap');
+		expect(info?.style.getPropertyValue('min-width')).not.toBe('');
 		expect(inputs?.style.getPropertyValue('max-width').trim()).toBe('100%');
 		expect(inputs?.style.getPropertyValue('min-width').trim()).toBe('0');
+	});
+
+	it('stacks the row on narrow viewports', () => {
+		const stylesheet = readProjectFile('styles.css');
+		const query = stylesheet.slice(stylesheet.indexOf('@media (max-width: 480px)'));
+		expect(query).toContain('.bullet-zoom-setting');
+		expect(query).toContain('flex-direction: column');
 	});
 });
 
