@@ -15,6 +15,7 @@ export interface BulletZoomSettings {
 	readonly radialMenuEnabled: boolean;
 	readonly radialPressDuration: number;
 	readonly radialSlots: readonly RadialSlot[];
+	readonly markerTapAction: MarkerTapAction;
 }
 
 export type BulletCopyScope = 'text' | 'branch';
@@ -23,6 +24,8 @@ export const RADIAL_SLOT_COUNT = 8;
 export const RADIAL_PRESS_MIN = 250;
 export const RADIAL_PRESS_MAX = 1000;
 export const DEFAULT_BULLET_PREFIX = '> [!note] ';
+export type MarkerTapAction = 'menu' | 'zoom';
+
 export interface RadialSlot {
 	readonly commandId: string;
 	readonly enabled: boolean;
@@ -38,7 +41,7 @@ export const DEFAULT_RADIAL_SLOTS: readonly RadialSlot[] = Object.freeze([
 	slot('bullet-zoom:insert-bullet-prefix'),
 	slot('bullet-zoom:bullet-zoom-focus-current'),
 	slot('bullet-zoom:extract-bullet-to-note'),
-	slot('', false),
+	slot('bullet-zoom:clear-bullet'),
 	slot('', false),
 	slot('', false),
 ]);
@@ -72,6 +75,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	radialMenuEnabled: true,
 	radialPressDuration: 450,
 	radialSlots: DEFAULT_RADIAL_SLOTS,
+	markerTapAction: 'menu',
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -98,6 +102,10 @@ function normalizeBoolean(value: unknown, fallback: boolean): boolean {
 
 function normalizeCopyScope(value: unknown): BulletCopyScope {
 	return value === 'branch' ? 'branch' : 'text';
+}
+
+function normalizeMarkerTapAction(value: unknown): MarkerTapAction {
+	return value === 'zoom' ? 'zoom' : 'menu';
 }
 
 function normalizePressDuration(value: unknown): number {
@@ -213,6 +221,7 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		),
 		radialPressDuration: normalizePressDuration(source['radialPressDuration']),
 		radialSlots: normalizeSlots(source['radialSlots']),
+		markerTapAction: normalizeMarkerTapAction(source['markerTapAction']),
 	});
 }
 

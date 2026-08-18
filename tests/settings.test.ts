@@ -39,13 +39,14 @@ describe('settings normalization', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -71,13 +72,14 @@ describe('settings normalization', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -106,13 +108,14 @@ describe('scale variable application', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -160,13 +163,14 @@ describe('plugin settings lifecycle', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -190,13 +194,14 @@ describe('plugin settings lifecycle', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -241,13 +246,14 @@ describe('slider reset buttons', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -292,13 +298,14 @@ describe('marker detection toggles', () => {
 			bulletPrefixText: '> [!note] ',
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
+			markerTapAction: 'menu',
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
 				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
 				{ commandId: '', enabled: false },
 				{ commandId: '', enabled: false },
 			],
@@ -430,6 +437,7 @@ describe('radial slot settings', () => {
 
 	it('reads slots saved as plain command ids as enabled', () => {
 		const migrated = normalizeSettings({
+			markerTapAction: 'menu',
 			radialSlots: ['copy', '', 'delete'],
 		}).radialSlots;
 		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true });
@@ -439,8 +447,21 @@ describe('radial slot settings', () => {
 
 	it('keeps a disabled slot with its command id', () => {
 		const kept = normalizeSettings({
+			markerTapAction: 'menu',
 			radialSlots: [{ commandId: 'delete', enabled: false }],
 		}).radialSlots;
 		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false });
+	});
+});
+
+describe('marker tap action setting', () => {
+	it('defaults to opening the menu and normalizes unknown values', () => {
+		expect(normalizeSettings({}).markerTapAction).toBe('menu');
+		expect(
+			normalizeSettings({ markerTapAction: 'zoom' }).markerTapAction,
+		).toBe('zoom');
+		expect(
+			normalizeSettings({ markerTapAction: 'whatever' }).markerTapAction,
+		).toBe('menu');
 	});
 });

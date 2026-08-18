@@ -1330,6 +1330,7 @@ describe('long press menu gesture (1.12.0)', () => {
 			clientY: number,
 			pointerId: number,
 		) => void,
+		openOnTap = false,
 	): {
 		parent: HTMLDivElement;
 		view: EditorView;
@@ -1350,6 +1351,7 @@ describe('long press menu gesture (1.12.0)', () => {
 						isMobile: true,
 						radialMenu: {
 							enabled: true,
+							openOnTap,
 							pressDuration: 450,
 							onLongPress,
 						},
@@ -2808,6 +2810,74 @@ describe('per-editor breadcrumb panel', () => {
 		}).not.toThrow();
 		expect(parent.querySelector('.bullet-zoom-breadcrumbs')).not.toBeNull();
 
+		view.destroy();
+		parent.remove();
+	});
+});
+
+describe('marker tap opens the menu (1.16.0)', () => {
+	it('opens the menu on a quick tap when configured', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: EditorState.create({
+				doc: '- Parent\n  - Child',
+				extensions: [
+					markdown(),
+					focusFilePath.of('Ideas.md'),
+					focusNoteTitle.of('Ideas'),
+					focusLivePreview.of(true),
+					createFocusExtension({
+						isPhone: true,
+						isMobile: true,
+						radialMenu: {
+							enabled: true,
+							openOnTap: true,
+							pressDuration: 450,
+							onLongPress,
+						},
+					}),
+				],
+			}),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) {
+				return { left: 40, right: 46, top: 10, bottom: 30 };
+			}
+			if (position === 1) {
+				return { left: 46, right: 52, top: 10, bottom: 30 };
+			}
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+
+		const press = (type: string, x: number, y: number): Event => {
+			const event = new MouseEvent(type, {
+				bubbles: true,
+				cancelable: true,
+				clientX: x,
+				clientY: y,
+			});
+			Object.defineProperties(event, {
+				pointerId: { value: 5 },
+				pointerType: { value: 'touch' },
+				isPrimary: { value: true },
+			});
+			return event;
+		};
+
+		view.contentDOM.dispatchEvent(press('pointerdown', 46, 20));
+		await vi.advanceTimersByTimeAsync(80);
+		view.contentDOM.dispatchEvent(press('pointerup', 46, 20));
+		expect(onLongPress).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)).toBeNull();
+		// Anchored on the measured marker centre, not the release point.
+		expect(onLongPress.mock.calls[0]?.[2]).toBe(43);
+		expect(onLongPress.mock.calls[0]?.[3]).toBe(20);
+		vi.useRealTimers();
 		view.destroy();
 		parent.remove();
 	});

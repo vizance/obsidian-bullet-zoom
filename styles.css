@@ -779,3 +779,20 @@ button.bullet-zoom-breadcrumb {
 	-webkit-user-select: none;
 	pointer-events: none;
 }
+
+/* 1.16.0: keep plugin settings inside the panel width */
+.bullet-zoom-setting .setting-item-control {
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.bullet-zoom-setting .setting-item-control select,
+.bullet-zoom-setting .setting-item-control input[type='text'] {
+	min-width: 0;
+	max-width: 100%;
+}
+
+.bullet-zoom-setting .bullet-zoom-folder-suggest {
+	min-width: 0;
+	max-width: 100%;
+}

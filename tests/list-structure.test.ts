@@ -9,6 +9,7 @@ import {
 	buildOutlineHeadings,
 	markerDetectionFacet,
 	planBranchMove,
+	planBulletClear,
 	planBulletExtract,
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
@@ -1255,5 +1256,28 @@ describe('swipe bullet actions (1.7.0)', () => {
 			'- parent\n  - child',
 		);
 		expect(collectBulletCopyText(stateOf('plain'), 0, 'text')).toBeNull();
+	});
+});
+
+describe('planBulletClear (1.16.0)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	it('removes the text but keeps the bullet and its children', () => {
+		const state = stateOf('- Topic\n  - Child');
+		const change = planBulletClear(state, 0);
+		expect(change).not.toBeNull();
+		if (change === null) {
+			return;
+		}
+		expect(state.update({ changes: change }).state.doc.toString()).toBe(
+			'- \n  - Child',
+		);
+	});
+
+	it('returns null when the bullet has no text', () => {
+		expect(planBulletClear(stateOf('- '), 0)).toBeNull();
+		expect(planBulletClear(stateOf('plain'), 0)).toBeNull();
 	});
 });

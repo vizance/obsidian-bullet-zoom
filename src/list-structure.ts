@@ -1352,6 +1352,21 @@ export function planBulletPrefixToggle(
 	});
 }
 
+export function planBulletClear(
+	state: EditorState,
+	anchor: number,
+): Readonly<{ from: number; to: number; insert: string }> | null {
+	const bullet = findSupportedBullet(state, anchor);
+	if (bullet === null || bullet.contentFrom >= bullet.lineTo) {
+		return null;
+	}
+	return Object.freeze({
+		from: bullet.contentFrom,
+		to: bullet.lineTo,
+		insert: '',
+	});
+}
+
 export function collectBulletCopyText(
 	state: EditorState,
 	anchor: number,
