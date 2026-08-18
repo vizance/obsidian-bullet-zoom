@@ -745,7 +745,7 @@ button.bullet-zoom-breadcrumb {
 	max-width: 60vw;
 	padding: var(--size-2-1, 4px) var(--size-4-2, 8px);
 	overflow: hidden;
-	transform: translate(-50%, 0);
+	transform: translate(-50%, -100%);
 	background: var(--background-secondary);
 	border-radius: var(--radius-s, 4px);
 	box-shadow: var(--shadow-s);
@@ -754,6 +754,10 @@ button.bullet-zoom-breadcrumb {
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	pointer-events: none;
+}
+
+.bullet-zoom-radial-caption.is-below {
+	transform: translate(-50%, 0);
 }
 
 .bullet-zoom-radial-caption.is-empty {
