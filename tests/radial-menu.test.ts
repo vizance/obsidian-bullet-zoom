@@ -9,8 +9,8 @@ import {
 } from '../src/radial-menu';
 
 afterEach(() => {
-	for (const overlay of document.querySelectorAll(
-		'.bullet-zoom-radial-overlay',
+	for (const overlay of Array.from(
+		document.querySelectorAll('.bullet-zoom-radial-overlay'),
 	)) {
 		overlay.remove();
 	}
