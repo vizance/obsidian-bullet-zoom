@@ -54,7 +54,9 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 - **向右滑**：在 Bullet 標記後插入你設定的前綴文字，適合替 Bullet 套上 Obsidian callout 樣式。再滑一次就移除。
 - **向左滑**：把 Bullet 複製到剪貼簿，可選擇只複製該行文字，或連同所有子項目一起複製。
 
-兩個方向的動作、前綴文字與複製範圍都可在 **Swipe gestures** 區塊調整。垂直移動會取消手勢，捲動照常；從畫面邊緣起手的滑動則留給 Obsidian 原生手勢。
+兩個方向的動作、前綴文字與複製範圍都可在 **Swipe gestures** 區塊調整。垂直移動會取消手勢，捲動照常。
+
+Obsidian 手機版的抽屜原本在整個工作區橫滑都會打開，一定會蓋過 Bullet 手勢。**Limit drawer to screen edge**（預設開啟、僅行動裝置）會把抽屜手勢限制在左右各 **Drawer edge width** 像素的範圍內，而外掛手勢剛好只在這個範圍之外成立，兩者不重疊。守門只阻止其他處理器接收事件，捲動、選取與游標定位都維持原生行為。
 
 ### 摺疊與 Zoom 是兩件事
 

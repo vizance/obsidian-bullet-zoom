@@ -54,7 +54,9 @@ Swipe a bullet sideways to act on it, without selecting anything first. Gestures
 - **Swipe right** inserts your prefix text right after the bullet marker — handy for wrapping a bullet in an Obsidian callout. Swiping again removes it.
 - **Swipe left** copies the bullet to the clipboard, either its own text or the bullet with all its children.
 
-Both directions are configurable under **Swipe gestures**, along with the prefix text and the copy scope. Vertical movement cancels the gesture so scrolling still works, and swipes that start at the screen edge are left to Obsidian's own gestures.
+Both directions are configurable under **Swipe gestures**, along with the prefix text and the copy scope. Vertical movement cancels the gesture so scrolling still works.
+
+Obsidian's mobile drawer normally opens from a horizontal swipe anywhere in the workspace, which would always win over a bullet swipe. **Limit drawer to screen edge** (on by default, mobile only) keeps the drawer gesture within **Drawer edge width** pixels of either side — the same width that the plugin's own swipes stay out of, so the two never overlap. The guard only stops other handlers; scrolling, selection, and caret placement keep their native behaviour.
 
 ### Folding is separate from zooming
 

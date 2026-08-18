@@ -39,6 +39,8 @@ describe('settings normalization', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 	});
 
@@ -61,6 +63,8 @@ describe('settings normalization', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -86,6 +90,8 @@ describe('scale variable application', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -130,6 +136,8 @@ describe('plugin settings lifecycle', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -150,6 +158,8 @@ describe('plugin settings lifecycle', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -191,6 +201,8 @@ describe('slider reset buttons', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -232,6 +244,8 @@ describe('marker detection toggles', () => {
 			swipeLeftAction: 'copy',
 			swipePrefixText: '> [!note] ',
 			swipeCopyScope: 'text',
+			limitDrawerToEdges: true,
+			drawerEdgeZone: 24,
 		});
 	});
 });

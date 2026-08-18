@@ -50,7 +50,12 @@ import {
 	formatTemplateTime,
 	renderExtractTemplate,
 } from './extract-template';
-import { createSwipeExtension } from './swipe-gestures';
+import {
+	createSwipeExtension,
+	DRAWER_EDGE_ZONE_MAX,
+	DRAWER_EDGE_ZONE_MIN,
+	installDrawerEdgeGuard,
+} from './swipe-gestures';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -423,6 +428,31 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(this.containerEl)
+			.setName('Limit drawer to screen edge')
+			.setDesc(
+				'Keep Obsidian\'s drawer swipe near the edge so bullet swipes work in the editor. Mobile only.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.limitDrawerToEdges)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ limitDrawerToEdges: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('Drawer edge width')
+			.setDesc('How close to the edge a swipe must start to open the drawer.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(DRAWER_EDGE_ZONE_MIN, DRAWER_EDGE_ZONE_MAX, 4)
+					.setValue(this.plugin.settings.drawerEdgeZone)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ drawerEdgeZone: value });
+					}),
+			);
+
+		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
 		const vault = this.app.vault as unknown as {
@@ -521,6 +551,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
 	private readonly editorExtensions: Extension[] = [];
+	private removeDrawerGuard: (() => void) | null = null;
 	settings: BulletZoomSettings = DEFAULT_SETTINGS;
 
 	private buildEditorExtensions(
@@ -554,11 +585,23 @@ export default class BulletZoomPlugin extends Plugin {
 			createSwipeExtension({
 				rightAction: this.settings.swipeRightAction,
 				leftAction: this.settings.swipeLeftAction,
+				edgeZone: this.settings.drawerEdgeZone,
 				onAction: (view, position, action) => {
 					this.runSwipeAction(view, position, action);
 				},
 			}),
 		];
+	}
+
+	private syncDrawerGuard(): void {
+		this.removeDrawerGuard?.();
+		this.removeDrawerGuard = null;
+		if (!Platform.isMobile || !this.settings.limitDrawerToEdges) {
+			return;
+		}
+		this.removeDrawerGuard = installDrawerEdgeGuard(window, {
+			getEdgeZone: () => this.settings.drawerEdgeZone,
+		});
 	}
 
 	private rebuildEditorExtensions(): void {
@@ -585,9 +628,16 @@ export default class BulletZoomPlugin extends Plugin {
 			previous.swipeRightAction !== this.settings.swipeRightAction ||
 			previous.swipeLeftAction !== this.settings.swipeLeftAction ||
 			previous.swipePrefixText !== this.settings.swipePrefixText ||
-			previous.swipeCopyScope !== this.settings.swipeCopyScope
+			previous.swipeCopyScope !== this.settings.swipeCopyScope ||
+			previous.drawerEdgeZone !== this.settings.drawerEdgeZone
 		) {
 			this.rebuildEditorExtensions();
+		}
+		if (
+			previous.limitDrawerToEdges !== this.settings.limitDrawerToEdges ||
+			previous.drawerEdgeZone !== this.settings.drawerEdgeZone
+		) {
+			this.syncDrawerGuard();
 		}
 		await this.saveData(this.settings);
 	}
@@ -596,6 +646,7 @@ export default class BulletZoomPlugin extends Plugin {
 		this.settings = normalizeSettings(await this.loadData());
 		applyScaleVariables(document.body, this.settings);
 		this.addSettingTab(new BulletZoomSettingTab(this.app, this));
+		this.syncDrawerGuard();
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
@@ -864,6 +915,8 @@ export default class BulletZoomPlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.removeDrawerGuard?.();
+		this.removeDrawerGuard = null;
 		clearScaleVariables(document.body);
 		this.outlineCoordinator?.destroy();
 		this.outlineCoordinator = null;
