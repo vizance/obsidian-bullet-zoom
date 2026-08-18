@@ -515,6 +515,116 @@ function resolveExpandedMobileMarker(
 	}
 }
 
+export const MARKER_TAP_TOLERANCE_PX = 6;
+
+export type LineTapZone = 'fold' | 'marker' | 'content';
+
+export function classifyLineTapZone(input: {
+	readonly x: number;
+	readonly markerLeft: number;
+	readonly markerRight: number;
+	readonly contentLeft: number;
+	readonly tolerance?: number;
+}): LineTapZone {
+	const tolerance = input.tolerance ?? MARKER_TAP_TOLERANCE_PX;
+	const start = input.markerLeft - tolerance;
+	const end = Math.min(input.markerRight + tolerance, input.contentLeft);
+	if (input.x < start) {
+		return 'fold';
+	}
+	if (input.x <= end) {
+		return 'marker';
+	}
+	return 'content';
+}
+
+function resolveMarkerTap(
+	view: EditorView,
+	clientX: number,
+	clientY: number,
+): number | null {
+	if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+		return null;
+	}
+	try {
+		const position = view.posAtCoords({ x: clientX, y: clientY }, false);
+		if (position === null) {
+			return null;
+		}
+		const bullet = findSupportedBullet(view.state, position);
+		if (bullet === null) {
+			return null;
+		}
+		const markerStart = view.coordsAtPos(bullet.markerFrom);
+		const markerEnd = view.coordsAtPos(bullet.markerTo);
+		const contentStart = view.coordsAtPos(bullet.contentFrom);
+		if (
+			markerStart === null ||
+			markerEnd === null ||
+			contentStart === null ||
+			clientY < markerStart.top ||
+			clientY > markerStart.bottom
+		) {
+			return null;
+		}
+		const zone = classifyLineTapZone({
+			x: clientX,
+			markerLeft: markerStart.left,
+			markerRight: markerEnd.right,
+			contentLeft: contentStart.left,
+		});
+		return zone === 'marker' ? bullet.markerFrom : null;
+	} catch {
+		return null;
+	}
+}
+
+class MarkerPointerPlugin implements PluginValue {
+	private readonly pointerHandler: (event: PointerEvent) => void;
+	private readonly clickHandler: (event: MouseEvent) => void;
+	private handledGesture = false;
+
+	constructor(private readonly view: EditorView) {
+		this.pointerHandler = (event) => this.handlePointerDown(event);
+		this.clickHandler = (event) => this.handleClick(event);
+		view.dom.addEventListener('pointerdown', this.pointerHandler, true);
+		view.dom.addEventListener('click', this.clickHandler, true);
+	}
+
+	destroy(): void {
+		this.view.dom.removeEventListener('pointerdown', this.pointerHandler, true);
+		this.view.dom.removeEventListener('click', this.clickHandler, true);
+	}
+
+	private handlePointerDown(event: PointerEvent): void {
+		if (event.button !== 0 || event.isPrimary === false) {
+			return;
+		}
+		const position = resolveMarkerTap(this.view, event.clientX, event.clientY);
+		if (position === null) {
+			return;
+		}
+		if (!activateBulletMarker(this.view, position)) {
+			return;
+		}
+		this.handledGesture = true;
+		event.preventDefault();
+		event.stopPropagation();
+		this.view.focus();
+	}
+
+	private handleClick(event: MouseEvent): void {
+		if (!this.handledGesture) {
+			return;
+		}
+		this.handledGesture = false;
+		event.preventDefault();
+		event.stopPropagation();
+	}
+}
+
+const markerPointerPlugin = ViewPlugin.fromClass(MarkerPointerPlugin);
+
 const markerClickHandler = EditorView.domEventHandlers({
 	click: (event, view) => {
 		const elementConstructor = view.dom.ownerDocument.defaultView?.HTMLElement;
@@ -1217,6 +1327,7 @@ export function createFocusExtension({
 		mobileBreadcrumbDecorations,
 		focusPageDecorations,
 		bulletMarkerPlugin,
+		markerPointerPlugin,
 		markerClickHandler,
 		focusedPanePresentationPlugin,
 		sidebarBridge,
