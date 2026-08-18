@@ -35,6 +35,10 @@ describe('settings normalization', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 	});
 
@@ -53,6 +57,10 @@ describe('settings normalization', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
 			DEFAULT_SETTINGS,
@@ -74,6 +82,10 @@ describe('scale variable application', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -114,6 +126,10 @@ describe('plugin settings lifecycle', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 		expect(
 			document.body.style.getPropertyValue(TITLE_SCALE_PROPERTY),
@@ -130,6 +146,10 @@ describe('plugin settings lifecycle', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 
 		await plugin.updateSettings({ outlineScale: 999 });
@@ -167,6 +187,10 @@ describe('slider reset buttons', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 		expect(
 			document.body.style.getPropertyValue(OUTLINE_SCALE_PROPERTY),
@@ -204,6 +228,10 @@ describe('marker detection toggles', () => {
 			extractOpenBehavior: 'stay',
 			focusIndentGuides: true,
 			autoFixStrayLines: true,
+			swipeRightAction: 'prefix',
+			swipeLeftAction: 'copy',
+			swipePrefixText: '> [!note] ',
+			swipeCopyScope: 'text',
 		});
 	});
 });

@@ -33,8 +33,10 @@ import {
 	runParentCommand,
 } from './focus-extension';
 import {
+	collectBulletCopyText,
 	findSupportedBullet,
 	planBulletExtract,
+	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
@@ -48,6 +50,7 @@ import {
 	formatTemplateTime,
 	renderExtractTemplate,
 } from './extract-template';
+import { createSwipeExtension } from './swipe-gestures';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -165,6 +168,35 @@ function attachPathAutocomplete(
 		}
 	});
 	return render;
+}
+
+async function copyTextToClipboard(
+	view: EditorView,
+	text: string,
+): Promise<boolean> {
+	try {
+		const clipboard = view.dom.ownerDocument.defaultView?.navigator?.clipboard;
+		if (clipboard !== undefined) {
+			await clipboard.writeText(text);
+			return true;
+		}
+	} catch {
+		// Fall through to the legacy path below.
+	}
+	try {
+		const ownerDocument = view.dom.ownerDocument;
+		const holder = ownerDocument.createElement('textarea');
+		holder.value = text;
+		holder.style.position = 'fixed';
+		holder.style.opacity = '0';
+		ownerDocument.body.append(holder);
+		holder.select();
+		const copied = ownerDocument.execCommand('copy');
+		holder.remove();
+		return copied;
+	} catch {
+		return false;
+	}
 }
 
 class ExtractNameModal extends Modal {
@@ -326,6 +358,70 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(this.containerEl).setName('Swipe gestures').setHeading();
+		const swipeOptions = (
+			dropdown: {
+				addOption: (value: string, label: string) => unknown;
+			},
+		): void => {
+			dropdown.addOption('none', 'Nothing');
+			dropdown.addOption('prefix', 'Insert prefix text');
+			dropdown.addOption('copy', 'Copy bullet');
+		};
+		new Setting(this.containerEl)
+			.setName('Swipe right')
+			.setDesc('What a right swipe on a bullet does. Touch only.')
+			.addDropdown((dropdown) => {
+				swipeOptions(dropdown);
+				dropdown
+					.setValue(this.plugin.settings.swipeRightAction)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							swipeRightAction:
+								value === 'prefix' || value === 'copy' ? value : 'none',
+						});
+					});
+			});
+		new Setting(this.containerEl)
+			.setName('Swipe left')
+			.setDesc('What a left swipe on a bullet does. Touch only.')
+			.addDropdown((dropdown) => {
+				swipeOptions(dropdown);
+				dropdown
+					.setValue(this.plugin.settings.swipeLeftAction)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							swipeLeftAction:
+								value === 'prefix' || value === 'copy' ? value : 'none',
+						});
+					});
+			});
+		new Setting(this.containerEl)
+			.setName('Prefix text')
+			.setDesc('Inserted at the start of the bullet, for example a callout.')
+			.addText((text) =>
+				text
+					.setPlaceholder('> [!note] ')
+					.setValue(this.plugin.settings.swipePrefixText)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ swipePrefixText: value });
+					}),
+			);
+		new Setting(this.containerEl)
+			.setName('Copy scope')
+			.setDesc('How much of the bullet the copy gesture takes.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('text', 'Bullet text')
+					.addOption('branch', 'Bullet and children')
+					.setValue(this.plugin.settings.swipeCopyScope)
+					.onChange((value) => {
+						void this.plugin.updateSettings({
+							swipeCopyScope: value === 'branch' ? 'branch' : 'text',
+						});
+					}),
+			);
+
 		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
@@ -455,6 +551,13 @@ export default class BulletZoomPlugin extends Plugin {
 				onEditorDestroy: (view) =>
 					outlineCoordinator.notifyEditorDestroyed(view),
 			}),
+			createSwipeExtension({
+				rightAction: this.settings.swipeRightAction,
+				leftAction: this.settings.swipeLeftAction,
+				onAction: (view, position, action) => {
+					this.runSwipeAction(view, position, action);
+				},
+			}),
 		];
 	}
 
@@ -478,7 +581,11 @@ export default class BulletZoomPlugin extends Plugin {
 		if (
 			previous.zoomBullets !== this.settings.zoomBullets ||
 			previous.zoomNumbered !== this.settings.zoomNumbered ||
-			previous.autoFixStrayLines !== this.settings.autoFixStrayLines
+			previous.autoFixStrayLines !== this.settings.autoFixStrayLines ||
+			previous.swipeRightAction !== this.settings.swipeRightAction ||
+			previous.swipeLeftAction !== this.settings.swipeLeftAction ||
+			previous.swipePrefixText !== this.settings.swipePrefixText ||
+			previous.swipeCopyScope !== this.settings.swipeCopyScope
 		) {
 			this.rebuildEditorExtensions();
 		}
@@ -597,6 +704,40 @@ export default class BulletZoomPlugin extends Plugin {
 				runParentCommand(getEditorView(editor), showNotice);
 			},
 		});
+	}
+
+	private runSwipeAction(
+		view: EditorView,
+		position: number,
+		action: 'prefix' | 'copy',
+	): void {
+		if (action === 'prefix') {
+			const change = planBulletPrefixToggle(
+				view.state,
+				position,
+				this.settings.swipePrefixText,
+			);
+			if (change === null) {
+				return;
+			}
+			view.dispatch({ changes: change });
+			return;
+		}
+		const text = collectBulletCopyText(
+			view.state,
+			position,
+			this.settings.swipeCopyScope,
+		);
+		if (text === null || text.length === 0) {
+			return;
+		}
+		void copyTextToClipboard(view, text)
+			.then((copied) => {
+				showNotice(copied ? 'Bullet copied.' : 'Could not copy the bullet.');
+			})
+			.catch(() => {
+				showNotice('Could not copy the bullet.');
+			});
 	}
 
 	private async extractBulletToNote(

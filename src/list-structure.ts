@@ -1320,6 +1320,63 @@ export function planFocusStructureRepair(
 	});
 }
 
+export type BulletCopyScope = 'text' | 'branch';
+
+export function planBulletPrefixToggle(
+	state: EditorState,
+	anchor: number,
+	prefix: string,
+): Readonly<{ from: number; to: number; insert: string }> | null {
+	if (prefix.length === 0) {
+		return null;
+	}
+	const bullet = findSupportedBullet(state, anchor);
+	if (bullet === null) {
+		return null;
+	}
+	const existing = state.doc.sliceString(
+		bullet.contentFrom,
+		Math.min(bullet.contentFrom + prefix.length, bullet.lineTo),
+	);
+	if (existing === prefix) {
+		return Object.freeze({
+			from: bullet.contentFrom,
+			to: bullet.contentFrom + prefix.length,
+			insert: '',
+		});
+	}
+	return Object.freeze({
+		from: bullet.contentFrom,
+		to: bullet.contentFrom,
+		insert: prefix,
+	});
+}
+
+export function collectBulletCopyText(
+	state: EditorState,
+	anchor: number,
+	scope: BulletCopyScope,
+): string | null {
+	const bullet = findSupportedBullet(state, anchor);
+	if (bullet === null) {
+		return null;
+	}
+	if (scope === 'text') {
+		return state.doc.sliceString(bullet.contentFrom, bullet.lineTo).trim();
+	}
+	const branch = computeBranchRange(state, anchor);
+	if (branch === null) {
+		return null;
+	}
+	const lines = state.doc.sliceString(branch.from, branch.to).split('\n');
+	const common = minimalCommonIndent(lines);
+	return lines
+		.map((line) =>
+			line.startsWith(common) ? line.slice(common.length) : line.trimStart(),
+		)
+		.join('\n');
+}
+
 export function planBulletExtract(
 	state: EditorState,
 	anchor: number,

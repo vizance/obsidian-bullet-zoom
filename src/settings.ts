@@ -10,7 +10,16 @@ export interface BulletZoomSettings {
 	readonly extractOpenBehavior: ExtractOpenBehavior;
 	readonly focusIndentGuides: boolean;
 	readonly autoFixStrayLines: boolean;
+	readonly swipeRightAction: SwipeAction;
+	readonly swipeLeftAction: SwipeAction;
+	readonly swipePrefixText: string;
+	readonly swipeCopyScope: BulletCopyScope;
 }
+
+export type SwipeAction = 'none' | 'prefix' | 'copy';
+export type BulletCopyScope = 'text' | 'branch';
+
+export const DEFAULT_SWIPE_PREFIX = '> [!note] ';
 
 export type ExtractOpenBehavior = 'stay' | 'current' | 'tab' | 'split';
 
@@ -36,6 +45,10 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	extractOpenBehavior: 'stay',
 	focusIndentGuides: true,
 	autoFixStrayLines: true,
+	swipeRightAction: 'prefix',
+	swipeLeftAction: 'copy',
+	swipePrefixText: DEFAULT_SWIPE_PREFIX,
+	swipeCopyScope: 'text',
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -68,6 +81,19 @@ function normalizeOpenBehavior(value: unknown): ExtractOpenBehavior {
 	return value === 'current' || value === 'tab' || value === 'split'
 		? value
 		: 'stay';
+}
+
+function normalizeSwipeAction(
+	value: unknown,
+	fallback: SwipeAction,
+): SwipeAction {
+	return value === 'none' || value === 'prefix' || value === 'copy'
+		? value
+		: fallback;
+}
+
+function normalizeCopyScope(value: unknown): BulletCopyScope {
+	return value === 'branch' ? 'branch' : 'text';
 }
 
 function normalizeFolder(value: unknown): string {
@@ -117,6 +143,19 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 			source['autoFixStrayLines'],
 			DEFAULT_SETTINGS.autoFixStrayLines,
 		),
+		swipeRightAction: normalizeSwipeAction(
+			source['swipeRightAction'],
+			DEFAULT_SETTINGS.swipeRightAction,
+		),
+		swipeLeftAction: normalizeSwipeAction(
+			source['swipeLeftAction'],
+			DEFAULT_SETTINGS.swipeLeftAction,
+		),
+		swipePrefixText:
+			typeof source['swipePrefixText'] === 'string'
+				? source['swipePrefixText']
+				: DEFAULT_SWIPE_PREFIX,
+		swipeCopyScope: normalizeCopyScope(source['swipeCopyScope']),
 	});
 }
 

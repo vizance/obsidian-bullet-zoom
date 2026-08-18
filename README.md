@@ -47,6 +47,15 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 
 Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level and code fences are left alone. One undo reverts just the fix. Tidying runs only while you are zoomed in, so ordinary editing outside zoom is never touched. Turn it off with **Fix broken bullets** under **Focus page**.
 
+### Swipe gestures
+
+Swipe a bullet sideways to act on it, without selecting anything first. Gestures are touch only, so they never interfere with mouse selection.
+
+- **Swipe right** inserts your prefix text right after the bullet marker — handy for wrapping a bullet in an Obsidian callout. Swiping again removes it.
+- **Swipe left** copies the bullet to the clipboard, either its own text or the bullet with all its children.
+
+Both directions are configurable under **Swipe gestures**, along with the prefix text and the copy scope. Vertical movement cancels the gesture so scrolling still works, and swipes that start at the screen edge are left to Obsidian's own gestures.
+
 ### Folding is separate from zooming
 
 Obsidian's native fold arrow only collapses and expands a thread — it never zooms. The bullet marker zooms. On phones the fold arrow's tap area is kept narrow so tapping a bullet reliably zooms instead of folding.
@@ -102,11 +111,12 @@ Placeholders are case-insensitive and tolerate inner spaces. If the template has
 
 ## Settings
 
-Settings are grouped into four sections:
+Settings are grouped into five sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
+- **Swipe gestures** — what a left or right swipe does, the prefix text, and the copy scope.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.

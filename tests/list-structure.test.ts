@@ -10,6 +10,7 @@ import {
 	markerDetectionFacet,
 	planBranchMove,
 	planBulletExtract,
+	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	planFocusStructureRepair,
 	scanStrayRange,
@@ -17,6 +18,7 @@ import {
 	buildHyperMdBulletOutline,
 	buildBreadcrumbs,
 	BulletOutlineLimitError,
+	collectBulletCopyText,
 	collectHyperMdAncestorBullets,
 	computeBranchRange,
 	findSupportedBullet,
@@ -1216,5 +1218,42 @@ describe('focus structure repair (1.4.0)', () => {
 		expect(repair('- Topic\n\n口述的一段話，含標點與 English')).toBe(
 			'- Topic\n  - 口述的一段話，含標點與 English',
 		);
+	});
+});
+
+describe('swipe bullet actions (1.7.0)', () => {
+	function stateOf(document: string): EditorState {
+		return EditorState.create({ doc: document, extensions: [markdown()] });
+	}
+
+	function toggle(document: string, prefix: string): string | null {
+		const state = stateOf(document);
+		const change = planBulletPrefixToggle(state, 0, prefix);
+		if (change === null) {
+			return null;
+		}
+		return state.update({ changes: change }).state.doc.toString();
+	}
+
+	it('inserts the prefix after the bullet marker', () => {
+		expect(toggle('- idea', '> [!note] ')).toBe('- > [!note] idea');
+	});
+
+	it('removes the prefix when it is already there', () => {
+		expect(toggle('- > [!note] idea', '> [!note] ')).toBe('- idea');
+	});
+
+	it('returns null for an empty prefix or a non-bullet line', () => {
+		expect(toggle('- idea', '')).toBeNull();
+		expect(planBulletPrefixToggle(stateOf('plain text'), 0, '> ')).toBeNull();
+	});
+
+	it('collects the bullet text or the whole branch', () => {
+		const state = stateOf('- parent\n  - child');
+		expect(collectBulletCopyText(state, 0, 'text')).toBe('parent');
+		expect(collectBulletCopyText(state, 0, 'branch')).toBe(
+			'- parent\n  - child',
+		);
+		expect(collectBulletCopyText(stateOf('plain'), 0, 'text')).toBeNull();
 	});
 });
