@@ -49,7 +49,7 @@ Voice-to-text and AI writing tools often insert paragraphs that break the list s
 
 ### Folding is separate from zooming
 
-Obsidian's native fold arrow only collapses and expands a thread — it never zooms. The bullet marker zooms. On phones the fold arrow's tap area is kept narrow so tapping a bullet reliably zooms instead of folding.
+Obsidian's native fold arrow only collapses and expands a thread — it never zooms. The bullet marker zooms. Each list line is split by measured coordinates into three zones: the fold arrow before the marker, the marker itself, and the text after it. Because the split comes from measurement rather than from how Live Preview renders the line, tapping the marker zooms whether or not the editor already has focus, and the fold arrow keeps a full-size touch target.
 
 Zooming into a collapsed bullet expands just enough to reveal the target, leaving deeper collapsed sections as they were.
 

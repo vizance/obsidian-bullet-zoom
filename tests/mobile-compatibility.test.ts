@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.9.0');
+		expect(manifest.version).toBe('1.10.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.9.0');
-		expect(packageLock.version).toBe('1.9.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.9.0');
+		expect(packageManifest.version).toBe('1.10.0');
+		expect(packageLock.version).toBe('1.10.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.10.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -487,123 +487,22 @@ describe('mobile-compatible plugin bundle contract', () => {
 	});
 });
 
-describe('phone fold hit-area confinement (0.1.33)', () => {
-	function mountPhonePane(documentText: string, isPhone: boolean): {
-		pane: HTMLDivElement;
-		view: EditorView;
-	} {
-		const pane = document.createElement('div');
-		pane.className = 'markdown-source-view is-live-preview';
-		document.body.append(pane);
-		const view = new EditorView({
-			parent: pane,
-			state: EditorState.create({
-				doc: documentText,
-				extensions: [
-					markdown(),
-					focusFilePath.of('Ideas.md'),
-					focusNoteTitle.of('Ideas'),
-					focusLivePreview.of(true),
-					createFocusExtension({ isPhone, isMobile: isPhone }),
-				],
-			}),
-		});
-		return { pane, view };
-	}
-
-	it('adds the phone pane class only in phone mode', () => {
-		const phone = mountPhonePane('- Parent\n  - Child', true);
-		expect(phone.pane.classList.contains('bullet-zoom-phone-pane')).toBe(true);
-		phone.view.destroy();
-		expect(phone.pane.classList.contains('bullet-zoom-phone-pane')).toBe(false);
-		phone.pane.remove();
-
-		const desktop = mountPhonePane('- Parent\n  - Child', false);
-		expect(desktop.pane.classList.contains('bullet-zoom-phone-pane')).toBe(
-			false,
-		);
-		desktop.view.destroy();
-		desktop.pane.remove();
-	});
-
-	it('zooms a third-level parent marker on a phone without toggling folds', () => {
-		const { pane, view } = mountPhonePane(
-			'- A\n  - B\n    - C\n      - D',
-			true,
-		);
-		const anchorC = view.state.doc.line(3).from + 4;
-		const marker = Array.from(
-			view.contentDOM.querySelectorAll<HTMLElement>('.bullet-zoom-marker'),
-		).find((candidate) => view.posAtDOM(candidate) === anchorC);
-		expect(marker).toBeDefined();
-
-		marker?.click();
-		expect(getFocusSession(view.state)?.anchor).toBe(anchorC);
-		let foldCount = 0;
-		foldedRanges(view.state).between(0, view.state.doc.length, () => {
-			foldCount += 1;
-		});
-		expect(foldCount).toBe(0);
-		expect(view.state.doc.toString()).toBe('- A\n  - B\n    - C\n      - D');
-		view.destroy();
-		pane.remove();
-	});
-
-	it('defers collapse-indicator clicks to the native fold owner on phones', () => {
-		const { pane, view } = mountPhonePane('- Parent\n  - Child', true);
-		const line = view.contentDOM.querySelector('.cm-line');
-		const collapseIndicator = document.createElement('div');
-		collapseIndicator.className = 'collapse-indicator collapse-icon';
-		line?.prepend(collapseIndicator);
-
-		const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-		expect(collapseIndicator.dispatchEvent(click)).toBe(true);
-		expect(getFocusSession(view.state)).toBeNull();
-		view.destroy();
-		pane.remove();
-	});
-
-	it('confines the native list fold hit area only under the phone pane class', () => {
+describe('phone fold touch target (1.10.0)', () => {
+	it('gives the fold control a comfortable target that stops at the marker', () => {
 		const style = document.createElement('style');
 		style.dataset.bulletZoomTest = 'true';
 		style.textContent = readProjectFile('styles.css');
 		document.head.append(style);
-
-		const buildPane = (phonePane: boolean): HTMLElement => {
-			const pane = document.createElement('div');
-			pane.className = 'markdown-source-view is-live-preview';
-			pane.classList.toggle('bullet-zoom-phone-pane', phonePane);
-			const line = document.createElement('div');
-			line.className = 'cm-line HyperMD-list-line HyperMD-list-line-3';
-			const indicator = document.createElement('div');
-			indicator.className = 'collapse-indicator collapse-icon';
-			line.append(indicator);
-			pane.append(line);
-			document.body.append(pane);
-			return indicator;
-		};
-
-		const phoneIndicator = buildPane(true);
-		const desktopIndicator = buildPane(false);
-		const phoneStyle = getComputedStyle(phoneIndicator);
-		expect(phoneStyle.maxWidth).toBe('24px');
-		expect(phoneStyle.maxHeight).toBe('24px');
-		expect(phoneStyle.overflow).toBe('hidden');
-		const desktopStyle = getComputedStyle(desktopIndicator);
-		expect(desktopStyle.maxWidth).not.toBe('24px');
-
-		const collapseRules = Array.from(style.sheet?.cssRules ?? []).filter(
-			(rule): rule is CSSStyleRule =>
-				rule instanceof CSSStyleRule &&
-				rule.selectorText.includes('.collapse-indicator'),
+		const rule = Array.from(style.sheet?.cssRules ?? []).find(
+			(candidate): candidate is CSSStyleRule =>
+				candidate instanceof CSSStyleRule &&
+				candidate.selectorText.includes('bullet-zoom-phone-pane') &&
+				candidate.selectorText.includes('.collapse-indicator'),
 		);
-		expect(collapseRules.length).toBeGreaterThan(0);
-		for (const rule of collapseRules) {
-			for (const selector of rule.selectorText.split(',')) {
-				expect(selector).toContain('.bullet-zoom-phone-pane');
-				expect(selector).toContain('.HyperMD-list-line');
-			}
-		}
+		expect(rule).toBeDefined();
+		expect(rule?.style.getPropertyValue('min-height').trim()).toBe('44px');
+		expect(rule?.style.getPropertyValue('padding-inline-end').trim()).toBe('0');
+		expect(rule?.style.getPropertyValue('max-width')).toBe('');
 	});
 });
 

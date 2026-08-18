@@ -537,23 +537,17 @@ button.bullet-zoom-breadcrumb {
 /* 0.1.33: on phones, confine the native list fold hit area to the icon itself
    so Bullet marker and text taps reach Bullet Zoom instead of toggling folds.
    Scoped to the plugin-owned phone pane class; headings are not targeted. */
+/* 1.10.0: the marker tap is decided by measured coordinates, so the fold
+   control no longer has to be shrunk out of the way — give it a comfortable
+   touch target that never extends past the marker. */
 .markdown-source-view.bullet-zoom-phone-pane
 	.HyperMD-list-line
 	.collapse-indicator {
-	max-width: 24px;
-	max-height: 24px;
-	padding: 0;
-	margin: 0;
-	overflow: hidden;
-}
-
-.markdown-source-view.bullet-zoom-phone-pane
-	.HyperMD-list-line
-	.collapse-indicator::before,
-.markdown-source-view.bullet-zoom-phone-pane
-	.HyperMD-list-line
-	.collapse-indicator::after {
-	content: none;
+	display: inline-flex;
+	align-items: center;
+	min-height: 44px;
+	padding-inline-end: 0;
+	margin-inline-end: 0;
 }
 
 /* 0.1.36: rebase the focus page layout to the focused bullet */

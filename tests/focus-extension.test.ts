@@ -21,6 +21,7 @@ import {
 	createFocusExtension,
 	clearFocusEffect,
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
+	classifyLineTapZone,
 	enterFocusAt,
 	exitFocus,
 	focusParent,
@@ -1314,6 +1315,116 @@ describe('stray line handling (1.4.0)', () => {
 		await vi.advanceTimersByTimeAsync(700);
 		expect(view.state.doc.toString()).toBe('- Topic\n  - A\n\ndictated text');
 		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+});
+
+describe('marker tap zones (1.10.0)', () => {
+	it('classifies presses across the line', () => {
+		const bounds = {
+			markerLeft: 40,
+			markerRight: 52,
+			contentLeft: 60,
+			tolerance: 6,
+		};
+		expect(classifyLineTapZone({ ...bounds, x: 20 })).toBe('fold');
+		expect(classifyLineTapZone({ ...bounds, x: 46 })).toBe('marker');
+		expect(classifyLineTapZone({ ...bounds, x: 56 })).toBe('marker');
+		expect(classifyLineTapZone({ ...bounds, x: 90 })).toBe('content');
+	});
+
+	it('never lets the marker zone run past the content start', () => {
+		expect(
+			classifyLineTapZone({
+				x: 59,
+				markerLeft: 40,
+				markerRight: 58,
+				contentLeft: 58,
+				tolerance: 6,
+			}),
+		).toBe('content');
+	});
+
+	it('zooms on pointerdown even when the editor is unfocused', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent\n  - Child'),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) {
+				return { left: 40, right: 46, top: 10, bottom: 30 };
+			}
+			if (position === 1) {
+				return { left: 46, right: 52, top: 10, bottom: 30 };
+			}
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+
+		const press = new MouseEvent('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 46,
+			clientY: 20,
+		});
+		Object.defineProperties(press, {
+			isPrimary: { value: true },
+			pointerId: { value: 1 },
+		});
+		view.contentDOM.dispatchEvent(press);
+
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		expect(press.defaultPrevented).toBe(true);
+
+		const follow = new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 46,
+			clientY: 20,
+		});
+		view.contentDOM.dispatchEvent(follow);
+		expect(follow.defaultPrevented).toBe(true);
+		expect(getFocusSession(view.state)?.anchor).toBe(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('leaves fold-zone and content-zone presses untouched', () => {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState('- Parent\n  - Child'),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) {
+				return { left: 40, right: 46, top: 10, bottom: 30 };
+			}
+			if (position === 1) {
+				return { left: 46, right: 52, top: 10, bottom: 30 };
+			}
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+
+		for (const x of [20, 90]) {
+			const press = new MouseEvent('pointerdown', {
+				bubbles: true,
+				cancelable: true,
+				clientX: x,
+				clientY: 20,
+			});
+			Object.defineProperties(press, {
+				isPrimary: { value: true },
+				pointerId: { value: 1 },
+			});
+			view.contentDOM.dispatchEvent(press);
+			expect(press.defaultPrevented).toBe(false);
+		}
+		expect(getFocusSession(view.state)).toBeNull();
 		view.destroy();
 		parent.remove();
 	});
