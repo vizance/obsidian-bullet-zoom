@@ -1120,3 +1120,95 @@ While a focus session is active the plugin SHALL keep the focused area visible w
 - **GIVEN** the document `- Topic\n  - A` focused on `Topic` with the visible end at the document end
 - **WHEN** the repair plan is computed
 - **THEN** it returns null
+
+---
+### Requirement: Act on bullets with horizontal swipes
+
+The plugin SHALL recognise horizontal swipes on bullet lines from non-mouse pointers and run a configurable action for each direction. A swipe SHALL count only when the horizontal distance exceeds 60 CSS pixels and is more than twice the vertical distance; vertical movement beyond 24 CSS pixels SHALL cancel the gesture so scrolling still works, and gestures starting within 24 CSS pixels of the viewport's left or right edge SHALL be ignored so Obsidian's own edge gestures keep working. A recognised swipe SHALL suppress the click that follows so the caret does not move. Each direction SHALL be configurable as `none`, `prefix`, or `copy`, defaulting to prefix on swipe right and copy on swipe left, and no gesture handling SHALL be installed when both directions are `none`.
+
+#### Scenario: Classify a horizontal swipe
+
+- **WHEN** a gesture's horizontal and vertical distances are compared against the thresholds
+- **THEN** only a dominant horizontal movement past the distance threshold yields a direction
+
+##### Example: Classification table
+
+- **GIVEN** the thresholds above
+- **WHEN** the deltas are `(80, 10)`, `(-80, 10)`, `(30, 5)`, and `(80, 50)`
+- **THEN** the results are `right`, `left`, `null`, and `null`
+
+#### Scenario: Insert the configured prefix
+
+- **WHEN** the prefix action runs on a bullet that does not already start with the configured text
+- **THEN** the text is inserted immediately after the bullet marker
+
+##### Example: Adding a callout prefix
+
+- **GIVEN** the document `- idea` and the prefix `> [!note] `
+- **WHEN** the prefix plan is applied at that bullet
+- **THEN** the document becomes `- > [!note] idea`
+
+#### Scenario: Toggle the prefix off
+
+- **WHEN** the prefix action runs on a bullet whose text already begins with the configured prefix
+- **THEN** the prefix is removed instead of duplicated
+
+##### Example: Removing a callout prefix
+
+- **GIVEN** the document `- > [!note] idea` and the prefix `> [!note] `
+- **WHEN** the prefix plan is applied at that bullet
+- **THEN** the document becomes `- idea`
+
+#### Scenario: Copy the bullet
+
+- **WHEN** the copy action runs
+- **THEN** the plugin copies the bullet's text, or the bullet and its children when the copy scope includes children, and reports the result
+
+##### Example: Copy scopes
+
+- **GIVEN** the document `- parent\n  - child` focused at `parent`
+- **WHEN** the copy text is collected with scope `text` and then with scope `branch`
+- **THEN** the results are `parent` and `- parent\n  - child`
+
+---
+### Requirement: Confine the mobile drawer swipe to the screen edge
+
+The plugin SHALL provide a drawer edge guard, enabled by default on mobile and configurable together with an edge width setting between 8 and 80 CSS pixels defaulting to 24. While enabled the plugin SHALL listen for touch events at the window capture phase, recording on touch start whether the touch began inside a Markdown editor content area and where it began, and SHALL stop propagation of subsequent touch moves when the touch began inside that area and farther than the edge width from both the left and right viewport edges, so Obsidian's drawer handler never sees the gesture. The guard SHALL NOT call preventDefault, so native scrolling, text selection, and caret placement are unaffected, SHALL leave touches starting within the edge width untouched so the drawer still opens there, and SHALL remove its listeners when disabled or when the plugin unloads. The same edge width SHALL define where the plugin's own bullet swipes are ignored, so the two regions never overlap.
+
+#### Scenario: Swiping in the editor no longer opens the drawer
+
+- **WHEN** a touch starts inside the editor content away from both edges and moves horizontally
+- **THEN** the guard stops propagation of the move so the drawer stays closed
+
+##### Example: Centre swipe blocked
+
+- **GIVEN** a 400 pixel wide viewport, an edge width of 24, and a touch starting at x 200 inside the editor
+- **WHEN** the touch moves to x 300
+- **THEN** propagation of the move event is stopped and its default is not prevented
+
+#### Scenario: Edge swipes still open the drawer
+
+- **WHEN** a touch starts within the edge width of either side
+- **THEN** the guard leaves the gesture alone
+
+##### Example: Edge swipe allowed
+
+- **GIVEN** a 400 pixel wide viewport and an edge width of 24
+- **WHEN** a touch starts at x 10 and moves to x 120
+- **THEN** propagation is not stopped
+
+#### Scenario: Touches outside the editor are ignored
+
+- **WHEN** a touch starts outside any Markdown editor content area
+- **THEN** the guard never stops propagation
+
+##### Example: Sidebar swipe
+
+- **GIVEN** a touch starting on an element outside the editor content
+- **WHEN** it moves horizontally
+- **THEN** propagation is not stopped
+
+#### Scenario: Disabling removes the listeners
+
+- **WHEN** the guard is disabled or the plugin unloads
+- **THEN** its window listeners are removed and gestures behave exactly as Obsidian's defaults
