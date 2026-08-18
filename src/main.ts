@@ -33,10 +33,8 @@ import {
 	runParentCommand,
 } from './focus-extension';
 import {
-	collectBulletCopyText,
 	findSupportedBullet,
 	planBulletExtract,
-	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
@@ -50,12 +48,6 @@ import {
 	formatTemplateTime,
 	renderExtractTemplate,
 } from './extract-template';
-import {
-	createSwipeExtension,
-	DRAWER_EDGE_ZONE_MAX,
-	DRAWER_EDGE_ZONE_MIN,
-	installDrawerEdgeGuard,
-} from './swipe-gestures';
 import {
 	BULLET_OUTLINE_VIEW_TYPE,
 	BulletOutlineSidebarCoordinator,
@@ -173,35 +165,6 @@ function attachPathAutocomplete(
 		}
 	});
 	return render;
-}
-
-async function copyTextToClipboard(
-	view: EditorView,
-	text: string,
-): Promise<boolean> {
-	try {
-		const clipboard = view.dom.ownerDocument.defaultView?.navigator?.clipboard;
-		if (clipboard !== undefined) {
-			await clipboard.writeText(text);
-			return true;
-		}
-	} catch {
-		// Fall through to the legacy path below.
-	}
-	try {
-		const ownerDocument = view.dom.ownerDocument;
-		const holder = ownerDocument.createElement('textarea');
-		holder.value = text;
-		holder.style.position = 'fixed';
-		holder.style.opacity = '0';
-		ownerDocument.body.append(holder);
-		holder.select();
-		const copied = ownerDocument.execCommand('copy');
-		holder.remove();
-		return copied;
-	} catch {
-		return false;
-	}
 }
 
 class ExtractNameModal extends Modal {
@@ -363,95 +326,6 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(this.containerEl).setName('Swipe gestures').setHeading();
-		const swipeOptions = (
-			dropdown: {
-				addOption: (value: string, label: string) => unknown;
-			},
-		): void => {
-			dropdown.addOption('none', 'Nothing');
-			dropdown.addOption('prefix', 'Insert prefix text');
-			dropdown.addOption('copy', 'Copy bullet');
-		};
-		new Setting(this.containerEl)
-			.setName('Swipe right')
-			.setDesc('What a right swipe on a bullet does. Touch only.')
-			.addDropdown((dropdown) => {
-				swipeOptions(dropdown);
-				dropdown
-					.setValue(this.plugin.settings.swipeRightAction)
-					.onChange((value) => {
-						void this.plugin.updateSettings({
-							swipeRightAction:
-								value === 'prefix' || value === 'copy' ? value : 'none',
-						});
-					});
-			});
-		new Setting(this.containerEl)
-			.setName('Swipe left')
-			.setDesc('What a left swipe on a bullet does. Touch only.')
-			.addDropdown((dropdown) => {
-				swipeOptions(dropdown);
-				dropdown
-					.setValue(this.plugin.settings.swipeLeftAction)
-					.onChange((value) => {
-						void this.plugin.updateSettings({
-							swipeLeftAction:
-								value === 'prefix' || value === 'copy' ? value : 'none',
-						});
-					});
-			});
-		new Setting(this.containerEl)
-			.setName('Prefix text')
-			.setDesc('Inserted at the start of the bullet, for example a callout.')
-			.addText((text) =>
-				text
-					.setPlaceholder('> [!note] ')
-					.setValue(this.plugin.settings.swipePrefixText)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ swipePrefixText: value });
-					}),
-			);
-		new Setting(this.containerEl)
-			.setName('Copy scope')
-			.setDesc('How much of the bullet the copy gesture takes.')
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption('text', 'Bullet text')
-					.addOption('branch', 'Bullet and children')
-					.setValue(this.plugin.settings.swipeCopyScope)
-					.onChange((value) => {
-						void this.plugin.updateSettings({
-							swipeCopyScope: value === 'branch' ? 'branch' : 'text',
-						});
-					}),
-			);
-
-		new Setting(this.containerEl)
-			.setName('Limit drawer to screen edge')
-			.setDesc(
-				'Keep Obsidian\'s drawer swipe near the edge so bullet swipes work in the editor. Mobile only.',
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.limitDrawerToEdges)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ limitDrawerToEdges: value });
-					}),
-			);
-		new Setting(this.containerEl)
-			.setName('Drawer edge width')
-			.setDesc('How close to the edge a swipe must start to open the drawer.')
-			.addSlider((slider) =>
-				slider
-					.setLimits(DRAWER_EDGE_ZONE_MIN, DRAWER_EDGE_ZONE_MAX, 4)
-					.setValue(this.plugin.settings.drawerEdgeZone)
-					.setDynamicTooltip()
-					.onChange((value) => {
-						void this.plugin.updateSettings({ drawerEdgeZone: value });
-					}),
-			);
-
 		new Setting(this.containerEl)
 			.setName('Extract to new note')
 			.setHeading();
@@ -551,7 +425,6 @@ class BulletZoomSettingTab extends PluginSettingTab {
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
 	private readonly editorExtensions: Extension[] = [];
-	private removeDrawerGuard: (() => void) | null = null;
 	settings: BulletZoomSettings = DEFAULT_SETTINGS;
 
 	private buildEditorExtensions(
@@ -582,26 +455,7 @@ export default class BulletZoomPlugin extends Plugin {
 				onEditorDestroy: (view) =>
 					outlineCoordinator.notifyEditorDestroyed(view),
 			}),
-			createSwipeExtension({
-				rightAction: this.settings.swipeRightAction,
-				leftAction: this.settings.swipeLeftAction,
-				edgeZone: this.settings.drawerEdgeZone,
-				onAction: (view, position, action) => {
-					this.runSwipeAction(view, position, action);
-				},
-			}),
 		];
-	}
-
-	private syncDrawerGuard(): void {
-		this.removeDrawerGuard?.();
-		this.removeDrawerGuard = null;
-		if (!Platform.isMobile || !this.settings.limitDrawerToEdges) {
-			return;
-		}
-		this.removeDrawerGuard = installDrawerEdgeGuard(window, {
-			getEdgeZone: () => this.settings.drawerEdgeZone,
-		});
 	}
 
 	private rebuildEditorExtensions(): void {
@@ -624,20 +478,9 @@ export default class BulletZoomPlugin extends Plugin {
 		if (
 			previous.zoomBullets !== this.settings.zoomBullets ||
 			previous.zoomNumbered !== this.settings.zoomNumbered ||
-			previous.autoFixStrayLines !== this.settings.autoFixStrayLines ||
-			previous.swipeRightAction !== this.settings.swipeRightAction ||
-			previous.swipeLeftAction !== this.settings.swipeLeftAction ||
-			previous.swipePrefixText !== this.settings.swipePrefixText ||
-			previous.swipeCopyScope !== this.settings.swipeCopyScope ||
-			previous.drawerEdgeZone !== this.settings.drawerEdgeZone
+			previous.autoFixStrayLines !== this.settings.autoFixStrayLines
 		) {
 			this.rebuildEditorExtensions();
-		}
-		if (
-			previous.limitDrawerToEdges !== this.settings.limitDrawerToEdges ||
-			previous.drawerEdgeZone !== this.settings.drawerEdgeZone
-		) {
-			this.syncDrawerGuard();
 		}
 		await this.saveData(this.settings);
 	}
@@ -646,7 +489,6 @@ export default class BulletZoomPlugin extends Plugin {
 		this.settings = normalizeSettings(await this.loadData());
 		applyScaleVariables(document.body, this.settings);
 		this.addSettingTab(new BulletZoomSettingTab(this.app, this));
-		this.syncDrawerGuard();
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
@@ -755,40 +597,6 @@ export default class BulletZoomPlugin extends Plugin {
 				runParentCommand(getEditorView(editor), showNotice);
 			},
 		});
-	}
-
-	private runSwipeAction(
-		view: EditorView,
-		position: number,
-		action: 'prefix' | 'copy',
-	): void {
-		if (action === 'prefix') {
-			const change = planBulletPrefixToggle(
-				view.state,
-				position,
-				this.settings.swipePrefixText,
-			);
-			if (change === null) {
-				return;
-			}
-			view.dispatch({ changes: change });
-			return;
-		}
-		const text = collectBulletCopyText(
-			view.state,
-			position,
-			this.settings.swipeCopyScope,
-		);
-		if (text === null || text.length === 0) {
-			return;
-		}
-		void copyTextToClipboard(view, text)
-			.then((copied) => {
-				showNotice(copied ? 'Bullet copied.' : 'Could not copy the bullet.');
-			})
-			.catch(() => {
-				showNotice('Could not copy the bullet.');
-			});
 	}
 
 	private async extractBulletToNote(
@@ -915,8 +723,6 @@ export default class BulletZoomPlugin extends Plugin {
 	}
 
 	onunload(): void {
-		this.removeDrawerGuard?.();
-		this.removeDrawerGuard = null;
 		clearScaleVariables(document.body);
 		this.outlineCoordinator?.destroy();
 		this.outlineCoordinator = null;
