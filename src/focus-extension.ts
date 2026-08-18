@@ -6,7 +6,12 @@ import {
 	StateField,
 	type Extension,
 } from '@codemirror/state';
-import { foldedRanges, unfoldEffect } from '@codemirror/language';
+import {
+	foldable,
+	foldEffect,
+	foldedRanges,
+	unfoldEffect,
+} from '@codemirror/language';
 import { isolateHistory } from '@codemirror/commands';
 import {
 	Decoration,
@@ -538,11 +543,45 @@ export function classifyLineTapZone(input: {
 	return 'content';
 }
 
-function resolveMarkerTap(
+export function planFoldToggle(
+	state: EditorState,
+	position: number,
+): Readonly<{
+	action: 'fold' | 'unfold';
+	from: number;
+	to: number;
+}> | null {
+	const line = state.doc.lineAt(position);
+	const range = foldable(state, line.from, line.to);
+	if (range === null) {
+		return null;
+	}
+	let folded: { from: number; to: number } | null = null;
+	foldedRanges(state).between(line.from, line.to, (from, to) => {
+		if (folded === null && from >= line.from && from <= line.to) {
+			folded = { from, to };
+		}
+	});
+	if (folded !== null) {
+		const existing: { from: number; to: number } = folded;
+		return Object.freeze({
+			action: 'unfold' as const,
+			from: existing.from,
+			to: existing.to,
+		});
+	}
+	return Object.freeze({
+		action: 'fold' as const,
+		from: range.from,
+		to: range.to,
+	});
+}
+
+function resolveLineTapZone(
 	view: EditorView,
 	clientX: number,
 	clientY: number,
-): number | null {
+): Readonly<{ zone: LineTapZone; markerFrom: number }> | null {
 	if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
 		return null;
 	}
@@ -573,7 +612,7 @@ function resolveMarkerTap(
 			markerRight: markerEnd.right,
 			contentLeft: contentStart.left,
 		});
-		return zone === 'marker' ? bullet.markerFrom : null;
+		return Object.freeze({ zone, markerFrom: bullet.markerFrom });
 	} catch {
 		return null;
 	}
@@ -600,11 +639,26 @@ class MarkerPointerPlugin implements PluginValue {
 		if (event.button !== 0 || event.isPrimary === false) {
 			return;
 		}
-		const position = resolveMarkerTap(this.view, event.clientX, event.clientY);
-		if (position === null) {
+		const tap = resolveLineTapZone(this.view, event.clientX, event.clientY);
+		if (tap === null || tap.zone === 'content') {
 			return;
 		}
-		if (!activateBulletMarker(this.view, position)) {
+		if (tap.zone === 'fold') {
+			const plan = planFoldToggle(this.view.state, tap.markerFrom);
+			if (plan === null) {
+				return;
+			}
+			const effect =
+				plan.action === 'fold'
+					? foldEffect.of({ from: plan.from, to: plan.to })
+					: unfoldEffect.of({ from: plan.from, to: plan.to });
+			this.view.dispatch({ effects: effect });
+			this.handledGesture = true;
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
+		if (!activateBulletMarker(this.view, tap.markerFrom)) {
 			return;
 		}
 		this.handledGesture = true;
