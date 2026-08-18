@@ -23,6 +23,7 @@ import {
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
 	classifyLineTapZone,
 	enterFocusAt,
+	planFoldToggle,
 	exitFocus,
 	focusParent,
 	focusAtEffect,
@@ -1320,6 +1321,94 @@ describe('stray line handling (1.4.0)', () => {
 	});
 });
 
+describe('fold gutter (1.11.0)', () => {
+	function mountFoldView(documentText: string): {
+		parent: HTMLDivElement;
+		view: EditorView;
+	} {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: createState(documentText, 'Ideas.md', [
+				codeFolding(),
+				indentUnit.of('  '),
+			]),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(
+			view.state.doc.line(2).from + 2,
+		);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			const markerFrom = view.state.doc.line(2).from + 2;
+			if (position === markerFrom) {
+				return { left: 60, right: 66, top: 10, bottom: 30 };
+			}
+			if (position === markerFrom + 1) {
+				return { left: 66, right: 72, top: 10, bottom: 30 };
+			}
+			return { left: 80, right: 86, top: 10, bottom: 30 };
+		});
+		return { parent, view };
+	}
+
+	function pressGutter(view: EditorView): MouseEvent {
+		const press = new MouseEvent('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+			clientX: 12,
+			clientY: 20,
+		});
+		Object.defineProperties(press, {
+			isPrimary: { value: true },
+			pointerId: { value: 1 },
+		});
+		view.contentDOM.dispatchEvent(press);
+		return press;
+	}
+
+	it('plans a fold and then an unfold for a foldable line', () => {
+		const { parent, view } = mountFoldView('- A\n  - B\n    - C');
+		const anchor = view.state.doc.line(2).from + 2;
+		const first = planFoldToggle(view.state, anchor);
+		expect(first?.action).toBe('fold');
+		if (first !== null) {
+			view.dispatch({
+				effects: foldEffect.of({ from: first.from, to: first.to }),
+			});
+		}
+		expect(planFoldToggle(view.state, anchor)?.action).toBe('unfold');
+		view.destroy();
+		parent.remove();
+	});
+
+	it('returns null for a line with nothing to fold', () => {
+		const { parent, view } = mountFoldView('- A\n  - B\n- C');
+		expect(planFoldToggle(view.state, view.state.doc.line(2).from + 2)).toBeNull();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('folds from the far left of a nested line and toggles back', () => {
+		const { parent, view } = mountFoldView('- A\n  - B\n    - C');
+		const press = pressGutter(view);
+		expect(press.defaultPrevented).toBe(true);
+		expect(activeFoldRanges(view).length).toBe(1);
+		pressGutter(view);
+		expect(activeFoldRanges(view).length).toBe(0);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('does not intercept the gutter of a leaf line', () => {
+		const { parent, view } = mountFoldView('- A\n  - B\n- C');
+		const press = pressGutter(view);
+		expect(press.defaultPrevented).toBe(false);
+		expect(activeFoldRanges(view).length).toBe(0);
+		view.destroy();
+		parent.remove();
+	});
+});
+
 describe('marker tap zones (1.10.0)', () => {
 	it('classifies presses across the line', () => {
 		const bounds = {
@@ -1392,7 +1481,7 @@ describe('marker tap zones (1.10.0)', () => {
 		parent.remove();
 	});
 
-	it('leaves fold-zone and content-zone presses untouched', () => {
+	it('leaves content-zone presses untouched', () => {
 		const parent = document.createElement('div');
 		document.body.append(parent);
 		const view = new EditorView({
@@ -1410,7 +1499,7 @@ describe('marker tap zones (1.10.0)', () => {
 			return { left: 60, right: 66, top: 10, bottom: 30 };
 		});
 
-		for (const x of [20, 90]) {
+		for (const x of [90]) {
 			const press = new MouseEvent('pointerdown', {
 				bubbles: true,
 				cancelable: true,
