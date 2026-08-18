@@ -9,4 +9,4 @@
 
 - [x] 2.1 更新 `README.md` 與 `README.zh-TW.md` 說明選單不會叫出鍵盤且會避開鍵盤區域；同步四個版本檔為 `1.14.0`、更新版本斷言；驗證：版本一致、`npm test` 通過。
 - [x] 2.2 `npm run build` 產生 `main.js`；驗證：bundle 含可視區域計算、無 Node.js 或 Electron runtime import。
-- [ ] 2.3 commit 推送 main，release guard preflight（`--version 1.14.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機在畫面下方的長按與動畫手感由使用者驗收。
+- [x] 2.3 commit 推送 main，release guard preflight（`--version 1.14.0`）通過後建 tag 與雙語 GitHub Release 附三資產；驗證：資產齊全；實機在畫面下方的長按與動畫手感由使用者驗收。
