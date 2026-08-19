@@ -69,6 +69,7 @@ import {
 	RADIAL_SLOT_COUNT,
 	applyScaleVariables,
 	clearScaleVariables,
+	DEFAULT_BULLET_PREFIX,
 	DEFAULT_SETTINGS,
 	normalizeSettings,
 	SCALE_MAX,
@@ -287,11 +288,143 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		return setting;
 	}
 
+	private section(name: string, description: string): Setting {
+		const setting = new Setting(this.containerEl)
+			.setName(name)
+			.setDesc(description)
+			.setHeading();
+		setting.settingEl.classList.add('bullet-zoom-setting');
+		setting.settingEl.classList.add('bullet-zoom-section');
+		return setting;
+	}
+
+	private renderSlotList(
+		allCommands: ReadonlyArray<{ id: string; name: string }>,
+	): void {
+		const doc = this.containerEl.ownerDocument;
+		const commandIcons = new Map<string, string>();
+		for (const command of allCommands) {
+			const icon = (command as { icon?: unknown }).icon;
+			if (typeof icon === 'string' && icon.length > 0) {
+				commandIcons.set(command.id, icon);
+			}
+		}
+		const iconIds = collectIconIds();
+		const list = doc.createElement('div');
+		list.className = 'bullet-zoom-slots';
+		this.containerEl.append(list);
+
+		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
+			const index = position;
+			const current = this.plugin.settings.radialSlots[index];
+			const row = doc.createElement('div');
+			row.className = 'bullet-zoom-slot';
+
+			const number = doc.createElement('span');
+			number.className = 'bullet-zoom-slot-number';
+			number.textContent = String(index + 1);
+
+			const preview = doc.createElement('span');
+			preview.className = 'bullet-zoom-slot-icon';
+
+			const command = doc.createElement('select');
+			command.className = 'dropdown bullet-zoom-slot-command';
+			command.setAttribute('aria-label', `Slot ${index + 1} command`);
+			const emptyOption = doc.createElement('option');
+			emptyOption.value = '';
+			emptyOption.textContent = 'No command';
+			command.append(emptyOption);
+			for (const entry of allCommands) {
+				const option = doc.createElement('option');
+				option.value = entry.id;
+				option.textContent = entry.name;
+				command.append(option);
+			}
+			command.value = current?.commandId ?? '';
+
+			const iconField = doc.createElement('input');
+			iconField.type = 'text';
+			iconField.className = 'bullet-zoom-slot-icon-input';
+			iconField.placeholder = 'Icon — empty uses the command icon';
+			iconField.setAttribute('aria-label', `Slot ${index + 1} icon`);
+			iconField.value = current?.icon ?? '';
+
+			const toggle = doc.createElement('div');
+			toggle.className = 'checkbox-container bullet-zoom-slot-toggle';
+			toggle.setAttribute('role', 'checkbox');
+			toggle.setAttribute('aria-label', `Enable slot ${index + 1}`);
+			const checkbox = doc.createElement('input');
+			checkbox.type = 'checkbox';
+			toggle.append(checkbox);
+
+			const renderState = (): void => {
+				const slot = this.plugin.settings.radialSlots[index];
+				const enabled = slot?.enabled ?? false;
+				checkbox.checked = enabled;
+				toggle.classList.toggle('is-enabled', enabled);
+				toggle.setAttribute('aria-checked', String(enabled));
+				row.classList.toggle('is-disabled', !enabled);
+				setIcon(
+					preview,
+					resolveSegmentIcon({
+						slotIcon: slot?.icon,
+						commandIcon: commandIcons.get(slot?.commandId ?? ''),
+					}),
+				);
+			};
+			const updateSlot = (patch: {
+				commandId?: string;
+				enabled?: boolean;
+				icon?: string;
+			}): void => {
+				const slots = [...this.plugin.settings.radialSlots];
+				const existing = slots[index];
+				slots[index] = {
+					commandId: patch.commandId ?? existing?.commandId ?? '',
+					enabled: patch.enabled ?? existing?.enabled ?? false,
+					icon: patch.icon ?? existing?.icon ?? '',
+				};
+				void this.plugin.updateSettings({ radialSlots: slots });
+				renderState();
+			};
+
+			command.addEventListener('change', () => {
+				updateSlot({
+					commandId: command.value,
+					enabled: command.value.length > 0,
+				});
+			});
+			const renderSuggestions = attachPathAutocomplete(
+				{
+					inputEl: iconField,
+					setValue: (value: string) => {
+						iconField.value = value;
+					},
+				},
+				iconIds,
+				(value) => {
+					updateSlot({ icon: value });
+				},
+			);
+			iconField.addEventListener('input', () => {
+				updateSlot({ icon: iconField.value.trim() });
+				renderSuggestions(iconField.value);
+			});
+			toggle.addEventListener('click', () => {
+				updateSlot({ enabled: !(checkbox.checked ?? false) });
+			});
+
+			row.append(number, preview, command, iconField, toggle);
+			list.append(row);
+			renderState();
+		}
+	}
+
 	display(): void {
 		this.containerEl.empty();
 		this.containerEl.classList.add('bullet-zoom-settings');
 
-		this.row().setName('Zoom').setHeading();
+		this.section('Zoom', 'Which list items you can zoom into.');
 		this.row()
 			.setName('Zoom bullets')
 			.setDesc('Detect bullets that start with a dash so you can zoom into them.')
@@ -313,7 +446,53 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		this.row().setName('Outline').setHeading();
+		this.section('Focus page', 'How a note looks once you have zoomed in.');
+		this.row()
+			.setName('Focus title size')
+			.setDesc('Scale the title shown after you zoom into a bullet.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
+					.setValue(this.plugin.settings.titleScale)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ titleScale: value });
+					}),
+			)
+			.addExtraButton((button) =>
+				button
+					.setIcon('rotate-ccw')
+					.setTooltip('Reset to 100%')
+					.onClick(() => {
+						void this.plugin
+							.updateSettings({ titleScale: 100 })
+							.then(() => this.display());
+					}),
+			);
+		this.row()
+			.setName('Indent guides')
+			.setDesc('Show vertical lines that connect nested bullets.')
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.focusIndentGuides)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ focusIndentGuides: value });
+					}),
+			);
+		this.row()
+			.setName('Fix broken bullets')
+			.setDesc(
+				'While zoomed, tidy dictated lines into bullets under the item above them.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.autoFixStrayLines)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ autoFixStrayLines: value });
+					}),
+			);
+
+		this.section('Outline', 'The bullet outline in the sidebar.');
 		this.row()
 			.setName('Outline text size')
 			.setDesc('Scale the outline text. Lower values fit more lines on screen.')
@@ -337,75 +516,48 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		this.row().setName('Focus page').setHeading();
+		this.section(
+			'Bullet commands',
+			'How the copy, cut, and prefix commands treat a bullet.',
+		);
 		this.row()
-			.setName('Focus title size')
-			.setDesc('Scale the title shown after you zoom into a bullet.')
-			.addSlider((slider) =>
-				slider
-					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
-					.setValue(this.plugin.settings.titleScale)
-					.setDynamicTooltip()
+			.setName('Copy scope')
+			.setDesc('What the copy command puts on the clipboard. Cut always includes children.')
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('text', 'The bullet text only')
+					.addOption('branch', 'The bullet and its children')
+					.setValue(this.plugin.settings.bulletCopyScope)
 					.onChange((value) => {
-						void this.plugin.updateSettings({ titleScale: value });
+						void this.plugin.updateSettings({
+							bulletCopyScope: value === 'branch' ? 'branch' : 'text',
+						});
 					}),
-			)
-			.addExtraButton((button) =>
-				button
-					.setIcon('rotate-ccw')
-					.setTooltip('Reset to 100%')
-					.onClick(() => {
-						void this.plugin
-							.updateSettings({ titleScale: 100 })
-							.then(() => this.display());
+			);
+		this.row()
+			.setName('Prefix text')
+			.setDesc('What the prefix command inserts after the bullet marker.')
+			.addText((text) =>
+				text
+					.setPlaceholder(DEFAULT_BULLET_PREFIX)
+					.setValue(this.plugin.settings.bulletPrefixText)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ bulletPrefixText: value });
 					}),
 			);
 
+		this.section(
+			'Bullet menu',
+			'The command menu that opens from a bullet marker on phone and tablet.',
+		);
 		this.row()
-			.setName('Indent guides')
-			.setDesc('Show vertical lines that connect nested bullets.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.focusIndentGuides)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ focusIndentGuides: value });
-					}),
-			);
-
-		this.row()
-			.setName('Fix broken bullets')
-			.setDesc(
-				'While zoomed, tidy dictated lines into bullets under the item above them.',
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.autoFixStrayLines)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ autoFixStrayLines: value });
-					}),
-			);
-
-		this.row().setName('Radial menu').setHeading();
-		this.row()
-			.setName('Enable radial menu')
-			.setDesc('Press and hold a bullet marker to open a ring of commands. Mobile only.')
+			.setName('Enable the menu')
+			.setDesc('Turn the marker menu off to keep the marker as a plain zoom target.')
 			.addToggle((toggle) =>
 				toggle
 					.setValue(this.plugin.settings.radialMenuEnabled)
 					.onChange((value) => {
 						void this.plugin.updateSettings({ radialMenuEnabled: value });
-					}),
-			);
-		this.row()
-			.setName('Press duration')
-			.setDesc('How long to hold before the menu opens, in milliseconds.')
-			.addSlider((slider) =>
-				slider
-					.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
-					.setValue(this.plugin.settings.radialPressDuration)
-					.setDynamicTooltip()
-					.onChange((value) => {
-						void this.plugin.updateSettings({ radialPressDuration: value });
 					}),
 			);
 		this.row()
@@ -422,89 +574,34 @@ class BulletZoomSettingTab extends PluginSettingTab {
 						});
 					}),
 			);
+		this.row()
+			.setName('Press duration')
+			.setDesc('How long to hold before the menu opens, in milliseconds.')
+			.addSlider((slider) =>
+				slider
+					.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
+					.setValue(this.plugin.settings.radialPressDuration)
+					.setDynamicTooltip()
+					.onChange((value) => {
+						void this.plugin.updateSettings({ radialPressDuration: value });
+					}),
+			);
+		this.row()
+			.setName('Menu slots')
+			.setDesc(
+				'Each slot runs one command. Leave a slot icon empty to use the command icon.',
+			);
 		const allCommands = (
 			(this.app as unknown as { commands?: unknown }).commands as {
 				listCommands?: () => Array<{ id: string; name: string }>;
 			}
 		).listCommands?.() ?? [];
-		const commandIcons = new Map<string, string>();
-		for (const command of allCommands) {
-			const icon = (command as { icon?: unknown }).icon;
-			if (typeof icon === 'string' && icon.length > 0) {
-				commandIcons.set(command.id, icon);
-			}
-		}
-		const iconIds = collectIconIds();
-		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
-			const index = position;
-			const current = this.plugin.settings.radialSlots[index];
-			const row = this.row().setName(`Slot ${index + 1}`);
-			const preview = row.nameEl.ownerDocument.createElement('span');
-			preview.className = 'bullet-zoom-slot-icon';
-			row.nameEl.prepend(preview);
-			const renderPreview = (): void => {
-				const slot = this.plugin.settings.radialSlots[index];
-				setIcon(
-					preview,
-					resolveSegmentIcon({
-						slotIcon: slot?.icon,
-						commandIcon: commandIcons.get(slot?.commandId ?? ''),
-					}),
-				);
-			};
-			const updateSlot = (patch: {
-				commandId?: string;
-				enabled?: boolean;
-				icon?: string;
-			}): void => {
-				const slots = [...this.plugin.settings.radialSlots];
-				const existing = slots[index];
-				slots[index] = {
-					commandId: patch.commandId ?? existing?.commandId ?? '',
-					enabled: patch.enabled ?? existing?.enabled ?? false,
-					icon: patch.icon ?? existing?.icon ?? '',
-				};
-				void this.plugin.updateSettings({ radialSlots: slots });
-				renderPreview();
-			};
-			row
-				.addDropdown((dropdown) => {
-					dropdown.addOption('', 'Empty');
-					for (const command of allCommands) {
-						dropdown.addOption(command.id, command.name);
-					}
-					dropdown
-						.setValue(current?.commandId ?? '')
-						.onChange((value) => {
-							updateSlot({ commandId: value, enabled: value.length > 0 });
-						});
-				})
-				.addText((text) => {
-					text
-						.setPlaceholder('Command icon')
-						.setValue(current?.icon ?? '');
-					text.inputEl.classList.add('bullet-zoom-slot-icon-input');
-					const render = attachPathAutocomplete(text, iconIds, (value) => {
-						updateSlot({ icon: value });
-					});
-					text.onChange((value) => {
-						updateSlot({ icon: value.trim() });
-						render(value);
-					});
-				})
-				.addToggle((toggle) =>
-					toggle
-						.setValue(current?.enabled ?? false)
-						.onChange((value) => {
-							updateSlot({ enabled: value });
-						}),
-				);
-			renderPreview();
-		}
+		this.renderSlotList(allCommands);
 
-		this.row()
-			.setName('Extract to new note')
-			.setHeading();
+		this.section(
+			'Extract to new note',
+			'Where an extracted branch goes and what it leaves behind.',
+		);
 		const vault = this.app.vault as unknown as {
 			getAllLoadedFiles?: () => readonly unknown[];
 		};
@@ -767,6 +864,48 @@ export default class BulletZoomPlugin extends Plugin {
 						})
 						.catch(() => {
 							showNotice('Could not copy the bullet.');
+						});
+				}),
+		});
+
+		this.addCommand({
+			id: 'cut-bullet',
+			name: 'Cut bullet',
+			icon: 'scissors',
+			editorCheckCallback: (checking, editor) =>
+				this.runBulletCommand(editor, checking, (view, markerFrom) => {
+					// Cutting always takes the children with it, so the clipboard
+					// holds a branch you can paste back whole.
+					const text = collectBulletCopyText(view.state, markerFrom, 'branch');
+					if (text === null || text.length === 0) {
+						showNotice('Nothing to cut.');
+						return;
+					}
+					void copyTextToClipboard(view, text)
+						.then((copied) => {
+							if (!copied) {
+								showNotice('Could not cut the bullet. Nothing was removed.');
+								return;
+							}
+							// Re-read the document: the clipboard write was async, so
+							// the earlier offsets may no longer be valid.
+							const plan = planBulletExtract(view.state, markerFrom, false);
+							if (plan === null) {
+								showNotice('Bullet copied, but it could not be removed.');
+								return;
+							}
+							const removal = planBulletRemovalRange(
+								view.state,
+								plan.replaceFrom,
+								plan.replaceTo,
+							);
+							view.dispatch({
+								changes: { from: removal.from, to: removal.to, insert: '' },
+							});
+							showNotice('Bullet cut.');
+						})
+						.catch(() => {
+							showNotice('Could not cut the bullet. Nothing was removed.');
 						});
 				}),
 		});
