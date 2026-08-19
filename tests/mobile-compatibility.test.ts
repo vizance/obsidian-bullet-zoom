@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.19.0');
+		expect(manifest.version).toBe('1.20.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.19.0');
-		expect(packageLock.version).toBe('1.19.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.19.0');
+		expect(packageManifest.version).toBe('1.20.0');
+		expect(packageLock.version).toBe('1.20.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.20.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -720,6 +720,28 @@ describe('settings row layout contract (1.17.1)', () => {
 		const query = stylesheet.slice(stylesheet.indexOf('@media (max-width: 480px)'));
 		expect(query).toContain('.bullet-zoom-setting');
 		expect(query).toContain('flex-direction: column');
+	});
+});
+
+describe('icon picker contract (1.20.0)', () => {
+	it('renders the picker as a scrolling grid and the preview as a button', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const grid = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-icon-grid',
+		);
+		const preview = rules.find(
+			(rule) => rule.selectorText === 'button.bullet-zoom-slot-icon',
+		);
+		expect(grid?.style.getPropertyValue('display').trim()).toBe('grid');
+		expect(grid?.style.getPropertyValue('overflow-y').trim()).toBe('auto');
+		expect(grid?.style.getPropertyValue('max-height')).not.toBe('');
+		expect(preview?.style.getPropertyValue('cursor').trim()).toBe('pointer');
 	});
 });
 
