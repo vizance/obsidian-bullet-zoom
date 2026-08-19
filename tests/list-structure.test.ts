@@ -14,6 +14,7 @@ import {
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	planFocusStructureRepair,
+	planListPaste,
 	scanStrayRange,
 	suggestExtractFileName,
 	buildHyperMdBulletOutline,
@@ -1279,5 +1280,64 @@ describe('planBulletClear (1.16.0)', () => {
 	it('returns null when the bullet has no text', () => {
 		expect(planBulletClear(stateOf('- '), 0)).toBeNull();
 		expect(planBulletClear(stateOf('plain'), 0)).toBeNull();
+	});
+});
+
+describe('planListPaste', () => {
+	const branch = '1. Topic\n\t1. Child\n\t2. Second child';
+
+	it('adopts the bullet style of the list it lands in', () => {
+		const state = createState('- Alpha\n- Beta');
+		const plan = planListPaste(state, 3, branch);
+		expect(plan?.insert).toBe('\n- Topic\n\t- Child\n\t- Second child');
+	});
+
+	it('keeps children indented under the pasted parent', () => {
+		const state = createState('- Alpha\n\t- Nested');
+		const line = state.doc.line(2);
+		const plan = planListPaste(state, line.from + 3, branch);
+		expect(plan?.insert).toBe(
+			'\n\t- Topic\n\t\t- Child\n\t\t- Second child',
+		);
+	});
+
+	it('fills an empty bullet instead of leaving it above the branch', () => {
+		const state = createState('- Alpha\n\t- ');
+		const line = state.doc.line(2);
+		const plan = planListPaste(state, line.to, branch);
+		expect(plan?.from).toBe(line.from);
+		expect(plan?.to).toBe(line.to);
+		expect(plan?.insert).toBe('\t- Topic\n\t\t- Child\n\t\t- Second child');
+	});
+
+	it('renumbers when the target list is numbered', () => {
+		const state = createState('1. Alpha');
+		const plan = planListPaste(
+			state,
+			3,
+			'- Topic\n\t- Child\n\t- Second child\n- Sibling',
+		);
+		expect(plan?.insert).toBe(
+			'\n1. Topic\n\t1. Child\n\t2. Second child\n2. Sibling',
+		);
+	});
+
+	it('keeps the target marker character', () => {
+		const state = createState('* Alpha');
+		expect(planListPaste(state, 3, branch)?.insert).toBe(
+			'\n* Topic\n\t* Child\n\t* Second child',
+		);
+	});
+
+	it('declines anything that is not a list on both sides', () => {
+		expect(planListPaste(createState('- Alpha'), 3, 'Just text')).toBeNull();
+		expect(planListPaste(createState('Plain line'), 3, branch)).toBeNull();
+		expect(planListPaste(createState('- Alpha'), 3, '   ')).toBeNull();
+	});
+
+	it('carries wrapped continuation lines with the branch', () => {
+		const state = createState('- Alpha');
+		const plan = planListPaste(state, 3, '- Topic\n  continued');
+		expect(plan?.insert).toBe('\n- Topic\n  continued');
 	});
 });

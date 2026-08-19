@@ -41,6 +41,7 @@ import {
 	planBulletExtract,
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
+	planListPaste,
 	suggestExtractFileName,
 } from './list-structure';
 import { filterIconIds, iconLabel } from './icon-picker';
@@ -635,6 +636,19 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		this.row()
+			.setName('Match the list you paste into')
+			.setDesc(
+				'Re-indent and re-mark pasted bullets so they belong to the list they land in.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.normalizeListPaste)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ normalizeListPaste: value });
+					}),
+			);
+
 		this.section(
 			'Bullet menu',
 			'The command menu that opens from a bullet marker on phone and tablet.',
@@ -863,6 +877,11 @@ export default class BulletZoomPlugin extends Plugin {
 		this.settings = normalizeSettings(await this.loadData());
 		applyScaleVariables(document.body, this.settings);
 		this.addSettingTab(new BulletZoomSettingTab(this.app, this));
+		this.registerEvent(
+			this.app.workspace.on('editor-paste', (event, editor) => {
+				this.handleListPaste(event, editor);
+			}),
+		);
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
 			workspace: this.app.workspace,
 			isMobile: Platform.isMobile,
@@ -1094,6 +1113,34 @@ export default class BulletZoomPlugin extends Plugin {
 			editorCallback: (editor) => {
 				runParentCommand(getEditorView(editor), showNotice);
 			},
+		});
+	}
+
+	private handleListPaste(event: ClipboardEvent, editor: Editor): void {
+		if (!this.settings.normalizeListPaste || event.defaultPrevented) {
+			return;
+		}
+		const text = event.clipboardData?.getData('text/plain') ?? '';
+		if (text.length === 0) {
+			return;
+		}
+		const view = getEditorView(editor);
+		if (view === null) {
+			return;
+		}
+		const selection = view.state.selection.main;
+		if (!selection.empty) {
+			return;
+		}
+		const plan = planListPaste(view.state, selection.head, text);
+		if (plan === null) {
+			return;
+		}
+		event.preventDefault();
+		view.dispatch({
+			changes: plan,
+			selection: { anchor: plan.from + plan.insert.length },
+			scrollIntoView: true,
 		});
 	}
 

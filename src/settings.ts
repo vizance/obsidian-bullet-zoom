@@ -12,6 +12,7 @@ export interface BulletZoomSettings {
 	readonly autoFixStrayLines: boolean;
 	readonly bulletCopyScope: BulletCopyScope;
 	readonly bulletPrefixText: string;
+	readonly normalizeListPaste: boolean;
 	readonly radialMenuEnabled: boolean;
 	readonly radialPressDuration: number;
 	readonly radialSlots: readonly RadialSlot[];
@@ -74,6 +75,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	autoFixStrayLines: true,
 	bulletCopyScope: 'text',
 	bulletPrefixText: DEFAULT_BULLET_PREFIX,
+	normalizeListPaste: true,
 	radialMenuEnabled: true,
 	radialPressDuration: 450,
 	radialSlots: DEFAULT_RADIAL_SLOTS,
@@ -219,6 +221,10 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 			typeof source['bulletPrefixText'] === 'string'
 				? source['bulletPrefixText']
 				: DEFAULT_BULLET_PREFIX,
+		normalizeListPaste: normalizeBoolean(
+			source['normalizeListPaste'],
+			DEFAULT_SETTINGS.normalizeListPaste,
+		),
 		radialMenuEnabled: normalizeBoolean(
 			source['radialMenuEnabled'],
 			DEFAULT_SETTINGS.radialMenuEnabled,

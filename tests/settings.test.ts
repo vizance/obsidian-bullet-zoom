@@ -37,6 +37,7 @@ describe('settings normalization', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -70,6 +71,7 @@ describe('settings normalization', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -106,6 +108,7 @@ describe('scale variable application', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -161,6 +164,7 @@ describe('plugin settings lifecycle', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -192,6 +196,7 @@ describe('plugin settings lifecycle', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -244,6 +249,7 @@ describe('slider reset buttons', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -296,6 +302,7 @@ describe('marker detection toggles', () => {
 			autoFixStrayLines: true,
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
+			normalizeListPaste: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -464,6 +471,18 @@ describe('radial slot settings', () => {
 			radialSlots: [{ commandId: 'delete', enabled: false, icon: '' }],
 		}).radialSlots;
 		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false, icon: '' });
+	});
+});
+
+describe('list paste setting', () => {
+	it('defaults to on and normalizes unknown values', () => {
+		expect(normalizeSettings({}).normalizeListPaste).toBe(true);
+		expect(normalizeSettings({ normalizeListPaste: false }).normalizeListPaste).toBe(
+			false,
+		);
+		expect(
+			normalizeSettings({ normalizeListPaste: 'yes' }).normalizeListPaste,
+		).toBe(true);
 	});
 });
 

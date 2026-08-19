@@ -1483,3 +1483,106 @@ export function buildBreadcrumbs(
 
 	return Object.freeze(breadcrumbs);
 }
+
+export type ListPastePlan = Readonly<{
+	from: number;
+	to: number;
+	insert: string;
+}>;
+
+type ListMarkerStyle = Readonly<{
+	ordered: boolean;
+	bullet: string;
+	delimiter: string;
+}>;
+
+const LIST_LINE_PATTERN = /^([\t ]*)([-+*]|\d+[.)])([\t ]+)(.*)$/;
+
+function readListMarkerStyle(text: string): ListMarkerStyle | null {
+	const match = LIST_LINE_PATTERN.exec(text);
+	const marker = match?.[2];
+	if (marker === undefined) {
+		return null;
+	}
+	const ordered = /\d/.test(marker);
+	return Object.freeze({
+		ordered,
+		bullet: ordered ? '-' : marker,
+		delimiter: ordered ? marker.slice(-1) : '.',
+	});
+}
+
+/**
+ * Rewrites a copied branch so it belongs to the list it lands in: every line is
+ * shifted to the target's indentation while keeping its depth relative to the
+ * branch root, and every marker adopts the target's style, so a numbered branch
+ * pasted into a bulleted list stops being numbered.
+ */
+export function planListPaste(
+	state: EditorState,
+	anchor: number,
+	text: string,
+): ListPastePlan | null {
+	const trimmed = text.replace(/\r\n/g, '\n').replace(/\n+$/, '');
+	if (trimmed.length === 0) {
+		return null;
+	}
+	const sourceLines = trimmed.split('\n');
+	const firstSource = sourceLines[0] ?? '';
+	if (readListMarkerStyle(firstSource) === null) {
+		return null;
+	}
+	const targetLine = state.doc.lineAt(anchor);
+	const targetStyle = readListMarkerStyle(targetLine.text);
+	if (targetStyle === null) {
+		return null;
+	}
+	const targetIndent = /^[\t ]*/.exec(targetLine.text)?.[0] ?? '';
+	const baseIndent = /^[\t ]*/.exec(firstSource)?.[0] ?? '';
+	const counters = new Map<string, number>();
+	const rewritten: string[] = [];
+	for (const line of sourceLines) {
+		if (line.trim().length === 0) {
+			rewritten.push('');
+			continue;
+		}
+		const relative = line.startsWith(baseIndent)
+			? line.slice(baseIndent.length)
+			: line.trimStart();
+		const match = LIST_LINE_PATTERN.exec(relative);
+		if (match === null) {
+			rewritten.push(`${targetIndent}${relative}`);
+			continue;
+		}
+		const [, indent = '', , spacing = ' ', content = ''] = match;
+		let marker = targetStyle.bullet;
+		if (targetStyle.ordered) {
+			const next = (counters.get(indent) ?? 0) + 1;
+			counters.set(indent, next);
+			// A deeper level restarts once its parent moves on.
+			for (const key of [...counters.keys()]) {
+				if (key.length > indent.length) {
+					counters.delete(key);
+				}
+			}
+			marker = `${next}${targetStyle.delimiter}`;
+		}
+		rewritten.push(`${targetIndent}${indent}${marker}${spacing}${content}`);
+	}
+	const insert = rewritten.join('\n');
+	const targetContent = LIST_LINE_PATTERN.exec(targetLine.text)?.[4] ?? '';
+	if (targetContent.trim().length === 0) {
+		// Pasting into the empty bullet you just made should fill it, not leave
+		// an orphan marker above the branch.
+		return Object.freeze({
+			from: targetLine.from,
+			to: targetLine.to,
+			insert,
+		});
+	}
+	return Object.freeze({
+		from: targetLine.to,
+		to: targetLine.to,
+		insert: `\n${insert}`,
+	});
+}

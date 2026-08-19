@@ -1,6 +1,6 @@
 {
   "name": "obsidian-bullet-zoom",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "description": "Focus and edit one Obsidian bullet branch at a time.",
   "main": "main.js",
   "type": "module",

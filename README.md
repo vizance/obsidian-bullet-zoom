@@ -65,6 +65,8 @@ The bullet commands below come with the plugin and also work from the command pa
 
 - **Copy bullet** — copies the bullet's text, or the bullet with its children when the copy scope says so.
 - **Cut bullet** — copies the bullet and all of its children, then removes that branch. The removal happens only after the copy succeeds, so a failed copy never loses content.
+
+Pasting a branch back is handled too. When you paste list content with the cursor on a list line, the branch is rewritten to belong to that list: every line moves to the target's indentation while keeping its depth, so children stay nested, and every marker adopts the target's style — a numbered branch pasted into a bulleted list comes out bulleted, and a bulleted branch pasted into a numbered list is renumbered per level. Pasting into an empty bullet fills that line instead of leaving a stray marker. Turn it off with **Match the list you paste into** under **Bullet commands**.
 - **Clear bullet text** — empties the bullet but keeps it and its children, ready for retyping.
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
@@ -131,7 +133,7 @@ Settings are grouped into six described sections:
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
-- **Bullet commands** — what copy puts on the clipboard, and the text the prefix command inserts.
+- **Bullet commands** — what copy puts on the clipboard, the text the prefix command inserts, and whether pasted lists are matched to their destination.
 - **Bullet menu** — enable the marker menu, choose what a tap does, set the press duration, and configure the eight slots.
 - **Extract to new note** — the extraction options listed above.
 

@@ -65,6 +65,8 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 
 - **Copy bullet**：複製該 Bullet 的文字，或依複製範圍設定連子項目一起複製。
 - **Cut bullet**：複製該 Bullet 與它底下所有子項目，然後把整段移除。移除只在複製成功後執行，複製失敗不會弄丟內容。
+
+貼回去的部分也一起處理了。游標停在清單行上貼上清單內容時，分支會被重寫成屬於那個清單：每一行移到目標行的縮排，同時保留自己的深度，所以子項目仍然掛在下面；標記也改採目標的樣式——編號分支貼進 Bullet 清單會變成 Bullet，Bullet 分支貼進編號清單則依層級重新編號。貼進空的 Bullet 會直接填滿那一行，不會留下多餘的標記。想關掉就到 **Bullet commands** 的 **Match the list you paste into**。
 - **Clear bullet text**：清空該 Bullet 的文字，但保留 Bullet 本身與子項目，可以直接重打。
 - **Delete bullet**：刪除該 Bullet 與其下所有巢狀內容，含換行。
 - **Insert prefix text**：在標記後插入設定的前綴，已存在時則移除。
@@ -131,7 +133,7 @@ Bullet 會連同整個縮排子樹一起搬，縮排自動換算成目標位置�
 - **Zoom**：一般 Bullet 與編號清單可各自開關偵測。
 - **Focus page**：調整 Zoom 後的標題大小，可開關縮排引導線與自動修復破損的 Bullet。
 - **Outline**：調整大綱文字大小，調小可一次看到更多行。
-- **Bullet commands**：複製指令要放進剪貼簿的範圍，以及前綴指令要插入的文字。
+- **Bullet commands**：複製指令要放進剪貼簿的範圍、前綴指令要插入的文字，以及貼上的清單要不要對齊目標清單。
 - **Bullet menu**：選單開關、點擊圓點的行為、長按時間，以及八個插槽的設定。
 - **Extract to new note**：上面列出的拆分選項。
 
