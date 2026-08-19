@@ -1364,6 +1364,7 @@ export default class BulletZoomPlugin extends Plugin {
 			viewportHeight: visual?.height ?? ownerWindow?.innerHeight ?? 0,
 			viewportTop: visual?.offsetTop ?? 0,
 			size: Platform.isTablet ? 'large' : 'regular',
+			instant: !Platform.isMobile,
 			segments,
 			pointerId,
 			renderIcon: (element, segment) => {

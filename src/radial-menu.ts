@@ -213,6 +213,11 @@ export interface RadialMenuOptions {
 	readonly viewportHeight?: number;
 	readonly viewportTop?: number;
 	readonly size?: RadialMenuSize;
+	/**
+	 * Mouse users open the same menu many times a minute and expect a native
+	 * context menu: no entrance animation, no blur over a full desktop window.
+	 */
+	readonly instant?: boolean;
 	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
 	readonly onCancel?: () => void;
@@ -275,6 +280,9 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
+	if (options.instant === true) {
+		overlay.classList.add('is-instant');
+	}
 	overlay.style.setProperty(RADIAL_BUTTON_PROPERTY, `${metrics.button}px`);
 	overlay.style.setProperty(RADIAL_ICON_PROPERTY, `${metrics.icon}px`);
 
