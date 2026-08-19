@@ -1069,3 +1069,22 @@ button.bullet-zoom-slot-command.is-empty {
 .bullet-zoom-force-hidden {
 	display: none !important;
 }
+
+/* 1.26.0: the outline row number opens the bullet menu */
+.bullet-zoom-outline-sidebar-index.is-actionable {
+	flex: 0 0 auto;
+	padding: 0 var(--size-2-1, 4px);
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	color: var(--text-faint);
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+}
+
+.bullet-zoom-outline-sidebar-index.is-actionable:hover,
+.bullet-zoom-outline-sidebar-index.is-actionable:focus-visible {
+	background: var(--background-modifier-hover);
+	border-radius: var(--radius-s, 4px);
+	color: var(--text-normal);
+}

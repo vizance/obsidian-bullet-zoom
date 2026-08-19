@@ -621,6 +621,18 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			return;
 		}
 		this.row(container)
+			.setName('Open the menu from the outline')
+			.setDesc(
+				'Tap a row number in the bullet outline to open the menu for that bullet. Tapping its text still zooms.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.outlineMenuEnabled)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ outlineMenuEnabled: value });
+					}),
+			);
+		this.row(container)
 			.setName('Menu slots')
 			.setDesc(
 				'Each slot runs one command. Tap a slot icon to choose the picture it shows.',
@@ -1016,6 +1028,11 @@ export default class BulletZoomPlugin extends Plugin {
 				view.state.facet(focusFilePath) !== null,
 			getFilePath: (view) => view.state.facet(focusFilePath),
 			getNoteTitle: (view) => view.state.facet(focusNoteTitle),
+			isOutlineMenuEnabled: () =>
+				this.settings.radialMenuEnabled && this.settings.outlineMenuEnabled,
+			onOutlineMenu: (view, anchor, x, y) => {
+				this.openBulletMenu(view, anchor, x, y);
+			},
 			getFocusAnchor: (view) => getFocusSession(view.state)?.anchor ?? null,
 			getCurrentAnchor: (view) =>
 				findSupportedBullet(view.state, view.state.selection.main.head)
@@ -1293,7 +1310,7 @@ export default class BulletZoomPlugin extends Plugin {
 		markerFrom: number,
 		clientX: number,
 		clientY: number,
-		pointerId: number,
+		pointerId?: number,
 	): void {
 		const commands = (this.app as unknown as { commands?: unknown })
 			.commands as {
