@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import BulletZoomPlugin from '../src/main';
+import BulletZoomPlugin, {
+	markerModeSettings,
+	resolveMarkerMode,
+} from '../src/main';
 import {
 	applyScaleVariables,
 	clearScaleVariables,
@@ -483,6 +486,38 @@ describe('list paste setting', () => {
 		expect(
 			normalizeSettings({ normalizeListPaste: 'yes' }).normalizeListPaste,
 		).toBe(true);
+	});
+});
+
+describe('marker mode helpers (1.22.0)', () => {
+	it('maps the three choices onto the stored settings', () => {
+		expect(markerModeSettings('menu')).toEqual({
+			radialMenuEnabled: true,
+			markerTapAction: 'menu',
+		});
+		expect(markerModeSettings('zoom')).toEqual({
+			radialMenuEnabled: false,
+			markerTapAction: 'zoom',
+		});
+		expect(markerModeSettings('zoom-hold')).toEqual({
+			radialMenuEnabled: true,
+			markerTapAction: 'zoom',
+		});
+	});
+
+	it('reads the stored settings back as one choice', () => {
+		expect(
+			resolveMarkerMode({ radialMenuEnabled: true, markerTapAction: 'menu' }),
+		).toBe('menu');
+		expect(
+			resolveMarkerMode({ radialMenuEnabled: true, markerTapAction: 'zoom' }),
+		).toBe('zoom-hold');
+		expect(
+			resolveMarkerMode({ radialMenuEnabled: false, markerTapAction: 'zoom' }),
+		).toBe('zoom');
+		expect(
+			resolveMarkerMode({ radialMenuEnabled: false, markerTapAction: 'menu' }),
+		).toBe('zoom');
 	});
 });
 

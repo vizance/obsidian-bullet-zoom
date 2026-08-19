@@ -902,11 +902,6 @@ button.bullet-zoom-breadcrumb {
 	max-width: 100%;
 }
 
-.bullet-zoom-slot-icon-input {
-	flex: 1 1 8em;
-	min-width: 0;
-	max-width: 100%;
-}
 
 .bullet-zoom-slot-toggle {
 	flex: 0 0 auto;

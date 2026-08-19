@@ -276,6 +276,35 @@ class ExtractNameModal extends Modal {
 	}
 }
 
+export type MarkerMode = 'menu' | 'zoom' | 'zoom-hold';
+
+/**
+ * The menu switch and the tap action describe one decision, so the tab offers
+ * it as one choice and keeps writing both stored settings.
+ */
+export function resolveMarkerMode(settings: {
+	readonly radialMenuEnabled: boolean;
+	readonly markerTapAction: string;
+}): MarkerMode {
+	if (!settings.radialMenuEnabled) {
+		return 'zoom';
+	}
+	return settings.markerTapAction === 'zoom' ? 'zoom-hold' : 'menu';
+}
+
+export function markerModeSettings(mode: string): {
+	radialMenuEnabled: boolean;
+	markerTapAction: 'menu' | 'zoom';
+} {
+	if (mode === 'zoom') {
+		return { radialMenuEnabled: false, markerTapAction: 'zoom' };
+	}
+	if (mode === 'zoom-hold') {
+		return { radialMenuEnabled: true, markerTapAction: 'zoom' };
+	}
+	return { radialMenuEnabled: true, markerTapAction: 'menu' };
+}
+
 class IconPickerModal extends Modal {
 	private query = '';
 
@@ -421,13 +450,6 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			}
 			command.value = current?.commandId ?? '';
 
-			const iconField = doc.createElement('input');
-			iconField.type = 'text';
-			iconField.className = 'bullet-zoom-slot-icon-input';
-			iconField.placeholder = 'Icon — empty uses the command icon';
-			iconField.setAttribute('aria-label', `Slot ${index + 1} icon`);
-			iconField.value = current?.icon ?? '';
-
 			const toggle = doc.createElement('div');
 			toggle.className = 'checkbox-container bullet-zoom-slot-toggle';
 			toggle.setAttribute('role', 'checkbox');
@@ -473,22 +495,6 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					enabled: command.value.length > 0,
 				});
 			});
-			const renderSuggestions = attachPathAutocomplete(
-				{
-					inputEl: iconField,
-					setValue: (value: string) => {
-						iconField.value = value;
-					},
-				},
-				iconIds,
-				(value) => {
-					updateSlot({ icon: value });
-				},
-			);
-			iconField.addEventListener('input', () => {
-				updateSlot({ icon: iconField.value.trim() });
-				renderSuggestions(iconField.value);
-			});
 			toggle.addEventListener('click', () => {
 				updateSlot({ enabled: !(checkbox.checked ?? false) });
 			});
@@ -498,13 +504,12 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					iconIds,
 					this.plugin.settings.radialSlots[index]?.icon ?? '',
 					(icon) => {
-						iconField.value = icon;
 						updateSlot({ icon });
 					},
 				).open();
 			});
 
-			row.append(number, preview, command, iconField, toggle);
+			row.append(number, preview, command, toggle);
 			list.append(row);
 			renderState();
 		}
@@ -653,53 +658,49 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			'Bullet menu',
 			'The command menu that opens from a bullet marker on phone and tablet.',
 		);
-		this.row()
-			.setName('Enable the menu')
-			.setDesc('Turn the marker menu off to keep the marker as a plain zoom target.')
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.radialMenuEnabled)
-					.onChange((value) => {
-						void this.plugin.updateSettings({ radialMenuEnabled: value });
-					}),
-			);
+		const markerMode = resolveMarkerMode(this.plugin.settings);
 		this.row()
 			.setName('Marker tap')
-			.setDesc('What tapping a bullet marker does on mobile.')
+			.setDesc('What tapping a bullet marker does on phone and tablet.')
 			.addDropdown((dropdown) =>
 				dropdown
 					.addOption('menu', 'Open the menu')
 					.addOption('zoom', 'Zoom into the bullet')
-					.setValue(this.plugin.settings.markerTapAction)
+					.addOption('zoom-hold', 'Zoom, and open the menu on a long press')
+					.setValue(markerMode)
 					.onChange((value) => {
-						void this.plugin.updateSettings({
-							markerTapAction: value === 'zoom' ? 'zoom' : 'menu',
-						});
+						void this.plugin
+							.updateSettings(markerModeSettings(value))
+							.then(() => this.display());
 					}),
 			);
-		this.row()
-			.setName('Press duration')
-			.setDesc('How long to hold before the menu opens, in milliseconds.')
-			.addSlider((slider) =>
-				slider
-					.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
-					.setValue(this.plugin.settings.radialPressDuration)
-					.setDynamicTooltip()
-					.onChange((value) => {
-						void this.plugin.updateSettings({ radialPressDuration: value });
-					}),
-			);
-		this.row()
-			.setName('Menu slots')
-			.setDesc(
-				'Each slot runs one command. Leave a slot icon empty to use the command icon.',
-			);
-		const allCommands = (
-			(this.app as unknown as { commands?: unknown }).commands as {
-				listCommands?: () => Array<{ id: string; name: string }>;
-			}
-		).listCommands?.() ?? [];
-		this.renderSlotList(allCommands);
+		if (markerMode === 'zoom-hold') {
+			this.row()
+				.setName('Press duration')
+				.setDesc('How long to hold before the menu opens, in milliseconds.')
+				.addSlider((slider) =>
+					slider
+						.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
+						.setValue(this.plugin.settings.radialPressDuration)
+						.setDynamicTooltip()
+						.onChange((value) => {
+							void this.plugin.updateSettings({ radialPressDuration: value });
+						}),
+				);
+		}
+		if (markerMode !== 'zoom') {
+			this.row()
+				.setName('Menu slots')
+				.setDesc(
+					'Each slot runs one command. Tap a slot icon to choose the picture it shows.',
+				);
+			const allCommands = (
+				(this.app as unknown as { commands?: unknown }).commands as {
+					listCommands?: () => Array<{ id: string; name: string }>;
+				}
+			).listCommands?.() ?? [];
+			this.renderSlotList(allCommands);
+		}
 
 		this.section(
 			'Extract to new note',
@@ -879,7 +880,13 @@ export default class BulletZoomPlugin extends Plugin {
 		this.addSettingTab(new BulletZoomSettingTab(this.app, this));
 		this.registerEvent(
 			this.app.workspace.on('editor-paste', (event, editor) => {
-				this.handleListPaste(event, editor);
+				if (event.defaultPrevented) {
+					return;
+				}
+				const handled = this.handleListPaste(event, editor);
+				if (handled) {
+					event.preventDefault();
+				}
 			}),
 		);
 		const outlineCoordinator = new BulletOutlineSidebarCoordinator({
@@ -1116,32 +1123,32 @@ export default class BulletZoomPlugin extends Plugin {
 		});
 	}
 
-	private handleListPaste(event: ClipboardEvent, editor: Editor): void {
-		if (!this.settings.normalizeListPaste || event.defaultPrevented) {
-			return;
+	private handleListPaste(event: ClipboardEvent, editor: Editor): boolean {
+		if (!this.settings.normalizeListPaste) {
+			return false;
 		}
 		const text = event.clipboardData?.getData('text/plain') ?? '';
 		if (text.length === 0) {
-			return;
+			return false;
 		}
 		const view = getEditorView(editor);
 		if (view === null) {
-			return;
+			return false;
 		}
 		const selection = view.state.selection.main;
 		if (!selection.empty) {
-			return;
+			return false;
 		}
 		const plan = planListPaste(view.state, selection.head, text);
 		if (plan === null) {
-			return;
+			return false;
 		}
-		event.preventDefault();
 		view.dispatch({
 			changes: plan,
 			selection: { anchor: plan.from + plan.insert.length },
 			scrollIntoView: true,
 		});
+		return true;
 	}
 
 	private openBulletMenu(
