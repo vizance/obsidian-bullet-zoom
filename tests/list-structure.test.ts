@@ -1213,6 +1213,22 @@ describe('focus structure repair (1.4.0)', () => {
 		);
 	});
 
+	it('restores a heading swallowed by a list marker', () => {
+		expect(repair('- Topic\n- # Outline\nstray')).toBe(
+			'- Topic\n# Outline\nstray',
+		);
+	});
+
+	it('keeps the blank line before a restored heading', () => {
+		expect(repair('- Topic\nstray\n\n- # Outline\n- Later')).toBe(
+			'- Topic\n  - stray\n\n# Outline\n- Later',
+		);
+	});
+
+	it('leaves an indented heading inside a list item alone', () => {
+		expect(repair('- Topic\n  - # Outline\nstray')).toBeNull();
+	});
+
 	it('does nothing when a heading follows the focused bullet', () => {
 		expect(planFocusStructureRepair(createState('- Topic\n# Outline'), 3, 16)).toBeNull();
 	});
