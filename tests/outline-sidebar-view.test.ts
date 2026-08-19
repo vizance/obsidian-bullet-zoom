@@ -1158,18 +1158,16 @@ describe('native outline sidebar coordinator', () => {
 				(openedModal as Modal | null)?.containerEl.hidden,
 			).toBe(true);
 			const closedModal = openedModal as Modal | null;
-			expect(closedModal?.modalEl.style.getPropertyValue('display')).toBe(
-				'none',
-			);
-			expect(closedModal?.modalEl.style.getPropertyPriority('display')).toBe(
-				'important',
-			);
+			// Forced dismissal is a stylesheet class, so a theme cannot bring the
+			// modal back and the plugin sets no inline styles.
 			expect(
-				closedModal?.containerEl.style.getPropertyValue('display'),
-			).toBe('none');
+				closedModal?.modalEl.classList.contains('bullet-zoom-force-hidden'),
+			).toBe(true);
 			expect(
-				closedModal?.containerEl.style.getPropertyPriority('display'),
-			).toBe('important');
+				closedModal?.containerEl.classList.contains(
+					'bullet-zoom-force-hidden',
+				),
+			).toBe(true);
 			expect(nativeClose).toHaveBeenCalledTimes(1);
 			expect(document.activeElement).not.toBe(preview);
 			const bodyAfter =

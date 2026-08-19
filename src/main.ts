@@ -45,6 +45,7 @@ import {
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
 	planListPaste,
+	sanitizeExtractFileName,
 	suggestExtractFileName,
 } from './list-structure';
 import {
@@ -219,8 +220,7 @@ async function copyTextToClipboard(
 		const ownerDocument = view.dom.ownerDocument;
 		const holder = ownerDocument.createElement('textarea');
 		holder.value = text;
-		holder.style.position = 'fixed';
-		holder.style.opacity = '0';
+		holder.className = 'bullet-zoom-clipboard-holder';
 		ownerDocument.body.append(holder);
 		holder.select();
 		const copied = ownerDocument.execCommand('copy');
@@ -1383,7 +1383,9 @@ export default class BulletZoomPlugin extends Plugin {
 		anchor: number,
 		rawName: string,
 	): Promise<void> {
-		const name = rawName.trim();
+		// The name is typed by hand, so it goes through the same cleaning as the
+		// suggested one: without it, separators would move the file elsewhere.
+		const name = sanitizeExtractFileName(rawName);
 		if (name.length === 0) {
 			showNotice('Enter a name for the new note.');
 			return;

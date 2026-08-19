@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'guard-bullet-zoom-release-target'. Update Purpose after archive.
+Guard rails for publishing a release: the preflight command verifies that the working tree, the version files, and the `origin` remote all agree before a tag is created, so a build is never published from the wrong place.
 
 ## Requirements
 

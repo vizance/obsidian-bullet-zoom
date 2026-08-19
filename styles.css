@@ -1057,3 +1057,15 @@ button.bullet-zoom-slot-command.is-empty {
 	padding: var(--size-4-2, 8px);
 	color: var(--text-muted);
 }
+
+/* Off-screen holder for the clipboard fallback on devices without the async API */
+.bullet-zoom-clipboard-holder {
+	position: fixed;
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Forced dismissal of the outline preview, which must beat theme rules */
+.bullet-zoom-force-hidden {
+	display: none !important;
+}

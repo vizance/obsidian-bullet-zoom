@@ -412,8 +412,8 @@ The plugin SHALL be published from a standalone GitHub repository whose root con
 
 #### Scenario: Keep the public repository scoped to the plugin
 
-- **WHEN** the standalone repository is generated from the canonical plugin directory
-- **THEN** its root contains the plugin project and excludes files outside `obsidian-bullet-zoom/`
+- **WHEN** the repository is published
+- **THEN** its root holds only the plugin project — source, tests, specs, and release assets — and nothing from the author's other work
 
 ---
 ### Requirement: Render the focus root once and append direct children
