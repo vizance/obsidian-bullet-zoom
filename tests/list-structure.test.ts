@@ -1195,19 +1195,31 @@ describe('focus structure repair (1.4.0)', () => {
 		);
 	});
 
-	it('removes blank lines inside the repaired region', () => {
-		expect(repair('- Topic\n\n\nonly idea\n\n')).toBe(
-			'- Topic\n  - only idea',
+	it('removes blank lines between repaired lines', () => {
+		expect(repair('- Topic\n\n\nonly idea\n\nsecond idea')).toBe(
+			'- Topic\n  - only idea\n  - second idea',
 		);
 	});
 
-	it('keeps heading text inside the new bullet', () => {
-		expect(repair('- Topic\n\n## Section')).toBe('- Topic\n  - ## Section');
+	it('leaves trailing blank lines alone', () => {
+		expect(repair('- Topic\n\n\nonly idea\n\n')).toBe(
+			'- Topic\n  - only idea\n\n',
+		);
+	});
+
+	it('stops at a heading and keeps the blank line before it', () => {
+		expect(repair('- Topic\nstray line\n\n# Outline\n- Later')).toBe(
+			'- Topic\n  - stray line\n\n# Outline\n- Later',
+		);
+	});
+
+	it('does nothing when a heading follows the focused bullet', () => {
+		expect(planFocusStructureRepair(createState('- Topic\n# Outline'), 3, 16)).toBeNull();
 	});
 
 	it('stops at a code fence and leaves the fenced block untouched', () => {
 		expect(repair('- Topic\n\nstray\n\n```\ncode\n```')).toBe(
-			'- Topic\n  - stray\n```\ncode\n```',
+			'- Topic\n  - stray\n\n```\ncode\n```',
 		);
 	});
 

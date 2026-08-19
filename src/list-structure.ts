@@ -1273,7 +1273,8 @@ export function planFocusStructureRepair(
 	}
 	const repairedLines: string[] = [];
 	let changed = false;
-	let stoppedAtLineNumber: number | null = null;
+	let lastRewrittenLineNumber: number | null = null;
+	let pendingBlankLines = 0;
 	let baseIndent = childIndentText(state, bullet);
 	let runIndent: string | null = null;
 	for (
@@ -1282,19 +1283,31 @@ export function planFocusStructureRepair(
 		lineNumber += 1
 	) {
 		const text = state.doc.line(lineNumber).text;
-		if (CODE_FENCE_PATTERN.test(text)) {
-			stoppedAtLineNumber = lineNumber;
+		// A code fence or a heading ends the repair: both are structure the
+		// writer put there on purpose, and a heading separating groups of
+		// bullets must never become a bullet itself.
+		if (
+			CODE_FENCE_PATTERN.test(text) ||
+			HEADING_LINE_PATTERN.test(text.trimStart())
+		) {
 			break;
 		}
 		if (text.trim().length === 0) {
-			changed = true;
+			pendingBlankLines += 1;
 			continue;
+		}
+		if (pendingBlankLines > 0) {
+			// Blank lines only disappear when repaired content follows them, so
+			// the blank line before a boundary survives.
+			changed = true;
+			pendingBlankLines = 0;
 		}
 		const leading = /^[\t ]*/.exec(text)?.[0] ?? '';
 		const column = countColumn(leading, state.tabSize);
 		const isListItem = ANY_LIST_MARKER_PATTERN.test(text);
 		if (isListItem && column > bullet.indent) {
 			repairedLines.push(text);
+			lastRewrittenLineNumber = lineNumber;
 			baseIndent = childIndentOfListLine(state, text) ?? baseIndent;
 			runIndent = null;
 			continue;
@@ -1304,18 +1317,17 @@ export function planFocusStructureRepair(
 		const body = text.slice(leading.length);
 		const repaired = isListItem ? `${indent}${body}` : `${indent}- ${body}`;
 		repairedLines.push(repaired);
+		lastRewrittenLineNumber = lineNumber;
 		if (repaired !== text) {
 			changed = true;
 		}
 	}
-	if (!changed || repairedLines.length === 0) {
+	if (!changed || repairedLines.length === 0 || lastRewrittenLineNumber === null) {
 		return null;
 	}
-	const lastRepairedLine =
-		stoppedAtLineNumber === null ? lastLineNumber : stoppedAtLineNumber - 1;
 	return Object.freeze({
 		from: state.doc.line(firstLineNumber).from,
-		to: state.doc.line(lastRepairedLine).to,
+		to: state.doc.line(lastRewrittenLineNumber).to,
 		insert: repairedLines.join('\n'),
 	});
 }
