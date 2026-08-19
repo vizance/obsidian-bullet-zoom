@@ -47,6 +47,10 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 
 Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level, and the tidy stops at a code fence or a heading — a heading you used to separate groups of bullets keeps its `#` and the blank line before it. When the editor's list continuation has swallowed a top-level heading into a bullet (`- # Outline`), the tidy gives the heading its line back. One undo reverts just the fix. Tidying runs only while you are zoomed in, so ordinary editing outside zoom is never touched. Turn it off with **Fix broken bullets** under **Focus page**.
 
+### Headings stay headings
+
+Pressing Enter inside a list makes Obsidian start the next item, so a heading typed there lands after the marker as `- # Outline` and stops being a heading. Bullet Zoom removes that marker in the same transaction, so the heading works and one undo reverts both. Only the line you just edited is inspected, indented items are left alone — a heading cannot be indented — and `#tag` is not a heading. Turn it off with **Keep headings out of bullets** under **Editing**.
+
 ### Radial menu
 
 Tap a bullet marker on mobile and the commands fan out beside it — zoom is simply one of the commands in the ring. A tap is more precise than a hold, since the menu is anchored on the marker and never drifts with your thumb. Prefer the old split? Set **Marker tap** to zoom, and a hold still opens the menu. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
@@ -133,7 +137,8 @@ Settings are grouped into six described sections:
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
-- **Bullet commands** — what copy puts on the clipboard, the text the prefix command inserts, and whether pasted lists are matched to their destination.
+- **Bullet commands** — what copy puts on the clipboard, and the text the prefix command inserts.
+- **Editing** — whether pasted lists are matched to their destination, and whether headings are kept out of bullets.
 - **Bullet menu** — choose what a marker tap does, and configure the eight slots when the menu is in use.
 - **Extract to new note** — the extraction options listed above.
 
