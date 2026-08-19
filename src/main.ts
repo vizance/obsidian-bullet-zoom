@@ -12,6 +12,7 @@ import {
 	PluginSettingTab,
 	Setting,
 	type App,
+	type SliderComponent,
 	type WorkspaceLeaf,
 } from 'obsidian';
 import { EditorView } from '@codemirror/view';
@@ -387,8 +388,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
-	private row(): Setting {
-		const setting = new Setting(this.containerEl);
+	private row(parent: HTMLElement = this.containerEl): Setting {
+		const setting = new Setting(parent);
 		setting.settingEl.classList.add('bullet-zoom-setting');
 		return setting;
 	}
@@ -404,9 +405,10 @@ class BulletZoomSettingTab extends PluginSettingTab {
 	}
 
 	private renderSlotList(
+		parent: HTMLElement,
 		allCommands: ReadonlyArray<{ id: string; name: string }>,
 	): void {
-		const doc = this.containerEl.ownerDocument;
+		const doc = parent.ownerDocument;
 		const commandIcons = new Map<string, string>();
 		for (const command of allCommands) {
 			const icon = (command as { icon?: unknown }).icon;
@@ -417,7 +419,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		const iconIds = collectIconIds();
 		const list = doc.createElement('div');
 		list.className = 'bullet-zoom-slots';
-		this.containerEl.append(list);
+		parent.append(list);
 
 		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
 			const index = position;
@@ -515,9 +517,44 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		}
 	}
 
+	private renderMenuDetails(container: HTMLElement): void {
+		container.replaceChildren();
+		const markerMode = resolveMarkerMode(this.plugin.settings);
+		if (markerMode === 'zoom-hold') {
+			this.row(container)
+				.setName('Press duration')
+				.setDesc('How long to hold before the menu opens, in milliseconds.')
+				.addSlider((slider) =>
+					slider
+						.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
+						.setValue(this.plugin.settings.radialPressDuration)
+						.setDynamicTooltip()
+						.onChange((value) => {
+							void this.plugin.updateSettings({ radialPressDuration: value });
+						}),
+				);
+		}
+		if (markerMode === 'zoom') {
+			return;
+		}
+		this.row(container)
+			.setName('Menu slots')
+			.setDesc(
+				'Each slot runs one command. Tap a slot icon to choose the picture it shows.',
+			);
+		const allCommands = (
+			(this.app as unknown as { commands?: unknown }).commands as {
+				listCommands?: () => Array<{ id: string; name: string }>;
+			}
+		).listCommands?.() ?? [];
+		this.renderSlotList(container, allCommands);
+	}
+
 	display(): void {
 		this.containerEl.empty();
 		this.containerEl.classList.add('bullet-zoom-settings');
+		let titleSlider: SliderComponent | null = null;
+		let outlineSlider: SliderComponent | null = null;
 
 		this.section('Zoom', 'Which list items you can zoom into.');
 		this.row()
@@ -545,15 +582,16 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		this.row()
 			.setName('Focus title size')
 			.setDesc('Scale the title shown after you zoom into a bullet.')
-			.addSlider((slider) =>
+			.addSlider((slider) => {
+				titleSlider = slider;
 				slider
 					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
 					.setValue(this.plugin.settings.titleScale)
 					.setDynamicTooltip()
 					.onChange((value) => {
 						void this.plugin.updateSettings({ titleScale: value });
-					}),
-			)
+					});
+			})
 			.addExtraButton((button) =>
 				button
 					.setIcon('rotate-ccw')
@@ -561,7 +599,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.onClick(() => {
 						void this.plugin
 							.updateSettings({ titleScale: 100 })
-							.then(() => this.display());
+							.then(() => titleSlider?.setValue(100));
 					}),
 			);
 		this.row()
@@ -591,15 +629,16 @@ class BulletZoomSettingTab extends PluginSettingTab {
 		this.row()
 			.setName('Outline text size')
 			.setDesc('Scale the outline text. Lower values fit more lines on screen.')
-			.addSlider((slider) =>
+			.addSlider((slider) => {
+				outlineSlider = slider;
 				slider
 					.setLimits(SCALE_MIN, SCALE_MAX, SCALE_STEP)
 					.setValue(this.plugin.settings.outlineScale)
 					.setDynamicTooltip()
 					.onChange((value) => {
 						void this.plugin.updateSettings({ outlineScale: value });
-					}),
-			)
+					});
+			})
 			.addExtraButton((button) =>
 				button
 					.setIcon('rotate-ccw')
@@ -607,7 +646,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.onClick(() => {
 						void this.plugin
 							.updateSettings({ outlineScale: 100 })
-							.then(() => this.display());
+							.then(() => outlineSlider?.setValue(100));
 					}),
 			);
 
@@ -658,7 +697,8 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			'Bullet menu',
 			'The command menu that opens from a bullet marker on phone and tablet.',
 		);
-		const markerMode = resolveMarkerMode(this.plugin.settings);
+		const menuDetails = this.containerEl.ownerDocument.createElement('div');
+		menuDetails.className = 'bullet-zoom-menu-details';
 		this.row()
 			.setName('Marker tap')
 			.setDesc('What tapping a bullet marker does on phone and tablet.')
@@ -667,40 +707,18 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.addOption('menu', 'Open the menu')
 					.addOption('zoom', 'Zoom into the bullet')
 					.addOption('zoom-hold', 'Zoom, and open the menu on a long press')
-					.setValue(markerMode)
+					.setValue(resolveMarkerMode(this.plugin.settings))
 					.onChange((value) => {
 						void this.plugin
 							.updateSettings(markerModeSettings(value))
-							.then(() => this.display());
+							// Only the dependent rows are rebuilt: redrawing the whole
+							// tab would reset the scroll position and pull the dropdown
+							// out from under the user's finger.
+							.then(() => this.renderMenuDetails(menuDetails));
 					}),
 			);
-		if (markerMode === 'zoom-hold') {
-			this.row()
-				.setName('Press duration')
-				.setDesc('How long to hold before the menu opens, in milliseconds.')
-				.addSlider((slider) =>
-					slider
-						.setLimits(RADIAL_PRESS_MIN, RADIAL_PRESS_MAX, 50)
-						.setValue(this.plugin.settings.radialPressDuration)
-						.setDynamicTooltip()
-						.onChange((value) => {
-							void this.plugin.updateSettings({ radialPressDuration: value });
-						}),
-				);
-		}
-		if (markerMode !== 'zoom') {
-			this.row()
-				.setName('Menu slots')
-				.setDesc(
-					'Each slot runs one command. Tap a slot icon to choose the picture it shows.',
-				);
-			const allCommands = (
-				(this.app as unknown as { commands?: unknown }).commands as {
-					listCommands?: () => Array<{ id: string; name: string }>;
-				}
-			).listCommands?.() ?? [];
-			this.renderSlotList(allCommands);
-		}
+		this.containerEl.append(menuDetails);
+		this.renderMenuDetails(menuDetails);
 
 		this.section(
 			'Extract to new note',
