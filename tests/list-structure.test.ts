@@ -16,6 +16,7 @@ import {
 	findAncestorBullet,
 	planFocusStructureRepair,
 	planListPaste,
+	sanitizeExtractFileName,
 	scanStrayRange,
 	suggestExtractFileName,
 	buildHyperMdBulletOutline,
@@ -1424,5 +1425,24 @@ describe('findAncestorBullet', () => {
 	it('returns nothing when the cursor is not on a bullet', () => {
 		const state = createState('Just a paragraph');
 		expect(findAncestorBullet(state, 3)).toBeNull();
+	});
+});
+
+describe('sanitizeExtractFileName', () => {
+	it('keeps a typed name inside the destination folder', () => {
+		expect(sanitizeExtractFileName('../../outside')).toBe('.. .. outside');
+		expect(sanitizeExtractFileName('Ideas/Draft')).toBe('Ideas Draft');
+		expect(sanitizeExtractFileName('C:\\notes\\x')).toBe('C notes x');
+	});
+
+	it('reports an empty name when nothing usable is left', () => {
+		expect(sanitizeExtractFileName('///')).toBe('');
+		expect(sanitizeExtractFileName('   ')).toBe('');
+	});
+
+	it('leaves an ordinary name alone', () => {
+		expect(sanitizeExtractFileName('  Writing session  ')).toBe(
+			'Writing session',
+		);
 	});
 });

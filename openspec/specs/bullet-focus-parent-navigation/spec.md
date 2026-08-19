@@ -2,7 +2,7 @@
 
 ## Purpose
 
-TBD - created by archiving change 'add-bullet-zoom-parent-shortcut'. Update Purpose after archive.
+Moving up a bullet hierarchy: stepping out of a focused branch to the level above it, and moving the cursor to a parent or to the outermost bullet while editing.
 
 ## Requirements
 

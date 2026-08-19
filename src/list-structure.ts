@@ -1183,15 +1183,25 @@ export function planBulletRemovalRange(
 	return Object.freeze({ from: replaceFrom, to: replaceTo });
 }
 
-export function suggestExtractFileName(label: string): string {
-	return label
-		.replace(/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, alias) =>
-			typeof alias === 'string' && alias.length > 0 ? alias : String(target),
-		)
-		.replace(/!?\[([^\]]*)\]\([^)]*\)/g, (_match, text) => String(text))
+/**
+ * Strips the characters Obsidian rejects in file names, including path
+ * separators, so a typed name can never point outside the destination folder.
+ */
+export function sanitizeExtractFileName(name: string): string {
+	return name
 		.replace(/[\\/:*?"<>|#^[\]]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
+}
+
+export function suggestExtractFileName(label: string): string {
+	return sanitizeExtractFileName(
+		label
+			.replace(/!?\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, alias) =>
+				typeof alias === 'string' && alias.length > 0 ? alias : String(target),
+			)
+			.replace(/!?\[([^\]]*)\]\([^)]*\)/g, (_match, text) => String(text)),
+	);
 }
 
 const HEADING_LINE_PATTERN = /^#{1,6}\s/;

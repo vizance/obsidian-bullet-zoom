@@ -23,6 +23,8 @@ import {
 } from './list-structure';
 import { appendHomeIcon } from './home-icon';
 
+const FORCE_HIDDEN_CLASS = 'bullet-zoom-force-hidden';
+
 export const BULLET_OUTLINE_VIEW_TYPE = 'bullet-zoom-outline';
 export const BULLET_OUTLINE_VIEW_NAME = 'Bullet outline';
 
@@ -241,8 +243,8 @@ class BulletLabelPreviewModal extends Modal {
 		this.closing = true;
 		this.modalEl.hidden = true;
 		this.containerEl.hidden = true;
-		this.modalEl.style.setProperty('display', 'none', 'important');
-		this.containerEl.style.setProperty('display', 'none', 'important');
+		this.modalEl.classList.add(FORCE_HIDDEN_CLASS);
+		this.containerEl.classList.add(FORCE_HIDDEN_CLASS);
 		super.close();
 	}
 
