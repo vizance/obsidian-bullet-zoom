@@ -45,6 +45,10 @@ import {
 	planListPaste,
 	suggestExtractFileName,
 } from './list-structure';
+import {
+	readCommandEntries,
+	type CommandEntry,
+} from './command-catalog';
 import { createHeadingUnwrapExtension } from './heading-unwrap';
 import { filterIconIds, iconLabel } from './icon-picker';
 import {
@@ -407,14 +411,13 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 	private renderSlotList(
 		parent: HTMLElement,
-		allCommands: ReadonlyArray<{ id: string; name: string }>,
+		allCommands: readonly CommandEntry[],
 	): void {
 		const doc = parent.ownerDocument;
 		const commandIcons = new Map<string, string>();
 		for (const command of allCommands) {
-			const icon = (command as { icon?: unknown }).icon;
-			if (typeof icon === 'string' && icon.length > 0) {
-				commandIcons.set(command.id, icon);
+			if (command.icon.length > 0) {
+				commandIcons.set(command.id, command.icon);
 			}
 		}
 		const iconIds = collectIconIds();
@@ -543,12 +546,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			.setDesc(
 				'Each slot runs one command. Tap a slot icon to choose the picture it shows.',
 			);
-		const allCommands = (
-			(this.app as unknown as { commands?: unknown }).commands as {
-				listCommands?: () => Array<{ id: string; name: string }>;
-			}
-		).listCommands?.() ?? [];
-		this.renderSlotList(container, allCommands);
+		this.renderSlotList(container, this.plugin.readCommands());
 	}
 
 	display(): void {
@@ -836,6 +834,7 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 export default class BulletZoomPlugin extends Plugin {
 	private outlineCoordinator: BulletOutlineSidebarCoordinator | null = null;
+	private commandCatalog: readonly CommandEntry[] = [];
 	private readonly editorExtensions: Extension[] = [];
 	settings: BulletZoomSettings = DEFAULT_SETTINGS;
 
@@ -1159,6 +1158,20 @@ export default class BulletZoomPlugin extends Plugin {
 		});
 	}
 
+	/**
+	 * Keeps the last catalog that had anything in it, so a momentarily empty
+	 * registry never leaves the menu without names or icons.
+	 */
+	readCommands(): readonly CommandEntry[] {
+		const entries = readCommandEntries(
+			(this.app as unknown as { commands?: unknown }).commands,
+		);
+		if (entries.length > 0) {
+			this.commandCatalog = entries;
+		}
+		return this.commandCatalog;
+	}
+
 	private handleListPaste(event: ClipboardEvent, editor: Editor): boolean {
 		if (!this.settings.normalizeListPaste) {
 			return false;
@@ -1196,16 +1209,14 @@ export default class BulletZoomPlugin extends Plugin {
 	): void {
 		const commands = (this.app as unknown as { commands?: unknown })
 			.commands as {
-			listCommands?: () => Array<{ id: string; name: string }>;
 			executeCommandById?: (id: string) => unknown;
 		};
 		const names = new Map<string, string>();
 		const icons = new Map<string, string>();
-		for (const command of commands.listCommands?.() ?? []) {
+		for (const command of this.readCommands()) {
 			names.set(command.id, command.name);
-			const icon = (command as { icon?: unknown }).icon;
-			if (typeof icon === 'string' && icon.length > 0) {
-				icons.set(command.id, icon);
+			if (command.icon.length > 0) {
+				icons.set(command.id, command.icon);
 			}
 		}
 		const segments = computeMenuSegments(
