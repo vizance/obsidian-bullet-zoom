@@ -671,29 +671,18 @@ The plugin SHALL provide a settings tab with two sliders — focus title scale a
 ---
 ### Requirement: Reset each size slider to its default with one tap
 
-Each size slider setting SHALL include a reset extra button that, when activated, sets the corresponding scale back to 100, persists the change, reapplies the scale custom properties, and re-renders the settings tab so the slider control reflects 100.
+Each size slider setting SHALL include a reset extra button that, when activated, sets the corresponding scale back to 100, persists the change, reapplies the scale custom properties, and updates the slider control in place to show 100 without re-rendering the settings tab.
 
 #### Scenario: Reset the title slider
 
 - **WHEN** the user taps the reset button next to the focus title slider
-- **THEN** the persisted title scale becomes 100, the body custom property becomes `1`, and the re-rendered slider shows 100
+- **THEN** the persisted title scale becomes 100, the body custom property becomes `1`, and the slider shows 100 without the page moving
 
 ##### Example: Reset after adjustment
 
 - **GIVEN** the title scale is 130
-- **WHEN** the reset button of the title slider is activated
-- **THEN** the persisted data records `titleScale: 100` and the slider control value is `100`
-
-#### Scenario: Reset the outline slider independently
-
-- **WHEN** the user taps the reset button next to the outline slider while the title scale is 130
-- **THEN** only the outline scale returns to 100 and the title scale stays 130
-
-##### Example: Independent reset
-
-- **GIVEN** persisted data `{ "titleScale": 130, "outlineScale": 85 }`
-- **WHEN** the outline reset button is activated
-- **THEN** the persisted data becomes `{ "titleScale": 130, "outlineScale": 100 }`
+- **WHEN** the reset button is activated
+- **THEN** the stored title scale is 100 and the slider displays 100
 
 ---
 ### Requirement: Show the full breadcrumb trail on mobile
@@ -1742,7 +1731,7 @@ When list content is pasted while the cursor sits on a list line, the plugin SHA
 ---
 ### Requirement: Show only the menu settings that apply
 
-The bullet menu section SHALL present one control for what a bullet marker does, offering exactly three choices: open the menu on tap, zoom on tap with no menu, or zoom on tap with the menu on a long press. That choice SHALL be stored in the existing enable and marker-tap settings, so no stored settings need migrating. The section SHALL then show only the settings the choice actually uses: the press duration SHALL appear only for the long-press choice, and the slot list SHALL appear only when the menu can be opened at all. Changing the choice SHALL redraw the section immediately.
+The bullet menu section SHALL present one control for what a bullet marker does, offering exactly three choices: open the menu on tap, zoom on tap with no menu, or zoom on tap with the menu on a long press. That choice SHALL be stored in the existing enable and marker-tap settings, so no stored settings need migrating. The section SHALL then show only the settings the choice actually uses: the press duration SHALL appear only for the long-press choice, and the slot list SHALL appear only when the menu can be opened at all. The settings that depend on the choice SHALL live in their own container, and changing the choice SHALL rebuild only that container, leaving every other row, the scroll position, and the control the user just touched exactly where they were.
 
 #### Scenario: Zooming hides the menu settings
 
@@ -1776,3 +1765,14 @@ The bullet menu section SHALL present one control for what a bullet marker does,
 - **GIVEN** the long-press choice
 - **WHEN** it is saved
 - **THEN** the menu stays enabled and the marker tap action is `zoom`
+
+#### Scenario: Switching the choice does not move the page
+
+- **WHEN** the marker choice changes
+- **THEN** only the dependent settings are rebuilt, and the rest of the tab keeps its position
+
+##### Example: Scroll position survives
+
+- **GIVEN** the settings tab scrolled down to the bullet menu section
+- **WHEN** the marker choice changes
+- **THEN** the section stays under the user's finger instead of jumping to the top
