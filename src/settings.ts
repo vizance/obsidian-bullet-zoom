@@ -29,10 +29,12 @@ export type MarkerTapAction = 'menu' | 'zoom';
 export interface RadialSlot {
 	readonly commandId: string;
 	readonly enabled: boolean;
+	/** Obsidian icon id; empty means "use the command's own icon". */
+	readonly icon: string;
 }
 
-function slot(commandId: string, enabled = true): RadialSlot {
-	return Object.freeze({ commandId, enabled });
+function slot(commandId: string, enabled = true, icon = ''): RadialSlot {
+	return Object.freeze({ commandId, enabled, icon });
 }
 
 export const DEFAULT_RADIAL_SLOTS: readonly RadialSlot[] = Object.freeze([
@@ -145,7 +147,9 @@ function normalizeSlots(value: unknown): readonly RadialSlot[] {
 				typeof record['enabled'] === 'boolean'
 					? record['enabled']
 					: commandId.length > 0;
-			slots.push(slot(commandId, enabled));
+			const icon =
+				typeof record['icon'] === 'string' ? record['icon'].trim() : '';
+			slots.push(slot(commandId, enabled, icon));
 			continue;
 		}
 		slots.push(slot('', false));

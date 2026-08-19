@@ -7,16 +7,73 @@ export const RADIAL_DEAD_ZONE_PX = 32;
 export const RADIAL_RADIUS_PX = 104;
 export const RADIAL_HIT_RADIUS_PX = 60;
 export const RADIAL_EDGE_PADDING_PX = 32;
+export const RADIAL_BUTTON_PX = 48;
+export const RADIAL_ICON_PX = 22;
+export const RADIAL_ITEM_GAP_PX = 8;
+export const RADIAL_BUTTON_PROPERTY = '--bullet-zoom-radial-button';
+export const RADIAL_ICON_PROPERTY = '--bullet-zoom-radial-icon';
+
+export type RadialMenuSize = 'regular' | 'large';
+
+export interface RadialMetrics {
+	readonly button: number;
+	readonly icon: number;
+	readonly radius: number;
+	readonly hitRadius: number;
+	readonly deadZone: number;
+}
+
+const REGULAR_METRICS: RadialMetrics = Object.freeze({
+	button: RADIAL_BUTTON_PX,
+	icon: RADIAL_ICON_PX,
+	radius: RADIAL_RADIUS_PX,
+	hitRadius: RADIAL_HIT_RADIUS_PX,
+	deadZone: RADIAL_DEAD_ZONE_PX,
+});
+
+// A tablet is held further away than a phone, so every dimension grows
+// together; scaling only the artwork would break the hit test.
+const LARGE_METRICS: RadialMetrics = Object.freeze({
+	button: 66,
+	icon: 30,
+	radius: 148,
+	hitRadius: 82,
+	deadZone: 44,
+});
+
+export function resolveMenuMetrics(size: RadialMenuSize): RadialMetrics {
+	return size === 'large' ? LARGE_METRICS : REGULAR_METRICS;
+}
+
+/**
+ * The fan spans half a circle, so adjacent centres sit `pi * radius / (count -
+ * 1)` apart. Below one button width they overlap, so the radius grows to match.
+ */
+export function resolveFanRadius(input: {
+	readonly count: number;
+	readonly button: number;
+	readonly baseRadius: number;
+	readonly gap?: number;
+}): number {
+	if (input.count <= 2) {
+		return input.baseRadius;
+	}
+	const spacing = input.button + (input.gap ?? RADIAL_ITEM_GAP_PX);
+	const needed = (spacing * (input.count - 1)) / Math.PI;
+	return Math.max(input.baseRadius, Math.ceil(needed));
+}
 
 export interface RadialSlot {
 	readonly commandId: string;
 	readonly enabled: boolean;
+	readonly icon?: string;
 }
 
 export interface RadialSegment {
 	readonly slot: number;
 	readonly commandId: string;
 	readonly label: string;
+	readonly icon: string;
 }
 
 export interface FanItem {
@@ -40,7 +97,12 @@ export function computeMenuSegments(
 			continue;
 		}
 		segments.push(
-			Object.freeze({ slot, commandId, label: resolveLabel(commandId) }),
+			Object.freeze({
+				slot,
+				commandId,
+				label: resolveLabel(commandId),
+				icon: (entry.icon ?? '').trim(),
+			}),
 		);
 	}
 	return Object.freeze(segments);
@@ -119,6 +181,28 @@ export function resolveNearestItem(input: {
 	return bestIndex;
 }
 
+export const RADIAL_DEFAULT_ICON = 'circle-dot';
+
+/**
+ * A slot's own icon wins, then the command's icon, then a neutral marker, so a
+ * command without an icon never renders as an empty circle.
+ */
+export function resolveSegmentIcon(input: {
+	readonly slotIcon?: string;
+	readonly commandIcon?: string;
+	readonly fallback?: string;
+}): string {
+	const slotIcon = (input.slotIcon ?? '').trim();
+	if (slotIcon.length > 0) {
+		return slotIcon;
+	}
+	const commandIcon = (input.commandIcon ?? '').trim();
+	if (commandIcon.length > 0) {
+		return commandIcon;
+	}
+	return input.fallback ?? RADIAL_DEFAULT_ICON;
+}
+
 export interface RadialMenuOptions {
 	readonly document: Document;
 	readonly x: number;
@@ -128,6 +212,7 @@ export interface RadialMenuOptions {
 	readonly viewportWidth?: number;
 	readonly viewportHeight?: number;
 	readonly viewportTop?: number;
+	readonly size?: RadialMenuSize;
 	readonly renderIcon?: (element: HTMLElement, segment: RadialSegment) => void;
 	readonly onSelect: (segment: RadialSegment) => void;
 	readonly onCancel?: () => void;
@@ -140,6 +225,12 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	const viewportWidth = options.viewportWidth ?? view?.innerWidth ?? 0;
 	const viewportHeight = options.viewportHeight ?? view?.innerHeight ?? 0;
 	const viewportTop = options.viewportTop ?? 0;
+	const metrics = resolveMenuMetrics(options.size ?? 'regular');
+	const radius = resolveFanRadius({
+		count: segments.length,
+		button: metrics.button,
+		baseRadius: metrics.radius,
+	});
 	const layout = computeFanLayout({
 		x: options.x,
 		y: options.y,
@@ -147,6 +238,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 		viewportWidth,
 		viewportHeight,
 		viewportTop,
+		radius,
 	});
 	const bandTop = viewportTop + RADIAL_EDGE_PADDING_PX;
 	const bandBottom = Math.max(
@@ -156,7 +248,7 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 	const centreY = Math.min(Math.max(options.y, bandTop), bandBottom);
 	// The caption must clear the whole menu, not just the centre, so a thumb
 	// resting on the cancel control never covers it.
-	const BUTTON_RADIUS = 26;
+	const BUTTON_RADIUS = metrics.button / 2;
 	const CAPTION_GAP = 14;
 	const boxTop = Math.min(
 		centreY,
@@ -183,6 +275,8 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 
 	const overlay = doc.createElement('div');
 	overlay.className = 'bullet-zoom-radial-overlay';
+	overlay.style.setProperty(RADIAL_BUTTON_PROPERTY, `${metrics.button}px`);
+	overlay.style.setProperty(RADIAL_ICON_PROPERTY, `${metrics.icon}px`);
 
 	const ring = doc.createElement('div');
 	ring.className = 'bullet-zoom-radial-ring';
@@ -272,6 +366,8 @@ export function openRadialMenu(options: RadialMenuOptions): () => void {
 			originX: options.x,
 			originY: options.y,
 			items: layout.items,
+			hitRadius: metrics.hitRadius,
+			deadZone: metrics.deadZone,
 		});
 
 	const highlight = (index: number | null): void => {

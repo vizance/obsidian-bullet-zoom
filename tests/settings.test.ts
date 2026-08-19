@@ -41,14 +41,14 @@ describe('settings normalization', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 	});
@@ -74,14 +74,14 @@ describe('settings normalization', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
@@ -110,14 +110,14 @@ describe('scale variable application', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 		expect(
@@ -165,14 +165,14 @@ describe('plugin settings lifecycle', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 		expect(
@@ -196,14 +196,14 @@ describe('plugin settings lifecycle', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 
@@ -248,14 +248,14 @@ describe('slider reset buttons', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 		expect(
@@ -300,14 +300,14 @@ describe('marker detection toggles', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			radialSlots: [
-				{ commandId: 'bullet-zoom:copy-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:delete-bullet', enabled: true },
-				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true },
-				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true },
-				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true },
-				{ commandId: 'bullet-zoom:clear-bullet', enabled: true },
-				{ commandId: '', enabled: false },
-				{ commandId: '', enabled: false },
+				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:insert-bullet-prefix', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
+				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
 	});
@@ -432,7 +432,7 @@ describe('radial slot settings', () => {
 		expect(normalizeSettings({}).radialSlots).toHaveLength(8);
 		const padded = normalizeSettings({ radialSlots: [] }).radialSlots;
 		expect(padded).toHaveLength(8);
-		expect(padded[0]).toEqual({ commandId: '', enabled: false });
+		expect(padded[0]).toEqual({ commandId: '', enabled: false, icon: '' });
 	});
 
 	it('reads slots saved as plain command ids as enabled', () => {
@@ -440,17 +440,30 @@ describe('radial slot settings', () => {
 			markerTapAction: 'menu',
 			radialSlots: ['copy', '', 'delete'],
 		}).radialSlots;
-		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true });
-		expect(migrated[1]).toEqual({ commandId: '', enabled: false });
-		expect(migrated[2]).toEqual({ commandId: 'delete', enabled: true });
+		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true, icon: '' });
+		expect(migrated[1]).toEqual({ commandId: '', enabled: false, icon: '' });
+		expect(migrated[2]).toEqual({ commandId: 'delete', enabled: true, icon: '' });
+	});
+
+	it('normalizes slot icons and defaults older records to none', () => {
+		const normalized = normalizeSettings({
+			radialSlots: [
+				{ commandId: 'copy', enabled: true, icon: '  star  ' },
+				{ commandId: 'delete', enabled: true },
+				{ commandId: 'prefix', enabled: true, icon: 42 },
+			],
+		}).radialSlots;
+		expect(normalized[0]?.icon).toBe('star');
+		expect(normalized[1]?.icon).toBe('');
+		expect(normalized[2]?.icon).toBe('');
 	});
 
 	it('keeps a disabled slot with its command id', () => {
 		const kept = normalizeSettings({
 			markerTapAction: 'menu',
-			radialSlots: [{ commandId: 'delete', enabled: false }],
+			radialSlots: [{ commandId: 'delete', enabled: false, icon: '' }],
 		}).radialSlots;
-		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false });
+		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false, icon: '' });
 	});
 });
 

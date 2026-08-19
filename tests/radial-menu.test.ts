@@ -4,8 +4,14 @@ import {
 	computeFanLayout,
 	computeMenuSegments,
 	openRadialMenu,
+	RADIAL_BUTTON_PROPERTY,
 	RADIAL_DEAD_ZONE_PX,
+	RADIAL_ICON_PROPERTY,
+	RADIAL_RADIUS_PX,
+	resolveFanRadius,
+	resolveMenuMetrics,
 	resolveNearestItem,
+	resolveSegmentIcon,
 } from '../src/radial-menu';
 
 afterEach(() => {
@@ -498,5 +504,106 @@ describe('menu scrim and ring (1.17.0)', () => {
 		expect(ring?.style.top).toBe('200px');
 		close();
 		expect(document.querySelector('.bullet-zoom-radial-ring')).toBeNull();
+	});
+});
+
+describe('menu metrics and slot icons (1.18.0)', () => {
+	it('scales every metric together for tablets', () => {
+		const regular = resolveMenuMetrics('regular');
+		const large = resolveMenuMetrics('large');
+		expect(large.button).toBeGreaterThan(regular.button);
+		expect(large.icon).toBeGreaterThan(regular.icon);
+		expect(large.radius).toBeGreaterThan(regular.radius);
+		expect(large.hitRadius).toBeGreaterThan(regular.hitRadius);
+		expect(large.deadZone).toBeGreaterThan(regular.deadZone);
+	});
+
+	it('publishes the resolved metrics on the overlay', () => {
+		const large = resolveMenuMetrics('large');
+		openRadialMenu({
+			document,
+			x: 100,
+			y: 300,
+			viewportWidth: 800,
+			viewportHeight: 900,
+			size: 'large',
+			segments: computeMenuSegments(slots('copy', 'delete')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const overlay = document.querySelector<HTMLElement>(
+			'.bullet-zoom-radial-overlay',
+		);
+		expect(overlay?.style.getPropertyValue(RADIAL_BUTTON_PROPERTY)).toBe(
+			`${large.button}px`,
+		);
+		expect(overlay?.style.getPropertyValue(RADIAL_ICON_PROPERTY)).toBe(
+			`${large.icon}px`,
+		);
+	});
+
+	it('grows the radius until adjacent items stop overlapping', () => {
+		const radius = resolveFanRadius({
+			count: 8,
+			button: 48,
+			baseRadius: RADIAL_RADIUS_PX,
+		});
+		expect(radius).toBeGreaterThan(RADIAL_RADIUS_PX);
+		expect((Math.PI * radius) / 7).toBeGreaterThanOrEqual(48);
+		expect(
+			resolveFanRadius({ count: 2, button: 48, baseRadius: RADIAL_RADIUS_PX }),
+		).toBe(RADIAL_RADIUS_PX);
+	});
+
+	it('keeps eight tablet items apart on screen', () => {
+		const large = resolveMenuMetrics('large');
+		openRadialMenu({
+			document,
+			x: 60,
+			y: 500,
+			viewportWidth: 1024,
+			viewportHeight: 1300,
+			size: 'large',
+			segments: computeMenuSegments(
+				slots('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'),
+			),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const buttons = Array.from(
+			document.querySelectorAll<HTMLElement>('.bullet-zoom-radial-item'),
+		).map((button) => ({
+			x: Number.parseFloat(button.style.left),
+			y: Number.parseFloat(button.style.top),
+		}));
+		expect(buttons).toHaveLength(8);
+		for (let index = 1; index < buttons.length; index += 1) {
+			const previous = buttons[index - 1];
+			const current = buttons[index];
+			const distance = Math.hypot(
+				(current?.x ?? 0) - (previous?.x ?? 0),
+				(current?.y ?? 0) - (previous?.y ?? 0),
+			);
+			expect(distance).toBeGreaterThanOrEqual(large.button);
+		}
+	});
+
+	it('carries the slot icon into the computed segments', () => {
+		const segments = computeMenuSegments([
+			{ commandId: 'copy', enabled: true, icon: ' star ' },
+			{ commandId: 'delete', enabled: true, icon: '' },
+		]);
+		expect(segments[0]?.icon).toBe('star');
+		expect(segments[1]?.icon).toBe('');
+	});
+
+	it('resolves the slot icon first, then the command icon, then the default', () => {
+		expect(
+			resolveSegmentIcon({ slotIcon: 'star', commandIcon: 'copy' }),
+		).toBe('star');
+		expect(resolveSegmentIcon({ slotIcon: '', commandIcon: 'copy' })).toBe(
+			'copy',
+		);
+		expect(resolveSegmentIcon({})).toBe('circle-dot');
 	});
 });

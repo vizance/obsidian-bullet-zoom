@@ -675,8 +675,8 @@ button.bullet-zoom-breadcrumb {
 
 .bullet-zoom-radial-ring {
 	position: absolute;
-	width: 44px;
-	height: 44px;
+	width: calc(var(--bullet-zoom-radial-button, 48px) * 0.92);
+	height: calc(var(--bullet-zoom-radial-button, 48px) * 0.92);
 	transform: translate(-50%, -50%);
 	border: 2px solid var(--interactive-accent);
 	border-radius: 50%;
@@ -718,8 +718,8 @@ button.bullet-zoom-breadcrumb {
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
-	width: 48px;
-	height: 48px;
+	width: var(--bullet-zoom-radial-button, 48px);
+	height: var(--bullet-zoom-radial-button, 48px);
 	padding: 0;
 	transform: translate(-50%, -50%);
 	background: var(--background-secondary);
@@ -729,6 +729,12 @@ button.bullet-zoom-breadcrumb {
 	color: var(--text-normal);
 	transition: transform 120ms ease, background-color 120ms ease,
 		box-shadow 120ms ease;
+}
+
+.bullet-zoom-radial-item .svg-icon,
+.bullet-zoom-radial-item svg {
+	width: var(--bullet-zoom-radial-icon, 22px);
+	height: var(--bullet-zoom-radial-icon, 22px);
 }
 
 .bullet-zoom-radial-item {
@@ -743,7 +749,7 @@ button.bullet-zoom-breadcrumb {
 .bullet-zoom-radial-cancel {
 	background: var(--background-modifier-error, var(--background-secondary));
 	color: var(--text-on-accent, var(--text-normal));
-	font-size: var(--font-ui-medium, 1em);
+	font-size: calc(var(--bullet-zoom-radial-icon, 22px) * 1.1);
 	line-height: 1;
 }
 
@@ -839,4 +845,25 @@ button.bullet-zoom-breadcrumb {
 .bullet-zoom-settings {
 	max-width: 100%;
 	overflow-x: hidden;
+}
+
+/* 1.18.0: per-slot icon controls in the settings tab */
+.bullet-zoom-slot-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-right: var(--size-4-2, 8px);
+	color: var(--text-muted);
+	vertical-align: middle;
+}
+
+.bullet-zoom-slot-icon .svg-icon,
+.bullet-zoom-slot-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.bullet-zoom-setting .setting-item-control input.bullet-zoom-slot-icon-input {
+	flex: 0 1 8em;
+	min-width: 5em;
 }
