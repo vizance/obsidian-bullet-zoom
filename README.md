@@ -53,31 +53,34 @@ Voice-to-text and AI writing tools often insert paragraphs that break the list s
 
 Pressing Enter inside a list makes Obsidian start the next item, so a heading typed there lands after the marker as `- # Outline` and stops being a heading. Bullet Zoom removes that marker in the same transaction, so the heading works and one undo reverts both. Only the line you just edited is inspected, indented items are left alone — a heading cannot be indented — and `#tag` is not a heading. Turn it off with **Keep headings out of bullets** under **Editing**.
 
-### Radial menu
+### Bullet menu
 
-Tap a bullet marker on mobile and the commands fan out beside it — zoom is simply one of the commands in the ring. A tap is more precise than a hold, since the menu is anchored on the marker and never drifts with your thumb. Prefer the old split? Set **Marker tap** to zoom, and a hold still opens the menu. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
+Tap a bullet marker on phone or tablet and the commands fan out beside it — zoom is simply one of them. A tap is more precise than a hold, since the menu is anchored on the marker and never drifts with your thumb. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
 
 While the menu is open the editor is frozen: the caret is hidden and cannot be dragged, so the finger that opened the menu only drives the menu. Closing it restores the caret and the keyboard exactly as they were. Opening the menu never focuses the editor, so the keyboard stays down, and the layout uses the visible viewport — if the keyboard is already up, the fan still lands above it. Items spread out with a short entrance animation, which is skipped when your system asks for reduced motion.
 
 The fan opens toward whichever side of the screen has more room — to the right for a bullet near the left edge — and its spread narrows near the top or bottom, so no item ever lands off screen. Items show icons rather than names, and the name of the item under your thumb appears just below the centre.
 
-Each of the eight slots holds an Obsidian command id, an optional icon id, and an on/off switch, so the menu can run the plugin's own bullet commands or anything from another plugin, and you can hide a slot without losing its command. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
+Each of the eight slots holds one command, an optional icon, and an on/off switch, so the menu can run the plugin's own bullet commands or anything from another plugin, and you can hide a slot without losing its command. Out of the box the slots are copy, delete, insert prefix, zoom, extract to note, clear, cut, and go to top-level bullet.
 
 A slot with no icon of its own uses the command's icon, falling back to a neutral dot for commands that have none. To choose one, tap the icon button beside the slot number: a picker opens with a search box and a grid of real icons, and a **Use the command icon** button clears the choice. There is no icon id to type.
 
 The menu sizes itself for the device: phones keep the compact ring, tablets get larger buttons and icons, and the fan widens when it holds many items so a full set of eight never overlaps.
 
-The bullet commands below come with the plugin and also work from the command palette:
+The bullet commands below come with the plugin and also work from the command palette and from hotkeys:
 
 - **Copy bullet** — copies the bullet's text, or the bullet with its children when the copy scope says so.
 - **Cut bullet** — copies the bullet and all of its children, then removes that branch. The removal happens only after the copy succeeds, so a failed copy never loses content.
-
-Pasting a branch back is handled too. When you paste list content with the cursor on a list line, the branch is rewritten to belong to that list: every line moves to the target's indentation while keeping its depth, so children stay nested, and every marker adopts the target's style — a numbered branch pasted into a bulleted list comes out bulleted, and a bulleted branch pasted into a numbered list is renumbered per level. Pasting into an empty bullet fills that line instead of leaving a stray marker. Turn it off with **Match the list you paste into** under **Bullet commands**.
 - **Clear bullet text** — empties the bullet but keeps it and its children, ready for retyping.
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
+- **Go to parent bullet** and **Go to top-level bullet** — move the cursor up the branch, as described above.
 
-Settings live under **Bullet menu**. One choice decides what a marker tap does: open the menu, zoom, or zoom with the menu on a long press. The rest of the section follows that choice — the press duration appears only for the long-press option, and the slot list only when the menu can open at all. Each slot row shows its number, the icon button, the command button, and an on/off switch. Tapping the command button opens a searchable picker: type any part of a command's name or id, and matching commands are listed with their own icons, so you never scroll a list of hundreds. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
+Settings live under **Bullet menu**. One choice decides what a marker tap does: open the menu, zoom, or zoom with the menu on a long press. The rest of the section follows that choice — the press duration appears only for the long-press option, and the slot list only when the menu can open at all. Each slot row shows its number, the icon button, the command button, and an on/off switch. Tapping the command button opens a searchable picker: type any part of a command's name or id, and matching commands are listed with their own icons, so you never scroll a list of hundreds. Moving your finger cancels the gesture, so scrolling is unaffected.
+
+### Pasted branches join the list they land in
+
+Cutting a branch is only half a move, so pasting is handled too. When you paste list content with the cursor on a list line, the branch is rewritten to belong to that list: every line moves to the target's indentation while keeping its depth, so children stay nested under the pasted parent, and every marker adopts the target's style — a numbered branch pasted into a bulleted list comes out bulleted, and a bulleted branch pasted into a numbered list is renumbered per level. Wrapped continuation lines travel with it, and pasting into a bullet you just made and left empty fills that line instead of leaving a stray marker above the branch. Anything else — plain text, a cursor outside a list, a selection — is left to Obsidian. Turn it off with **Match the list you paste into** under **Editing**.
 
 ### Folding is separate from zooming
 
@@ -134,7 +137,7 @@ Placeholders are case-insensitive and tolerate inner spaces. If the template has
 
 ## Settings
 
-Settings are grouped into six described sections:
+Settings are grouped into seven described sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
@@ -193,6 +196,10 @@ Those tests cannot reproduce the iOS keyboard, Dynamic Island, real touch layout
 **The outline is empty.** Open a Markdown note in Live Preview, then run **Open bullet outline** again.
 
 **Extraction reports a missing template.** Check the template path under **Extract to new note**.
+
+**A heading turned into a bullet.** Pressing Enter inside a list starts the next item, so a heading typed there lands after the marker; the plugin removes that marker as you type. If it keeps happening, check that every device editing the vault runs the current version — an old copy on another machine can rewrite the note and sync the change back.
+
+**Go to parent bullet seems to do nothing.** With nothing zoomed it moves the cursor rather than the view. If the cursor is already on a top-level bullet there is nowhere to go, and the plugin says so.
 
 ## Release history
 
