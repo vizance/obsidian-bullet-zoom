@@ -1126,9 +1126,9 @@ While a focus session is active the plugin SHALL keep the focused area visible w
 
 The plugin SHALL register bullet commands for copying, deleting, and prefixing the bullet at the cursor, and SHALL offer a press-and-hold menu that runs any Obsidian command against a chosen bullet. Copy SHALL place the bullet's text or its whole branch on the clipboard according to the copy scope setting; delete SHALL remove the bullet's branch together with its line break; prefix SHALL insert the configured text after the marker, or remove it when already present. Each command SHALL do nothing and report why when the cursor is not on a supported bullet.
 
-The menu SHALL be available on mobile only, gated by an enable setting defaulting to on, with a configurable press duration between 250 and 1000 milliseconds defaulting to 450, and eight slots each holding an optional Obsidian command id together with an enabled flag, defaulting to copy, delete, prefix, zoom, and extract enabled in the first five slots. Persisted slots stored as plain command ids SHALL be read as enabled slots so earlier configurations keep working. Opening the menu SHALL place the editor cursor on the target bullet first, so any command that acts on the cursor works. Slots that are disabled or hold no command id SHALL not render, and disabling a slot SHALL keep its command id so re-enabling restores it.
+The menu SHALL be available on mobile only, gated by an enable setting defaulting to on, with a configurable press duration between 250 and 1000 milliseconds defaulting to 450, and eight slots each holding an optional Obsidian command id, an optional icon id, and an enabled flag, defaulting to copy, delete, prefix, zoom, and extract enabled in the first five slots. Persisted slots stored as plain command ids, or as records without an icon field, SHALL be read as enabled slots with no icon override so earlier configurations keep working. Opening the menu SHALL place the editor cursor on the target bullet first, so any command that acts on the cursor works. Slots that are disabled or hold no command id SHALL not render, and disabling a slot SHALL keep its command id and icon so re-enabling restores it.
 
-The menu SHALL lay its items out as a fan that opens toward the side of the viewport with more room — to the right when the press is in the left half, to the left otherwise — spanning a vertical range clamped so every item stays inside the viewport. Items SHALL be drawn as icons supplied by the caller rather than as command names, and the menu SHALL display the name of the currently highlighted item near its centre so an icon is never ambiguous. Pointer position SHALL be matched to the nearest item centre within a hit radius rather than by angle, so the layout and the hit test never disagree; a pointer inside the centre dead zone SHALL mean cancel. Choosing an item SHALL run its command; releasing over the centre, tapping outside, or pressing Escape SHALL close the menu without running anything.
+The menu SHALL lay its items out as a fan that opens toward the side of the viewport with more room — to the right when the press is in the left half, to the left otherwise — spanning a vertical range clamped so every item stays inside the viewport. The fan radius SHALL be at least the radius needed to keep adjacent item centres one button apart, so a full set of slots never overlaps. Items SHALL be drawn as icons supplied by the caller rather than as command names, and the menu SHALL display the name of the currently highlighted item near its centre so an icon is never ambiguous. Each item's icon SHALL come from the slot's configured icon id when it has one, from the command's own icon otherwise, and from a default marker icon when neither exists. Pointer position SHALL be matched to the nearest item centre within a hit radius rather than by angle, so the layout and the hit test never disagree; a pointer inside the centre dead zone SHALL mean cancel. Choosing an item SHALL run its command; releasing over the centre, tapping outside, or pressing Escape SHALL close the menu without running anything.
 
 #### Scenario: Copy, delete, and prefix act on the cursor's bullet
 
@@ -1168,6 +1168,17 @@ The menu SHALL lay its items out as a fan that opens toward the side of the view
 - **WHEN** the items are computed
 - **THEN** only `copy` renders, and the stored `delete` id is unchanged
 
+#### Scenario: A slot carries its own icon
+
+- **WHEN** a slot holds an icon id
+- **THEN** the computed item exposes that icon id, and an empty icon id leaves the item without an override
+
+##### Example: Icon override travels with the item
+
+- **GIVEN** slots holding enabled `copy` with icon `star` and enabled `delete` with no icon
+- **WHEN** the items are computed
+- **THEN** the first item's icon is `star` and the second item's icon is empty
+
 #### Scenario: The fan opens away from the nearest edge
 
 - **WHEN** the press is in the left half of the viewport
@@ -1195,6 +1206,17 @@ The menu SHALL lay its items out as a fan that opens toward the side of the view
 - **GIVEN** a viewport 400 wide and 800 tall, a press at x 30 y 40, four items, and a radius of 96
 - **WHEN** the layout is computed
 - **THEN** every item's y is at least 0 and at most 800
+
+#### Scenario: A crowded fan grows instead of overlapping
+
+- **WHEN** the number of items would put adjacent centres closer together than one button
+- **THEN** the radius grows until adjacent centres are at least one button apart
+
+##### Example: Eight items at the phone size
+
+- **GIVEN** eight items, a button size of 48, and a base radius of 104
+- **WHEN** the fan radius is resolved
+- **THEN** it is larger than 104
 
 #### Scenario: The pointer selects the nearest item
 
@@ -1467,3 +1489,74 @@ The plugin settings tab SHALL mark its own container with a plugin-owned class w
 
 - **WHEN** the settings container rule is inspected
 - **THEN** it hides horizontal overflow and limits its own width
+
+---
+### Requirement: Size the bullet menu for the device
+
+The bullet menu SHALL be laid out from a named size, resolving a button diameter, an icon size, a base fan radius, a hit radius, and a centre dead zone together, so the geometry and the artwork never disagree. A regular size SHALL keep the phone metrics, and a large size SHALL increase every metric proportionally for tablets. The plugin SHALL request the large size on tablets and the regular size otherwise. The overlay SHALL publish the resolved button and icon sizes as custom properties, and the stylesheet SHALL read those properties instead of hard-coding the numbers, so the icon inside a button scales with the button rather than with the default font size.
+
+#### Scenario: Tablets get a bigger menu
+
+- **WHEN** the large size is resolved
+- **THEN** its button, icon, radius, hit radius, and dead zone all exceed the regular size's
+
+##### Example: Large exceeds regular
+
+- **GIVEN** the regular and large metrics
+- **WHEN** they are compared
+- **THEN** the large button and icon sizes are strictly greater
+
+#### Scenario: The overlay carries its metrics
+
+- **WHEN** the menu opens with a given size
+- **THEN** the overlay declares the button and icon sizes as custom properties, and the buttons take their size from them
+
+##### Example: Custom properties on the overlay
+
+- **GIVEN** the menu opened at the large size
+- **WHEN** the overlay element is inspected
+- **THEN** it declares a button size property matching the large button size
+
+#### Scenario: The stylesheet reads the metrics
+
+- **WHEN** the menu rules are inspected
+- **THEN** the button rule sizes itself from the button property and the icon rule sizes itself from the icon property
+
+##### Example: Stylesheet audit
+
+- **GIVEN** the plugin stylesheet is loaded
+- **WHEN** the radial item rule is inspected
+- **THEN** its width references the button custom property
+
+---
+### Requirement: Choose the icon for each menu slot
+
+Each menu slot SHALL offer an icon field alongside its command and enabled controls, accepting any Obsidian icon id, with autocomplete over the available ids and a preview of the current icon next to the slot name. Leaving the field empty SHALL mean "use the command's icon". An icon id that does not exist SHALL leave the slot with the command's icon rather than an empty button, and changing the command SHALL keep an explicitly chosen icon.
+
+#### Scenario: A configured icon wins over the command's icon
+
+- **WHEN** a slot has both an icon id and a command that carries its own icon
+- **THEN** the menu renders the slot's icon
+
+##### Example: Resolution order
+
+- **GIVEN** a slot icon `star`, a command icon `copy`, and a default `circle-dot`
+- **WHEN** the icon is resolved
+- **THEN** the result is `star`
+
+##### Example: Falling back
+
+- **GIVEN** an empty slot icon and a command without an icon
+- **WHEN** the icon is resolved
+- **THEN** the result is the default icon
+
+#### Scenario: Icon ids are persisted and normalized
+
+- **WHEN** settings are loaded
+- **THEN** each slot's icon is a trimmed string, defaulting to empty for settings saved before the field existed
+
+##### Example: Older records gain an empty icon
+
+- **GIVEN** stored slots `{copy, enabled, icon: "  star  "}` and `{delete, enabled}`
+- **WHEN** the settings are normalized
+- **THEN** the first icon is `star` and the second icon is empty
