@@ -11,3 +11,8 @@ export const PARENT_FOCUS_COMMAND: CommandMetadata = {
 	id: 'bullet-zoom-focus-parent',
 	name: 'Go to parent bullet',
 };
+
+export const TOP_LEVEL_COMMAND: CommandMetadata = {
+	id: 'bullet-zoom-focus-top',
+	name: 'Go to top-level bullet',
+};

@@ -21,6 +21,7 @@ import {
 	createFocusExtension,
 	clearFocusEffect,
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
+	NO_ANCESTOR_NOTICE,
 	classifyLineTapZone,
 	enterFocusAt,
 	planFoldToggle,
@@ -36,6 +37,7 @@ import {
 	runExitCommand,
 	runFocusCommand,
 	runParentCommand,
+	runTopLevelCommand,
 	SUPPORTED_BULLET_REQUIRED_NOTICE,
 } from '../src/focus-extension';
 import { findSupportedBullet } from '../src/list-structure';
@@ -1817,9 +1819,61 @@ describe('plugin commands and safe failures', () => {
 		expect(runParentCommand(view, (message) => notices.push(message))).toBe(true);
 		expect(getFocusSession(view.state)).toBeNull();
 		expect(runParentCommand(view, (message) => notices.push(message))).toBe(false);
+		expect(notices).toEqual([NO_ANCESTOR_NOTICE]);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('moves the cursor to the parent bullet when nothing is zoomed', () => {
+		const { parent, view } = createView('- Parent\n\t- Child\n\t\t- Deep');
+		const deep = view.state.doc.line(3);
+		view.dispatch({ selection: { anchor: deep.to } });
+		const notices: string[] = [];
+
+		expect(runParentCommand(view, (message) => notices.push(message))).toBe(true);
+		expect(view.state.doc.lineAt(view.state.selection.main.head).number).toBe(2);
 		expect(notices).toEqual([]);
 		view.destroy();
 		parent.remove();
+	});
+
+	it('jumps to the outermost bullet for context', () => {
+		const { parent, view } = createView('- Parent\n\t- Child\n\t\t- Deep');
+		const deep = view.state.doc.line(3);
+		view.dispatch({ selection: { anchor: deep.to } });
+		const notices: string[] = [];
+
+		expect(runTopLevelCommand(view, (message) => notices.push(message))).toBe(
+			true,
+		);
+		const head = view.state.selection.main.head;
+		expect(view.state.doc.lineAt(head).number).toBe(1);
+		// The cursor lands on the text, not before the marker.
+		expect(view.state.doc.sliceString(head, head + 6)).toBe('Parent');
+		expect(notices).toEqual([]);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('explains when a bullet has no parent', () => {
+		const { parent, view } = createView('- Only');
+		view.dispatch({ selection: { anchor: 3 } });
+		const notices: string[] = [];
+
+		expect(runTopLevelCommand(view, (message) => notices.push(message))).toBe(
+			false,
+		);
+		expect(notices).toEqual([NO_ANCESTOR_NOTICE]);
+		view.destroy();
+		parent.remove();
+	});
+
+	it('reports adapter failure for the top-level command', () => {
+		const notices: string[] = [];
+		expect(runTopLevelCommand(null, (message) => notices.push(message))).toBe(
+			false,
+		);
+		expect(notices).toEqual([EDITOR_VIEW_UNAVAILABLE_NOTICE]);
 	});
 
 	it('reports adapter failure for the parent command', () => {

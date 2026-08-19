@@ -28,6 +28,7 @@ import {
 import {
 	buildBreadcrumbs,
 	computeBranchRange,
+	findAncestorBullet,
 	findSupportedBullet,
 	markerDetectionFacet,
 	planFocusStructureRepair,
@@ -43,6 +44,8 @@ export const LIVE_PREVIEW_REQUIRED_NOTICE =
 	'Bullet Zoom works in Live Preview mode only.';
 export const SUPPORTED_BULLET_REQUIRED_NOTICE =
 	'Put the cursor on a bullet first.';
+export const NO_ANCESTOR_NOTICE =
+	'This bullet has no parent above it. Put the cursor on a nested bullet.';
 export const EDITOR_VIEW_UNAVAILABLE_NOTICE =
 	'Could not reach the current editor.';
 export const ADD_CHILD_UNAVAILABLE_NOTICE =
@@ -1418,6 +1421,29 @@ export function runExitCommand(
 	return exitFocus(view);
 }
 
+function moveCursorToAncestor(
+	view: EditorView,
+	notify: NoticeHandler,
+	toTop: boolean,
+): boolean {
+	const session = getFocusSession(view.state);
+	const target = findAncestorBullet(view.state, view.state.selection.main.head, {
+		toTop,
+		// While zoomed, the focus root is as far up as the reader can see.
+		...(session === null ? {} : { notBefore: session.anchor }),
+	});
+	if (target === null) {
+		notify(NO_ANCESTOR_NOTICE);
+		return false;
+	}
+	view.dispatch({
+		selection: EditorSelection.cursor(target.anchor),
+		scrollIntoView: true,
+	});
+	view.focus();
+	return true;
+}
+
 export function runParentCommand(
 	view: EditorView | null,
 	notify: NoticeHandler,
@@ -1427,7 +1453,24 @@ export function runParentCommand(
 		return false;
 	}
 
-	return focusParent(view);
+	// Zoomed in, "parent" means the level above in the breadcrumbs; otherwise it
+	// means the bullet this one is nested under.
+	if (getFocusSession(view.state) !== null) {
+		return focusParent(view);
+	}
+	return moveCursorToAncestor(view, notify, false);
+}
+
+export function runTopLevelCommand(
+	view: EditorView | null,
+	notify: NoticeHandler,
+): boolean {
+	if (view === null) {
+		notify(EDITOR_VIEW_UNAVAILABLE_NOTICE);
+		return false;
+	}
+
+	return moveCursorToAncestor(view, notify, true);
 }
 
 const STRAY_REPAIR_DELAY_MS = 600;

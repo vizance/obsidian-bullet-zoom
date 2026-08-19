@@ -53,7 +53,7 @@ describe('settings normalization', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 	});
@@ -88,7 +88,7 @@ describe('settings normalization', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 		expect(normalizeSettings({ titleScale: Number.NaN })).toEqual(
@@ -126,7 +126,7 @@ describe('scale variable application', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 		expect(
@@ -183,7 +183,7 @@ describe('plugin settings lifecycle', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 		expect(
@@ -216,7 +216,7 @@ describe('plugin settings lifecycle', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 
@@ -270,7 +270,7 @@ describe('slider reset buttons', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 		expect(
@@ -324,7 +324,7 @@ describe('marker detection toggles', () => {
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:bullet-zoom-focus-top', enabled: true, icon: '' },
 			],
 		});
 	});

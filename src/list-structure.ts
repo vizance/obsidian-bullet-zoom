@@ -1618,3 +1618,61 @@ export function planListPaste(
 		insert: `\n${insert}`,
 	});
 }
+
+export type AncestorTarget = Readonly<{
+	anchor: number;
+	lineNumber: number;
+	indent: number;
+}>;
+
+/**
+ * Walks up by indentation column rather than through the syntax tree, so the
+ * result is the same in Live Preview as in the tests.
+ */
+export function findAncestorBullet(
+	state: EditorState,
+	anchor: number,
+	options?: Readonly<{ toTop?: boolean; notBefore?: number }>,
+): AncestorTarget | null {
+	const bullet = findSupportedBullet(state, anchor);
+	if (bullet === null) {
+		return null;
+	}
+	const limitLine =
+		options?.notBefore === undefined
+			? 1
+			: state.doc.lineAt(
+					Math.min(Math.max(options.notBefore, 0), state.doc.length),
+				).number;
+	let target: AncestorTarget | null = null;
+	let indent = bullet.indent;
+	let lineNumber = bullet.lineNumber - 1;
+	while (lineNumber >= limitLine && indent > 0) {
+		const line = state.doc.line(lineNumber);
+		const text = line.text;
+		if (text.trim().length === 0) {
+			lineNumber -= 1;
+			continue;
+		}
+		if (HEADING_LINE_PATTERN.test(text.trimStart())) {
+			// A heading separates lists, so nothing above it is an ancestor.
+			break;
+		}
+		const candidate = findSupportedBullet(state, line.from);
+		if (candidate === null || candidate.indent >= indent) {
+			lineNumber -= 1;
+			continue;
+		}
+		target = Object.freeze({
+			anchor: candidate.contentFrom,
+			lineNumber: candidate.lineNumber,
+			indent: candidate.indent,
+		});
+		if (options?.toTop !== true) {
+			return target;
+		}
+		indent = candidate.indent;
+		lineNumber = candidate.lineNumber - 1;
+	}
+	return target;
+}

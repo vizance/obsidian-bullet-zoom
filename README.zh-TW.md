@@ -43,6 +43,8 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 - 點房子圖示回到完整筆記。
 - 執行 **Go to parent bullet**，或用 **Exit bullet focus** 直接離開聚焦。
 
+這兩個往上走的指令在沒有 Zoom、單純編輯時一樣能用：**Go to parent bullet** 會把游標移到目前 Bullet 所屬的上一層 Bullet 文字最前面，**Go to top-level bullet** 則一路走到最外層的 Bullet，是看清楚一段深層分支屬於什麼脈絡最快的方法。它們只移動游標，遇到標題就停（標題會切開兩個清單），Zoom 狀態下也不會爬到聚焦的 Bullet 上面。
+
 ### 語音轉文字與 AI 工具照樣能用
 
 語音轉文字或 AI 寫作工具常會插入破壞清單格式的段落。Bullet Zoom 會讓這些內容照常顯示，並在你停止輸入約半秒後整理聚焦區域：每一行都變成 Bullet，縮排到它前面那個 Bullet 的下一層，同一批的行彼此平輩，空行直接移除，文字一個字都不會被改寫。原本就巢狀在更深層的 Bullet 維持不變；整理會在程式碼區塊或標題停下——你用來分隔 Bullet 群組的標題會保留 `#`，前面的空行也不動。如果最外層的標題被編輯器的清單接續包成 Bullet（`- # Outline`），整理會把標題還給它自己的一行。按一次 Undo 只還原這個修復。整理只在 Zoom 狀態下、而且只在你正在打字的窗格裡運作，所以放在另一個分割視窗的筆記不會被改寫，沒有聚焦時的一般編輯也完全不受影響。可在 **Focus page** 區塊的 **Fix broken bullets** 關閉。
@@ -150,6 +152,7 @@ Bullet Zoom 不預設快捷鍵，避免和 Outliner 或你自己的設定衝突�
 
 - `Bullet Zoom: Zoom into current bullet`
 - `Bullet Zoom: Go to parent bullet`
+- `Bullet Zoom: Go to top-level bullet`
 - `Bullet Zoom: Exit bullet focus`
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`
