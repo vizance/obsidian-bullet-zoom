@@ -47,7 +47,7 @@ describe('settings normalization', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -80,7 +80,7 @@ describe('settings normalization', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -116,7 +116,7 @@ describe('scale variable application', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -171,7 +171,7 @@ describe('plugin settings lifecycle', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -202,7 +202,7 @@ describe('plugin settings lifecycle', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -254,7 +254,7 @@ describe('slider reset buttons', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});
@@ -306,7 +306,7 @@ describe('marker detection toggles', () => {
 				{ commandId: 'bullet-zoom:bullet-zoom-focus-current', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:extract-bullet-to-note', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:clear-bullet', enabled: true, icon: '' },
-				{ commandId: '', enabled: false, icon: '' },
+				{ commandId: 'bullet-zoom:cut-bullet', enabled: true, icon: '' },
 				{ commandId: '', enabled: false, icon: '' },
 			],
 		});

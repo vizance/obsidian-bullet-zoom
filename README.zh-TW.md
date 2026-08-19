@@ -61,14 +61,15 @@ Bullet Zoom 把 Workflowy、Logseq 與 Bike 的大綱工作流帶進 Obsidian：
 
 選單會依裝置調整尺寸：手機維持原本的緊湊版，平板的按鈕與圖示放大；格子多的時候扇形也會跟著撐開，八格全開也不會互相重疊。
 
-外掛附帶三個 Bullet 指令，在指令面板也能用：
+外掛附帶以下 Bullet 指令，在指令面板也能用：
 
 - **Copy bullet**：複製該 Bullet 的文字，或依複製範圍設定連子項目一起複製。
+- **Cut bullet**：複製該 Bullet 與它底下所有子項目，然後把整段移除。移除只在複製成功後執行，複製失敗不會弄丟內容。
 - **Clear bullet text**：清空該 Bullet 的文字，但保留 Bullet 本身與子項目，可以直接重打。
 - **Delete bullet**：刪除該 Bullet 與其下所有巢狀內容，含換行。
 - **Insert prefix text**：在標記後插入設定的前綴，已存在時則移除。
 
-設定在 **Radial menu** 區塊：啟用開關、長按時間，以及每一格的指令選擇。短按仍然是 Zoom，手指移動則取消手勢，捲動不受影響。
+設定在 **Bullet menu** 區塊：啟用開關、點擊圓點的行為、長按時間，以及八個插槽的緊湊清單——每一列顯示編號、將顯示的圖示預覽、指令選單、圖示欄與啟用開關。手指移動會取消手勢，捲動不受影響。
 
 ### 摺疊與 Zoom 是兩件事
 
@@ -125,12 +126,13 @@ Bullet 會連同整個縮排子樹一起搬，縮排自動換算成目標位置�
 
 ## 設定
 
-設定分成五區：
+設定分成六區，每一區都有一句說明：
 
 - **Zoom**：一般 Bullet 與編號清單可各自開關偵測。
-- **Outline**：調整大綱文字大小，調小可一次看到更多行。
 - **Focus page**：調整 Zoom 後的標題大小，可開關縮排引導線與自動修復破損的 Bullet。
-- **Radial menu**：長按選單的開關、長按時間，以及每一格的指令與啟用開關。
+- **Outline**：調整大綱文字大小，調小可一次看到更多行。
+- **Bullet commands**：複製指令要放進剪貼簿的範圍，以及前綴指令要插入的文字。
+- **Bullet menu**：選單開關、點擊圓點的行為、長按時間，以及八個插槽的設定。
 - **Extract to new note**：上面列出的拆分選項。
 
 兩個大小滑桿範圍都是 60% 到 160%，各有一顆重設按鈕。縮排引導線會在聚焦頁畫出連接巢狀 Bullet 的垂直線，預設開啟。
@@ -145,6 +147,8 @@ Bullet Zoom 不預設快捷鍵，避免和 Outliner 或你自己的設定衝突�
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`
 - `Bullet Zoom: Copy bullet`
+- `Bullet Zoom: Cut bullet`
+- `Bullet Zoom: Clear bullet text`
 - `Bullet Zoom: Delete bullet`
 - `Bullet Zoom: Insert prefix text`
 

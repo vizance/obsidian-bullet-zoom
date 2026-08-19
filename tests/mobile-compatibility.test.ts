@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.18.0');
+		expect(manifest.version).toBe('1.19.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.18.0');
-		expect(packageLock.version).toBe('1.18.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.18.0');
+		expect(packageManifest.version).toBe('1.19.0');
+		expect(packageLock.version).toBe('1.19.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.19.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -720,6 +720,30 @@ describe('settings row layout contract (1.17.1)', () => {
 		const query = stylesheet.slice(stylesheet.indexOf('@media (max-width: 480px)'));
 		expect(query).toContain('.bullet-zoom-setting');
 		expect(query).toContain('flex-direction: column');
+	});
+});
+
+describe('slot editor contract (1.19.0)', () => {
+	it('lays a slot row out on one line with a stretching command picker', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const row = rules.find((rule) => rule.selectorText === '.bullet-zoom-slot');
+		const command = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-slot-command',
+		);
+		const toggle = rules.find(
+			(rule) => rule.selectorText === '.bullet-zoom-slot-toggle',
+		);
+		expect(row?.style.getPropertyValue('display').trim()).toBe('flex');
+		expect(row?.style.getPropertyValue('align-items').trim()).toBe('center');
+		expect(command?.style.getPropertyValue('flex')).toContain('1 1');
+		expect(command?.style.getPropertyValue('min-width').trim()).toBe('0');
+		expect(toggle?.style.getPropertyValue('flex')).toContain('0 0');
 	});
 });
 

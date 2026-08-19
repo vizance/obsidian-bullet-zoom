@@ -44,7 +44,7 @@ export const DEFAULT_RADIAL_SLOTS: readonly RadialSlot[] = Object.freeze([
 	slot('bullet-zoom:bullet-zoom-focus-current'),
 	slot('bullet-zoom:extract-bullet-to-note'),
 	slot('bullet-zoom:clear-bullet'),
-	slot('', false),
+	slot('bullet-zoom:cut-bullet'),
 	slot('', false),
 ]);
 

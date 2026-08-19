@@ -847,23 +847,67 @@ button.bullet-zoom-breadcrumb {
 	overflow-x: hidden;
 }
 
-/* 1.18.0: per-slot icon controls in the settings tab */
+/* 1.19.0: compact menu slot editor */
+.bullet-zoom-section {
+	padding-top: var(--size-4-6, 24px);
+}
+
+.bullet-zoom-slots {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2, 8px);
+	margin-bottom: var(--size-4-4, 16px);
+}
+
+.bullet-zoom-slot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--size-4-2, 8px);
+	padding: var(--size-4-2, 8px);
+	background: var(--background-secondary);
+	border-radius: var(--radius-m, 8px);
+}
+
+.bullet-zoom-slot.is-disabled {
+	opacity: 0.6;
+}
+
+.bullet-zoom-slot-number {
+	flex: 0 0 auto;
+	min-width: 1.5em;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller, 0.85em);
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+}
+
 .bullet-zoom-slot-icon {
 	display: inline-flex;
+	flex: 0 0 auto;
 	align-items: center;
 	justify-content: center;
-	margin-right: var(--size-4-2, 8px);
 	color: var(--text-muted);
-	vertical-align: middle;
 }
 
 .bullet-zoom-slot-icon .svg-icon,
 .bullet-zoom-slot-icon svg {
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
 }
 
-.bullet-zoom-setting .setting-item-control input.bullet-zoom-slot-icon-input {
-	flex: 0 1 8em;
-	min-width: 5em;
+.bullet-zoom-slot-command {
+	flex: 1 1 10em;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.bullet-zoom-slot-icon-input {
+	flex: 1 1 8em;
+	min-width: 0;
+	max-width: 100%;
+}
+
+.bullet-zoom-slot-toggle {
+	flex: 0 0 auto;
 }

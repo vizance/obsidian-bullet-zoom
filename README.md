@@ -61,14 +61,15 @@ Leave a slot's icon empty and it uses the command's own icon, falling back to a 
 
 The menu sizes itself for the device: phones keep the compact ring, tablets get larger buttons and icons, and the fan widens when it holds many items so a full set of eight never overlaps.
 
-Three bullet commands come with the plugin and also work from the command palette:
+The bullet commands below come with the plugin and also work from the command palette:
 
 - **Copy bullet** — copies the bullet's text, or the bullet with its children when the copy scope says so.
+- **Cut bullet** — copies the bullet and all of its children, then removes that branch. The removal happens only after the copy succeeds, so a failed copy never loses content.
 - **Clear bullet text** — empties the bullet but keeps it and its children, ready for retyping.
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
 
-Settings live under **Radial menu**: an enable toggle, the press duration, and a command picker per slot. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
+Settings live under **Bullet menu**: an enable toggle, what a marker tap does, the press duration, and a compact list of the eight slots — each row shows its number, a preview of the icon it will draw, the command picker, the icon field, and an on/off switch. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
 
 ### Folding is separate from zooming
 
@@ -125,12 +126,13 @@ Placeholders are case-insensitive and tolerate inner spaces. If the template has
 
 ## Settings
 
-Settings are grouped into five sections:
+Settings are grouped into six described sections:
 
 - **Zoom** — detect plain bullets and numbered items independently.
-- **Outline** — scale the outline text; lower values fit more lines on screen.
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
-- **Radial menu** — enable the long-press menu, its press duration, and the command and on/off switch in each slot.
+- **Outline** — scale the outline text; lower values fit more lines on screen.
+- **Bullet commands** — what copy puts on the clipboard, and the text the prefix command inserts.
+- **Bullet menu** — enable the marker menu, choose what a tap does, set the press duration, and configure the eight slots.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.
@@ -145,6 +147,8 @@ Bullet Zoom ships without default hotkeys so it never clashes with Outliner or y
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`
 - `Bullet Zoom: Copy bullet`
+- `Bullet Zoom: Cut bullet`
+- `Bullet Zoom: Clear bullet text`
 - `Bullet Zoom: Delete bullet`
 - `Bullet Zoom: Insert prefix text`
 
