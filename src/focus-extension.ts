@@ -1446,7 +1446,12 @@ class StrayLineRepairPlugin implements PluginValue {
 		if (!update.docChanged) {
 			return;
 		}
+		// Only the pane being typed in may be repaired. A background pane can
+		// still see document changes — from sync, from the same note open twice,
+		// or from another plugin — and rewriting it would edit a note the user
+		// is not even looking at.
 		if (
+			!update.view.hasFocus ||
 			!update.state.facet(focusAutoFix) ||
 			getFocusSession(update.state) === null
 		) {
@@ -1484,7 +1489,11 @@ class StrayLineRepairPlugin implements PluginValue {
 
 	private repair(): void {
 		const session = getFocusSession(this.view.state);
-		if (session === null || !this.view.state.facet(focusAutoFix)) {
+		if (
+			session === null ||
+			!this.view.hasFocus ||
+			!this.view.state.facet(focusAutoFix)
+		) {
 			return;
 		}
 		const change = planFocusStructureRepair(

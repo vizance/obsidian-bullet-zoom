@@ -1266,6 +1266,7 @@ describe('stray line handling (1.4.0)', () => {
 	it('repairs stray lines after edits settle and keeps one undo step', async () => {
 		vi.useFakeTimers();
 		const { parent, view } = createStrayView('- Topic\n  - A', true);
+		view.focus();
 		expect(enterFocusAt(view, 0)).toBe(true);
 		view.dispatch({
 			changes: {
@@ -1283,6 +1284,30 @@ describe('stray line handling (1.4.0)', () => {
 		undo(view);
 		expect(view.state.doc.toString()).toBe(
 			'- Topic\n  - A\n\nfirst idea\n\nsecond idea',
+		);
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('never repairs a pane the user is not typing in', async () => {
+		vi.useFakeTimers();
+		const { parent, view } = createStrayView('- Topic\n  - A', true);
+		view.focus();
+		expect(enterFocusAt(view, 0)).toBe(true);
+		// The pane loses focus, then its document changes anyway: sync, the same
+		// note open in another pane, or another plugin.
+		view.contentDOM.blur();
+		expect(view.hasFocus).toBe(false);
+		view.dispatch({
+			changes: {
+				from: view.state.doc.length,
+				insert: '\n\ndictated text',
+			},
+		});
+		await vi.advanceTimersByTimeAsync(700);
+		expect(view.state.doc.toString()).toBe(
+			'- Topic\n  - A\n\ndictated text',
 		);
 		vi.useRealTimers();
 		view.destroy();
