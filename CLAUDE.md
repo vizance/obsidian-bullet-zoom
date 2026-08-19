@@ -26,3 +26,7 @@ discuss? → propose → apply ⇄ ingest → archive
 Changes can be parked（暫存）— temporarily moved out of `openspec/changes/`. Parked changes won't appear in `spectra list` but can be found with `spectra list --parked`. To restore: `spectra unpark <name>`. The `/spectra-apply` and `/spectra-ingest` skills handle parked changes automatically.
 
 <!-- SPECTRA:END -->
+
+## Project rules
+
+Read [AGENTS.md](AGENTS.md) as well: it holds the build and test commands, the code style, the privacy and security checks required before pushing or releasing, and the release steps. Those rules apply to every agent working in this repository.
