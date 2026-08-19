@@ -1195,6 +1195,7 @@ export function suggestExtractFileName(label: string): string {
 }
 
 const HEADING_LINE_PATTERN = /^#{1,6}\s/;
+const LIST_HEADING_PATTERN = /^([\t ]*)((?:[-+*]|\d+[.)])[\t ]+)(#{1,6}\s.*)$/;
 
 export function scanStrayRange(
 	state: EditorState,
@@ -1295,6 +1296,25 @@ export function planFocusStructureRepair(
 		if (text.trim().length === 0) {
 			pendingBlankLines += 1;
 			continue;
+		}
+		const swallowedHeading = LIST_HEADING_PATTERN.exec(text);
+		if (swallowedHeading !== null) {
+			// Obsidian continues a list when you press Enter, so a heading typed
+			// into that new item becomes `- # Heading`. Give the heading back its
+			// line when it belongs at the first column, and stop either way.
+			const indent = swallowedHeading[1] ?? '';
+			const heading = swallowedHeading[3] ?? '';
+			if (indent.length === 0) {
+				// The blank lines that separated the heading are structure too.
+				for (let blank = 0; blank < pendingBlankLines; blank += 1) {
+					repairedLines.push('');
+				}
+				pendingBlankLines = 0;
+				repairedLines.push(heading);
+				lastRewrittenLineNumber = lineNumber;
+				changed = true;
+			}
+			break;
 		}
 		if (pendingBlankLines > 0) {
 			// Blank lines only disappear when repaired content follows them, so
