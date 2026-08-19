@@ -83,3 +83,37 @@ export function readCommandEntries(
 		),
 	);
 }
+
+export const COMMAND_PICKER_LIMIT = 60;
+
+/**
+ * Matches every whitespace-separated term against the name and the id, so
+ * "zoom bul" finds "Bullet Zoom: Zoom into current bullet". Entries whose name
+ * starts with the query come first, because that is usually what you meant.
+ */
+export function filterCommandEntries(
+	entries: readonly CommandEntry[],
+	query: string,
+	limit: number = COMMAND_PICKER_LIMIT,
+): readonly CommandEntry[] {
+	const needle = query.trim().toLowerCase();
+	if (needle.length === 0) {
+		return Object.freeze(entries.slice(0, limit));
+	}
+	const terms = needle.split(/\s+/);
+	const starts: CommandEntry[] = [];
+	const rest: CommandEntry[] = [];
+	for (const entry of entries) {
+		const name = entry.name.toLowerCase();
+		const haystack = `${name} ${entry.id.toLowerCase()}`;
+		if (!terms.every((term) => haystack.includes(term))) {
+			continue;
+		}
+		if (name.startsWith(needle)) {
+			starts.push(entry);
+		} else {
+			rest.push(entry);
+		}
+	}
+	return Object.freeze([...starts, ...rest].slice(0, limit));
+}

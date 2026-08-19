@@ -48,6 +48,7 @@ import {
 	suggestExtractFileName,
 } from './list-structure';
 import {
+	filterCommandEntries,
 	readCommandEntries,
 	type CommandEntry,
 } from './command-catalog';
@@ -313,6 +314,79 @@ export function markerModeSettings(mode: string): {
 	return { radialMenuEnabled: true, markerTapAction: 'menu' };
 }
 
+class CommandPickerModal extends Modal {
+	private query = '';
+
+	constructor(
+		app: App,
+		private readonly entries: readonly CommandEntry[],
+		private readonly current: string,
+		private readonly onChoose: (commandId: string) => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.titleEl.textContent = 'Choose a command';
+		const doc = this.contentEl.ownerDocument;
+		const search = doc.createElement('input');
+		search.type = 'text';
+		search.className = 'bullet-zoom-command-search';
+		search.placeholder = 'Search commands';
+		const clear = doc.createElement('button');
+		clear.className = 'bullet-zoom-command-clear';
+		clear.textContent = 'Leave this slot empty';
+		const list = doc.createElement('div');
+		list.className = 'bullet-zoom-command-list';
+
+		const renderList = (): void => {
+			list.replaceChildren();
+			for (const entry of filterCommandEntries(this.entries, this.query)) {
+				const item = doc.createElement('button');
+				item.className = 'bullet-zoom-command-option';
+				item.type = 'button';
+				item.classList.toggle('is-current', entry.id === this.current);
+				const glyph = doc.createElement('span');
+				glyph.className = 'bullet-zoom-command-icon';
+				setIcon(glyph, entry.icon.length > 0 ? entry.icon : 'circle-dot');
+				const label = doc.createElement('span');
+				label.className = 'bullet-zoom-command-label';
+				label.textContent = entry.name;
+				item.append(glyph, label);
+				item.addEventListener('click', () => {
+					this.close();
+					this.onChoose(entry.id);
+				});
+				list.append(item);
+			}
+			if (list.childElementCount === 0) {
+				const empty = doc.createElement('div');
+				empty.className = 'bullet-zoom-command-empty';
+				empty.textContent = 'No command matches that search.';
+				list.append(empty);
+			}
+		};
+
+		search.addEventListener('input', () => {
+			this.query = search.value;
+			renderList();
+		});
+		clear.addEventListener('click', () => {
+			this.close();
+			this.onChoose('');
+		});
+
+		this.contentEl.classList.add('bullet-zoom-command-picker');
+		this.contentEl.replaceChildren(search, clear, list);
+		renderList();
+		search.focus();
+	}
+
+	onClose(): void {
+		this.contentEl.replaceChildren();
+	}
+}
+
 class IconPickerModal extends Modal {
 	private query = '';
 
@@ -443,20 +517,13 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			preview.setAttribute('aria-label', `Choose the slot ${index + 1} icon`);
 			preview.title = 'Choose an icon';
 
-			const command = doc.createElement('select');
-			command.className = 'dropdown bullet-zoom-slot-command';
+			const command = doc.createElement('button');
+			command.className = 'bullet-zoom-slot-command';
+			command.type = 'button';
 			command.setAttribute('aria-label', `Slot ${index + 1} command`);
-			const emptyOption = doc.createElement('option');
-			emptyOption.value = '';
-			emptyOption.textContent = 'No command';
-			command.append(emptyOption);
-			for (const entry of allCommands) {
-				const option = doc.createElement('option');
-				option.value = entry.id;
-				option.textContent = entry.name;
-				command.append(option);
-			}
-			command.value = current?.commandId ?? '';
+			const commandNames = new Map(
+				allCommands.map((entry) => [entry.id, entry.name]),
+			);
 
 			const toggle = doc.createElement('div');
 			toggle.className = 'checkbox-container bullet-zoom-slot-toggle';
@@ -468,6 +535,12 @@ class BulletZoomSettingTab extends PluginSettingTab {
 
 			const renderState = (): void => {
 				const slot = this.plugin.settings.radialSlots[index];
+				const commandId = slot?.commandId ?? '';
+				command.textContent =
+					commandId.length === 0
+						? 'No command'
+						: (commandNames.get(commandId) ?? commandId);
+				command.classList.toggle('is-empty', commandId.length === 0);
 				const enabled = slot?.enabled ?? false;
 				checkbox.checked = enabled;
 				toggle.classList.toggle('is-enabled', enabled);
@@ -497,11 +570,15 @@ class BulletZoomSettingTab extends PluginSettingTab {
 				renderState();
 			};
 
-			command.addEventListener('change', () => {
-				updateSlot({
-					commandId: command.value,
-					enabled: command.value.length > 0,
-				});
+			command.addEventListener('click', () => {
+				new CommandPickerModal(
+					this.app,
+					allCommands,
+					this.plugin.settings.radialSlots[index]?.commandId ?? '',
+					(commandId) => {
+						updateSlot({ commandId, enabled: commandId.length > 0 });
+					},
+				).open();
 			});
 			toggle.addEventListener('click', () => {
 				updateSlot({ enabled: !(checkbox.checked ?? false) });
