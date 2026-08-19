@@ -45,6 +45,7 @@ import {
 	planListPaste,
 	suggestExtractFileName,
 } from './list-structure';
+import { createHeadingUnwrapExtension } from './heading-unwrap';
 import { filterIconIds, iconLabel } from './icon-picker';
 import {
 	computeMenuSegments,
@@ -680,6 +681,10 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					}),
 			);
 
+		this.section(
+			'Editing',
+			'Small corrections the plugin makes while you write, in or out of zoom.',
+		);
 		this.row()
 			.setName('Match the list you paste into')
 			.setDesc(
@@ -690,6 +695,18 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.normalizeListPaste)
 					.onChange((value) => {
 						void this.plugin.updateSettings({ normalizeListPaste: value });
+					}),
+			);
+		this.row()
+			.setName('Keep headings out of bullets')
+			.setDesc(
+				'When the editor continues a list and a heading is typed into it, drop the bullet marker so the heading works.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.unwrapListHeadings)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ unwrapListHeadings: value });
 					}),
 			);
 
@@ -826,6 +843,7 @@ export default class BulletZoomPlugin extends Plugin {
 		outlineCoordinator: BulletOutlineSidebarCoordinator,
 	): Extension[] {
 		return [
+			createHeadingUnwrapExtension(() => this.settings.unwrapListHeadings),
 			focusFilePath.compute([editorInfoField], (state) =>
 				state.field(editorInfoField, false)?.file?.path ?? null,
 			),

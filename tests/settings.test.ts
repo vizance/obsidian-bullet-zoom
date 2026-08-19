@@ -41,6 +41,7 @@ describe('settings normalization', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -75,6 +76,7 @@ describe('settings normalization', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -112,6 +114,7 @@ describe('scale variable application', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -168,6 +171,7 @@ describe('plugin settings lifecycle', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -200,6 +204,7 @@ describe('plugin settings lifecycle', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -253,6 +258,7 @@ describe('slider reset buttons', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -306,6 +312,7 @@ describe('marker detection toggles', () => {
 			bulletCopyScope: 'text',
 			bulletPrefixText: '> [!note] ',
 			normalizeListPaste: true,
+			unwrapListHeadings: true,
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
@@ -485,6 +492,18 @@ describe('list paste setting', () => {
 		);
 		expect(
 			normalizeSettings({ normalizeListPaste: 'yes' }).normalizeListPaste,
+		).toBe(true);
+	});
+});
+
+describe('heading guard setting (1.23.0)', () => {
+	it('defaults to on and normalizes unknown values', () => {
+		expect(normalizeSettings({}).unwrapListHeadings).toBe(true);
+		expect(
+			normalizeSettings({ unwrapListHeadings: false }).unwrapListHeadings,
+		).toBe(false);
+		expect(
+			normalizeSettings({ unwrapListHeadings: 'no' }).unwrapListHeadings,
 		).toBe(true);
 	});
 });
