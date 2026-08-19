@@ -45,6 +45,7 @@ describe('settings normalization', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -80,6 +81,7 @@ describe('settings normalization', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -118,6 +120,7 @@ describe('scale variable application', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -175,6 +178,7 @@ describe('plugin settings lifecycle', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -208,6 +212,7 @@ describe('plugin settings lifecycle', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -262,6 +267,7 @@ describe('slider reset buttons', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -316,6 +322,7 @@ describe('marker detection toggles', () => {
 			radialMenuEnabled: true,
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -455,6 +462,7 @@ describe('radial slot settings', () => {
 	it('reads slots saved as plain command ids as enabled', () => {
 		const migrated = normalizeSettings({
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: ['copy', '', 'delete'],
 		}).radialSlots;
 		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true, icon: '' });
@@ -478,6 +486,7 @@ describe('radial slot settings', () => {
 	it('keeps a disabled slot with its command id', () => {
 		const kept = normalizeSettings({
 			markerTapAction: 'menu',
+			outlineMenuEnabled: true,
 			radialSlots: [{ commandId: 'delete', enabled: false, icon: '' }],
 		}).radialSlots;
 		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false, icon: '' });
@@ -492,6 +501,18 @@ describe('list paste setting', () => {
 		);
 		expect(
 			normalizeSettings({ normalizeListPaste: 'yes' }).normalizeListPaste,
+		).toBe(true);
+	});
+});
+
+describe('outline menu setting (1.26.0)', () => {
+	it('defaults to on and normalizes unknown values', () => {
+		expect(normalizeSettings({}).outlineMenuEnabled).toBe(true);
+		expect(
+			normalizeSettings({ outlineMenuEnabled: false }).outlineMenuEnabled,
+		).toBe(false);
+		expect(
+			normalizeSettings({ outlineMenuEnabled: 'yes' }).outlineMenuEnabled,
 		).toBe(true);
 	});
 });

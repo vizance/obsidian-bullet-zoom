@@ -86,6 +86,7 @@ function model(
 		currentAnchor: null,
 		expandedAnchors: new Set<number>(),
 		revealCurrent: true,
+		menuFromIndex: false,
 		isMobile: false,
 		...overrides,
 	});
@@ -95,6 +96,7 @@ function actions(): OutlineSidebarActions {
 	return {
 		onToggle: vi.fn(),
 		onSelect: vi.fn(),
+		onMenu: vi.fn(),
 		onMove: vi.fn(),
 		onExit: vi.fn(),
 		onRetry: vi.fn(),
@@ -2594,5 +2596,46 @@ describe('native outline sidebar coordinator', () => {
 			'Open a Markdown note in Live Preview to see its bullets.',
 		);
 		fixture.coordinator.destroy();
+	});
+});
+
+describe('outline row menu (1.26.0)', () => {
+	const outline = Object.freeze([
+		Object.freeze({ label: 'Topic', anchor: 12, children: Object.freeze([]) }),
+	]);
+
+	it('leaves the row number inert when the setting is off', () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		renderOutlineSidebar(container, model({ outline }), actions());
+		const index = container.querySelector('.bullet-zoom-outline-sidebar-index');
+		expect(index?.tagName).toBe('SPAN');
+		expect(index?.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	it('opens the menu from the row number when the setting is on', () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		const handlers = actions();
+		renderOutlineSidebar(
+			container,
+			model({ outline, menuFromIndex: true }),
+			handlers,
+		);
+		const index = container.querySelector<HTMLButtonElement>(
+			'.bullet-zoom-outline-sidebar-index.is-actionable',
+		);
+		expect(index?.tagName).toBe('BUTTON');
+		expect(index?.getAttribute('aria-label')).toBe('Open the menu for Topic');
+		index?.click();
+		expect(handlers.onMenu).toHaveBeenCalledTimes(1);
+		const [action] = (handlers.onMenu as unknown as { mock: { calls: unknown[][] } })
+			.mock.calls[0] as [{ anchor: number; revision: number }];
+		expect(action.anchor).toBe(12);
+		// 點文字仍然是 Zoom，不會被選單取代
+		container
+			.querySelector<HTMLButtonElement>('.bullet-zoom-outline-sidebar-label')
+			?.click();
+		expect(handlers.onSelect).toHaveBeenCalledTimes(1);
 	});
 });

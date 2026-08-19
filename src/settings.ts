@@ -18,6 +18,7 @@ export interface BulletZoomSettings {
 	readonly radialPressDuration: number;
 	readonly radialSlots: readonly RadialSlot[];
 	readonly markerTapAction: MarkerTapAction;
+	readonly outlineMenuEnabled: boolean;
 }
 
 export type BulletCopyScope = 'text' | 'branch';
@@ -82,6 +83,7 @@ export const DEFAULT_SETTINGS: BulletZoomSettings = Object.freeze({
 	radialPressDuration: 450,
 	radialSlots: DEFAULT_RADIAL_SLOTS,
 	markerTapAction: 'menu',
+	outlineMenuEnabled: true,
 });
 
 export const INDENT_GUIDES_CLASS = 'bullet-zoom-indent-guides';
@@ -238,6 +240,10 @@ export function normalizeSettings(raw: unknown): BulletZoomSettings {
 		radialPressDuration: normalizePressDuration(source['radialPressDuration']),
 		radialSlots: normalizeSlots(source['radialSlots']),
 		markerTapAction: normalizeMarkerTapAction(source['markerTapAction']),
+		outlineMenuEnabled: normalizeBoolean(
+			source['outlineMenuEnabled'],
+			DEFAULT_SETTINGS.outlineMenuEnabled,
+		),
 	});
 }
 

@@ -47,6 +47,7 @@ export type OutlineSidebarModel = Readonly<{
 	headings: readonly OutlineHeading[];
 	currentAnchor: number | null;
 	expandedAnchors: ReadonlySet<number>;
+	menuFromIndex: boolean;
 	revealCurrent: boolean;
 	isMobile: boolean;
 }>;
@@ -59,6 +60,7 @@ export type OutlineNodeAction = Readonly<{
 export type OutlineSidebarActions = Readonly<{
 	onToggle: (action: OutlineNodeAction) => void;
 	onSelect: (action: OutlineNodeAction) => void;
+	onMenu: (action: OutlineNodeAction, x: number, y: number) => void;
 	onMove: (
 		action: OutlineNodeAction,
 		targetAnchor: number,
@@ -94,6 +96,8 @@ export type OutlineSidebarCoordinatorOptions = Readonly<{
 	getFocusAnchor: (view: EditorView) => number | null;
 	getCurrentAnchor: (view: EditorView) => number | null;
 	onFocus: (view: EditorView, anchor: number) => boolean;
+	isOutlineMenuEnabled?: () => boolean;
+	onOutlineMenu?: (view: EditorView, anchor: number, x: number, y: number) => void;
 	onExit: (view: EditorView) => boolean;
 	buildOutline?: typeof buildBulletOutline;
 	onUnexpectedError?: () => void;
@@ -550,14 +554,39 @@ export function renderOutlineSidebar(
 			}
 			item.append(row);
 
-			const indexLabel = document.createElement('span');
-			indexLabel.className = 'bullet-zoom-outline-sidebar-index';
-			indexLabel.textContent =
+			const indexText =
 				numberPath.length === 1
 					? `${numberPath.join('.')}.`
 					: numberPath.join('.');
-			indexLabel.setAttribute('aria-hidden', 'true');
-			row.append(indexLabel);
+			if (model.menuFromIndex) {
+				// The number mirrors the bullet marker in the editor: it opens the
+				// menu, while the text still zooms.
+				const indexButton = createButton(
+					document,
+					'bullet-zoom-outline-sidebar-index is-actionable',
+					indexText,
+				);
+				indexButton.setAttribute(
+					'aria-label',
+					`Open the menu for ${displayBulletLabel(node.label)}`,
+				);
+				indexButton.addEventListener('click', (event) => {
+					const target = event.currentTarget as HTMLElement;
+					const box = target.getBoundingClientRect();
+					actions.onMenu(
+						Object.freeze({ anchor: node.anchor, revision: model.revision }),
+						box.left + box.width / 2,
+						box.top + box.height / 2,
+					);
+				});
+				row.append(indexButton);
+			} else {
+				const indexLabel = document.createElement('span');
+				indexLabel.className = 'bullet-zoom-outline-sidebar-index';
+				indexLabel.textContent = indexText;
+				indexLabel.setAttribute('aria-hidden', 'true');
+				row.append(indexLabel);
+			}
 
 			if (hasChildren) {
 				const disclosure = createButton(
@@ -797,6 +826,9 @@ export class BulletOutlineSidebarView extends ItemView {
 				},
 				onSelect: (action) => {
 					void this.coordinator.select(action);
+				},
+				onMenu: (action, x, y) => {
+					this.coordinator.openMenu(action, x, y);
 				},
 				onExit: (revision) => {
 					void this.coordinator.exit(revision);
@@ -1093,6 +1125,20 @@ export class BulletOutlineSidebarCoordinator {
 			return;
 		}
 		this.scheduleRefresh();
+	}
+
+	openMenu({ anchor, revision }: OutlineNodeAction, x: number, y: number): void {
+		try {
+			const source = this.source;
+			if (source === null || !this.isActionValid(anchor, revision)) {
+				this.scheduleRefresh();
+				return;
+			}
+			this.options.onOutlineMenu?.(source.view, anchor, x, y);
+		} catch {
+			this.options.onUnexpectedError?.();
+			this.scheduleRefresh();
+		}
 	}
 
 	async select({ anchor, revision }: OutlineNodeAction): Promise<boolean> {
@@ -1431,6 +1477,7 @@ export class BulletOutlineSidebarCoordinator {
 				currentAnchor,
 				expandedAnchors: new Set(this.expandedAnchors),
 				revealCurrent,
+				menuFromIndex: this.options.isOutlineMenuEnabled?.() ?? false,
 				isMobile: this.options.isMobile,
 			}),
 		);
@@ -1513,6 +1560,7 @@ export class BulletOutlineSidebarCoordinator {
 				currentAnchor: null,
 				expandedAnchors: new Set<number>(),
 				revealCurrent: false,
+				menuFromIndex: false,
 				isMobile: this.options.isMobile,
 			}),
 		);

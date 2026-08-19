@@ -93,6 +93,7 @@ Zooming into a collapsed bullet expands just enough to reveal the target, leavin
 Run **Open bullet outline** or click the ribbon icon to browse the current note's bullet structure in the right sidebar.
 
 - Click a row's text to zoom into it; click the disclosure triangle to expand or collapse it in the outline.
+- Click a row's number to open the bullet menu for that bullet, the same menu the marker opens in the editor — so you can copy, cut, or extract a branch straight from the outline. Long press is not used here because it already reorders rows. Turn it off with **Open the menu from the outline** under **Bullet menu**.
 - Headings (`#` to `######`) appear as non-interactive section headers, and top-level numbering restarts at `1.` under each heading.
 - Rows show hierarchical numbering (`1.`, `1.1`, `1.1.1`). Numbering is display-only and never written to your Markdown.
 - The home icon at the top exits focus and returns to the whole note.
