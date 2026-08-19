@@ -1264,55 +1264,42 @@ Opening the bullet menu SHALL NOT focus the editor, so the software keyboard nev
 ---
 ### Requirement: Animate the bullet menu
 
-The menu SHALL play a short entrance: items fade in and scale up from the centre with a small per-item delay so they appear to spread out, and the centre control fades in with them. The highlighted item SHALL change size through a transition rather than instantly, and item buttons SHALL carry a raised shadow that deepens while highlighted so they read as floating above the note. The caption SHALL show the highlighted item's name and SHALL be empty and hidden when nothing is highlighted. The caption SHALL sit outside the menu's bounding box — above its top edge with a gap, or below its bottom edge when the top would leave the visible band — and SHALL be centred horizontally on that box while staying inside the visible band, so a thumb resting on the centre never covers it. All motion SHALL be disabled when the user's system asks for reduced motion.
+Menu items SHALL spread out from the press point with a short entrance animation when the menu is opened by touch, so the menu explains where it came from, and the animation SHALL be skipped when the system asks for reduced motion.
 
-#### Scenario: Items animate in sequence
+A menu opened with a mouse SHALL instead appear instantly, matching the desktop convention for context menus: no entrance animation, no staggered delay, and no backdrop blur, because a blur covering a desktop-sized window costs far more per frame than the same blur on a phone. The caller SHALL declare which mode it wants, the overlay SHALL carry a class for the instant mode, and the stylesheet SHALL express the difference. Hover and selection feedback SHALL remain in both modes, and layout, hit testing, slots, and dismissal SHALL be identical.
 
-- **WHEN** the menu opens
-- **THEN** each item carries an increasing animation delay so they arrive one after another
+#### Scenario: Touch keeps the entrance animation
 
-##### Example: Stagger values
+- **WHEN** the menu opens from touch without reduced motion
+- **THEN** the items animate outward from the press point
 
-- **GIVEN** three items
-- **WHEN** the menu renders
-- **THEN** the items' delays increase with their index
+##### Example: Touch overlay
 
-#### Scenario: The caption clears the menu
+- **GIVEN** the menu opened from touch
+- **THEN** the overlay keeps its fade and the items keep their staggered entrance
 
-- **WHEN** the menu has room above it
-- **THEN** the caption sits above every item and above the centre control
+#### Scenario: A mouse gets an instant menu
 
-##### Example: Caption above the fan
+- **WHEN** the menu opens from a mouse
+- **THEN** the overlay is marked instant, and the stylesheet removes the blur and the entrance animation
 
-- **GIVEN** a menu opened at x 40 y 400 in a band 800 tall with four items
-- **WHEN** the caption is positioned
-- **THEN** its y is smaller than every item's y and smaller than the centre's y
+##### Example: Instant overlay
 
-#### Scenario: The caption flips below a menu near the top
+- **GIVEN** the menu opened in instant mode
+- **WHEN** the overlay is inspected
+- **THEN** it carries the instant class
 
-- **WHEN** placing the caption above would leave the visible band
-- **THEN** it is placed below the menu instead and stays inside the band
+##### Example: Default stays animated
 
-##### Example: Menu near the top
+- **GIVEN** the menu opened without asking for instant mode
+- **WHEN** the overlay is inspected
+- **THEN** it does not carry the instant class
 
-- **GIVEN** a menu opened at x 40 y 60 in a band 800 tall with four items
-- **WHEN** the caption is positioned
-- **THEN** its y is greater than every item's y and inside the band
+##### Example: Stylesheet audit
 
-#### Scenario: The caption only names a highlighted item
-
-- **WHEN** no item is highlighted
-- **THEN** the caption holds no text
-
-##### Example: Pointer in the centre
-
-- **GIVEN** an open menu with the pointer inside the dead zone
-- **THEN** the caption's text is empty
-
-#### Scenario: Reduced motion is respected
-
-- **WHEN** the stylesheet is inspected
-- **THEN** a reduced-motion block disables the menu animation and transitions
+- **GIVEN** the plugin stylesheet is loaded
+- **WHEN** the instant overlay rule is inspected
+- **THEN** it sets the backdrop filter and the animation to none
 
 ---
 ### Requirement: Suppress the caret while the bullet menu is open
