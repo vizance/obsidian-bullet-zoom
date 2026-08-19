@@ -43,6 +43,7 @@ import {
 	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
+import { filterIconIds, iconLabel } from './icon-picker';
 import {
 	computeMenuSegments,
 	openRadialMenu,
@@ -274,6 +275,80 @@ class ExtractNameModal extends Modal {
 	}
 }
 
+class IconPickerModal extends Modal {
+	private query = '';
+
+	constructor(
+		app: App,
+		private readonly iconIds: readonly string[],
+		private readonly current: string,
+		private readonly onChoose: (icon: string) => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.titleEl.textContent = 'Choose an icon';
+		const doc = this.contentEl.ownerDocument;
+		const search = doc.createElement('input');
+		search.type = 'text';
+		search.className = 'bullet-zoom-icon-search';
+		search.placeholder = 'Search icons';
+		const clear = doc.createElement('button');
+		clear.className = 'bullet-zoom-icon-clear';
+		clear.textContent = 'Use the command icon';
+		const grid = doc.createElement('div');
+		grid.className = 'bullet-zoom-icon-grid';
+
+		const renderGrid = (): void => {
+			grid.replaceChildren();
+			for (const id of filterIconIds(this.iconIds, this.query)) {
+				const item = doc.createElement('button');
+				item.className = 'bullet-zoom-icon-option';
+				item.type = 'button';
+				item.classList.toggle('is-current', id === this.current);
+				const glyph = doc.createElement('span');
+				glyph.className = 'bullet-zoom-icon-glyph';
+				setIcon(glyph, id);
+				const label = doc.createElement('span');
+				label.className = 'bullet-zoom-icon-label';
+				label.textContent = iconLabel(id);
+				item.append(glyph, label);
+				item.setAttribute('aria-label', iconLabel(id));
+				item.addEventListener('click', () => {
+					this.close();
+					this.onChoose(id);
+				});
+				grid.append(item);
+			}
+			if (grid.childElementCount === 0) {
+				const empty = doc.createElement('div');
+				empty.className = 'bullet-zoom-icon-empty';
+				empty.textContent = 'No icon matches that search.';
+				grid.append(empty);
+			}
+		};
+
+		search.addEventListener('input', () => {
+			this.query = search.value;
+			renderGrid();
+		});
+		clear.addEventListener('click', () => {
+			this.close();
+			this.onChoose('');
+		});
+
+		this.contentEl.classList.add('bullet-zoom-icon-picker');
+		this.contentEl.replaceChildren(search, clear, grid);
+		renderGrid();
+		search.focus();
+	}
+
+	onClose(): void {
+		this.contentEl.replaceChildren();
+	}
+}
+
 class BulletZoomSettingTab extends PluginSettingTab {
 	constructor(
 		app: App,
@@ -324,8 +399,11 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			number.className = 'bullet-zoom-slot-number';
 			number.textContent = String(index + 1);
 
-			const preview = doc.createElement('span');
+			const preview = doc.createElement('button');
 			preview.className = 'bullet-zoom-slot-icon';
+			preview.type = 'button';
+			preview.setAttribute('aria-label', `Choose the slot ${index + 1} icon`);
+			preview.title = 'Choose an icon';
 
 			const command = doc.createElement('select');
 			command.className = 'dropdown bullet-zoom-slot-command';
@@ -412,6 +490,17 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			});
 			toggle.addEventListener('click', () => {
 				updateSlot({ enabled: !(checkbox.checked ?? false) });
+			});
+			preview.addEventListener('click', () => {
+				new IconPickerModal(
+					this.app,
+					iconIds,
+					this.plugin.settings.radialSlots[index]?.icon ?? '',
+					(icon) => {
+						iconField.value = icon;
+						updateSlot({ icon });
+					},
+				).open();
 			});
 
 			row.append(number, preview, command, iconField, toggle);

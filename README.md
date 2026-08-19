@@ -57,7 +57,7 @@ The fan opens toward whichever side of the screen has more room — to the right
 
 Each of the eight slots holds an Obsidian command id, an optional icon id, and an on/off switch, so the menu can run the plugin's own bullet commands or anything from another plugin, and you can hide a slot without losing its command. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
 
-Leave a slot's icon empty and it uses the command's own icon, falling back to a neutral dot for commands that have none. Type any Obsidian icon id — the field autocompletes and the chosen icon is previewed beside the slot name — to override it.
+Leave a slot's icon empty and it uses the command's own icon, falling back to a neutral dot for commands that have none. To override it, tap the icon preview beside the slot number: a picker opens with a search box and a grid of real icons, and a **Use the command icon** button clears the choice. You can still type an icon id straight into the field if you know it.
 
 The menu sizes itself for the device: phones keep the compact ring, tablets get larger buttons and icons, and the fan widens when it holds many items so a full set of eight never overlaps.
 
