@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.17.1');
+		expect(manifest.version).toBe('1.18.0');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.17.1');
-		expect(packageLock.version).toBe('1.17.1');
-		expect(packageLock.packages?.['']?.version).toBe('1.17.1');
+		expect(packageManifest.version).toBe('1.18.0');
+		expect(packageLock.version).toBe('1.18.0');
+		expect(packageLock.packages?.['']?.version).toBe('1.18.0');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -720,6 +720,34 @@ describe('settings row layout contract (1.17.1)', () => {
 		const query = stylesheet.slice(stylesheet.indexOf('@media (max-width: 480px)'));
 		expect(query).toContain('.bullet-zoom-setting');
 		expect(query).toContain('flex-direction: column');
+	});
+});
+
+describe('menu metrics contract (1.18.0)', () => {
+	it('sizes the buttons and their icons from custom properties', () => {
+		const style = document.createElement('style');
+		style.dataset.bulletZoomTest = 'true';
+		style.textContent = readProjectFile('styles.css');
+		document.head.append(style);
+		const rules = Array.from(style.sheet?.cssRules ?? []).filter(
+			(rule): rule is CSSStyleRule => rule instanceof CSSStyleRule,
+		);
+		const button = rules.find((rule) =>
+			rule.selectorText.includes('.bullet-zoom-radial-item') &&
+			rule.selectorText.includes('.bullet-zoom-radial-cancel'),
+		);
+		const icon = rules.find((rule) =>
+			rule.selectorText.includes('.bullet-zoom-radial-item svg'),
+		);
+		expect(button?.style.getPropertyValue('width')).toContain(
+			'--bullet-zoom-radial-button',
+		);
+		expect(button?.style.getPropertyValue('height')).toContain(
+			'--bullet-zoom-radial-button',
+		);
+		expect(icon?.style.getPropertyValue('width')).toContain(
+			'--bullet-zoom-radial-icon',
+		);
 	});
 });
 

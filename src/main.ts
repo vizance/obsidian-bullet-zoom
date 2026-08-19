@@ -3,6 +3,7 @@ import {
 	editorInfoField,
 	editorLivePreviewField,
 	MarkdownView,
+	getIconIds,
 	Modal,
 	Notice,
 	setIcon,
@@ -42,7 +43,11 @@ import {
 	planBulletRemovalRange,
 	suggestExtractFileName,
 } from './list-structure';
-import { computeMenuSegments, openRadialMenu } from './radial-menu';
+import {
+	computeMenuSegments,
+	openRadialMenu,
+	resolveSegmentIcon,
+} from './radial-menu';
 import {
 	collectFolderPaths,
 	collectMarkdownPaths,
@@ -90,6 +95,14 @@ function showOutlineOpenFailure(): void {
 
 function showOutlineActionFailure(): void {
 	showNotice('Could not switch bullets. Try again.');
+}
+
+function collectIconIds(): readonly string[] {
+	try {
+		return Object.freeze([...getIconIds()].sort());
+	} catch {
+		return Object.freeze([]);
+	}
 }
 
 function attachPathAutocomplete(
@@ -414,11 +427,47 @@ class BulletZoomSettingTab extends PluginSettingTab {
 				listCommands?: () => Array<{ id: string; name: string }>;
 			}
 		).listCommands?.() ?? [];
+		const commandIcons = new Map<string, string>();
+		for (const command of allCommands) {
+			const icon = (command as { icon?: unknown }).icon;
+			if (typeof icon === 'string' && icon.length > 0) {
+				commandIcons.set(command.id, icon);
+			}
+		}
+		const iconIds = collectIconIds();
 		for (let position = 0; position < RADIAL_SLOT_COUNT; position += 1) {
 			const index = position;
 			const current = this.plugin.settings.radialSlots[index];
-			this.row()
-				.setName(`Slot ${index + 1}`)
+			const row = this.row().setName(`Slot ${index + 1}`);
+			const preview = row.nameEl.ownerDocument.createElement('span');
+			preview.className = 'bullet-zoom-slot-icon';
+			row.nameEl.prepend(preview);
+			const renderPreview = (): void => {
+				const slot = this.plugin.settings.radialSlots[index];
+				setIcon(
+					preview,
+					resolveSegmentIcon({
+						slotIcon: slot?.icon,
+						commandIcon: commandIcons.get(slot?.commandId ?? ''),
+					}),
+				);
+			};
+			const updateSlot = (patch: {
+				commandId?: string;
+				enabled?: boolean;
+				icon?: string;
+			}): void => {
+				const slots = [...this.plugin.settings.radialSlots];
+				const existing = slots[index];
+				slots[index] = {
+					commandId: patch.commandId ?? existing?.commandId ?? '',
+					enabled: patch.enabled ?? existing?.enabled ?? false,
+					icon: patch.icon ?? existing?.icon ?? '',
+				};
+				void this.plugin.updateSettings({ radialSlots: slots });
+				renderPreview();
+			};
+			row
 				.addDropdown((dropdown) => {
 					dropdown.addOption('', 'Empty');
 					for (const command of allCommands) {
@@ -427,27 +476,30 @@ class BulletZoomSettingTab extends PluginSettingTab {
 					dropdown
 						.setValue(current?.commandId ?? '')
 						.onChange((value) => {
-							const slots = [...this.plugin.settings.radialSlots];
-							slots[index] = {
-								commandId: value,
-								enabled: value.length > 0,
-							};
-							void this.plugin.updateSettings({ radialSlots: slots });
+							updateSlot({ commandId: value, enabled: value.length > 0 });
 						});
+				})
+				.addText((text) => {
+					text
+						.setPlaceholder('Command icon')
+						.setValue(current?.icon ?? '');
+					text.inputEl.classList.add('bullet-zoom-slot-icon-input');
+					const render = attachPathAutocomplete(text, iconIds, (value) => {
+						updateSlot({ icon: value });
+					});
+					text.onChange((value) => {
+						updateSlot({ icon: value.trim() });
+						render(value);
+					});
 				})
 				.addToggle((toggle) =>
 					toggle
 						.setValue(current?.enabled ?? false)
 						.onChange((value) => {
-							const slots = [...this.plugin.settings.radialSlots];
-							const existing = slots[index];
-							slots[index] = {
-								commandId: existing?.commandId ?? '',
-								enabled: value,
-							};
-							void this.plugin.updateSettings({ radialSlots: slots });
+							updateSlot({ enabled: value });
 						}),
 				);
+			renderPreview();
 		}
 
 		this.row()
@@ -862,10 +914,17 @@ export default class BulletZoomPlugin extends Plugin {
 			viewportWidth: visual?.width ?? ownerWindow?.innerWidth ?? 0,
 			viewportHeight: visual?.height ?? ownerWindow?.innerHeight ?? 0,
 			viewportTop: visual?.offsetTop ?? 0,
+			size: Platform.isTablet ? 'large' : 'regular',
 			segments,
 			pointerId,
 			renderIcon: (element, segment) => {
-				setIcon(element, icons.get(segment.commandId) ?? 'circle-dot');
+				setIcon(
+					element,
+					resolveSegmentIcon({
+						slotIcon: segment.icon,
+						commandIcon: icons.get(segment.commandId),
+					}),
+				);
 			},
 			onSelect: (segment) => {
 				commands.executeCommandById?.(segment.commandId);
