@@ -526,6 +526,8 @@ function resolveExpandedMobileMarker(
 export interface RadialMenuConfig {
 	readonly enabled: boolean;
 	readonly openOnTap: boolean;
+	/** Desktop opt-in: without it a mouse never opens the menu. */
+	readonly allowMouse: boolean;
 	readonly pressDuration: number;
 	readonly onLongPress: (
 		view: EditorView,
@@ -539,6 +541,7 @@ export interface RadialMenuConfig {
 const DEFAULT_RADIAL_CONFIG: RadialMenuConfig = Object.freeze({
 	enabled: false,
 	openOnTap: true,
+	allowMouse: false,
 	pressDuration: 450,
 	onLongPress: () => undefined,
 });
@@ -805,7 +808,7 @@ class MarkerPointerPlugin implements PluginValue {
 		}
 		if (tap.zone === 'marker') {
 			const config = this.view.state.facet(radialMenuConfig);
-			if (config.enabled && event.pointerType !== 'mouse') {
+			if (config.enabled && (config.allowMouse || event.pointerType !== 'mouse')) {
 				this.beginMarkerPress(event, tap.markerFrom, config);
 				return;
 			}
