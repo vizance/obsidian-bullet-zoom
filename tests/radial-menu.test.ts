@@ -607,3 +607,34 @@ describe('menu metrics and slot icons (1.18.0)', () => {
 		expect(resolveSegmentIcon({})).toBe('circle-dot');
 	});
 });
+
+describe('desktop motion (1.27.1)', () => {
+	it('marks the overlay instant so the stylesheet can drop motion and blur', () => {
+		openRadialMenu({
+			document,
+			x: 100,
+			y: 200,
+			viewportWidth: 1440,
+			viewportHeight: 900,
+			instant: true,
+			segments: computeMenuSegments(slots('copy', 'delete')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const overlay = document.querySelector('.bullet-zoom-radial-overlay');
+		expect(overlay?.classList.contains('is-instant')).toBe(true);
+	});
+
+	it('keeps the animated overlay by default', () => {
+		openRadialMenu({
+			document,
+			x: 100,
+			y: 200,
+			segments: computeMenuSegments(slots('copy')),
+			renderIcon: () => undefined,
+			onSelect: vi.fn(),
+		});
+		const overlay = document.querySelector('.bullet-zoom-radial-overlay');
+		expect(overlay?.classList.contains('is-instant')).toBe(false);
+	});
+});

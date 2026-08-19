@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.27.0');
+		expect(manifest.version).toBe('1.27.1');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.27.0');
-		expect(packageLock.version).toBe('1.27.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.27.0');
+		expect(packageManifest.version).toBe('1.27.1');
+		expect(packageLock.version).toBe('1.27.1');
+		expect(packageLock.packages?.['']?.version).toBe('1.27.1');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -766,6 +766,17 @@ describe('slot editor contract (1.19.0)', () => {
 		expect(command?.style.getPropertyValue('flex')).toContain('1 1');
 		expect(command?.style.getPropertyValue('min-width').trim()).toBe('0');
 		expect(toggle?.style.getPropertyValue('flex')).toContain('0 0');
+	});
+});
+
+describe('desktop motion contract (1.27.1)', () => {
+	it('removes the blur and the entrance animation for an instant overlay', () => {
+		const stylesheet = readProjectFile('styles.css');
+		const block = stylesheet.slice(
+			stylesheet.indexOf('.bullet-zoom-radial-overlay.is-instant'),
+		);
+		expect(block).toContain('backdrop-filter: none');
+		expect(block).toContain('animation: none');
 	});
 });
 

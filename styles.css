@@ -1088,3 +1088,16 @@ button.bullet-zoom-slot-command.is-empty {
 	border-radius: var(--radius-s, 4px);
 	color: var(--text-normal);
 }
+
+/* 1.27.1: desktop opens the menu like a native context menu — no motion, no blur */
+.bullet-zoom-radial-overlay.is-instant {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	animation: none;
+}
+
+.bullet-zoom-radial-overlay.is-instant .bullet-zoom-radial-item,
+.bullet-zoom-radial-overlay.is-instant .bullet-zoom-radial-cancel {
+	animation: none;
+	transition: transform 90ms ease, background-color 90ms ease;
+}
