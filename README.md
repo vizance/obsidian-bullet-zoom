@@ -43,6 +43,8 @@ The faint `+` at the bottom adds an empty child bullet, indented according to yo
 - Click the home icon to return to the whole note.
 - Run **Go to parent bullet**, or **Exit bullet focus** to leave immediately.
 
+Both ancestor commands also work while you are simply editing, with nothing zoomed: **Go to parent bullet** puts the cursor at the start of the bullet the current one is nested under, and **Go to top-level bullet** climbs all the way to the outermost bullet, which is the quickest way to see what a deep branch belongs to. They only move the cursor, they stop at a heading because a heading separates one list from another, and while zoomed they never climb above the focused bullet.
+
 ### Dictation and AI tools keep working
 
 Voice-to-text and AI writing tools often insert paragraphs that break the list structure. Bullet Zoom keeps that content visible, and about half a second after you stop typing it tidies the focused area: each line becomes a bullet one level below the bullet it follows, all lines of the same run stay siblings, blank lines are removed, and the wording is never rewritten. Bullets already nested deeper keep their level, and the tidy stops at a code fence or a heading — a heading you used to separate groups of bullets keeps its `#` and the blank line before it. When the editor's list continuation has swallowed a top-level heading into a bullet (`- # Outline`), the tidy gives the heading its line back. One undo reverts just the fix. Tidying runs only while you are zoomed in, and only in the pane you are typing in, so a note sitting in another split is never rewritten and ordinary editing outside zoom is never touched. Turn it off with **Fix broken bullets** under **Focus page**.
@@ -150,6 +152,7 @@ Bullet Zoom ships without default hotkeys so it never clashes with Outliner or y
 
 - `Bullet Zoom: Zoom into current bullet`
 - `Bullet Zoom: Go to parent bullet`
+- `Bullet Zoom: Go to top-level bullet`
 - `Bullet Zoom: Exit bullet focus`
 - `Bullet Zoom: Open bullet outline`
 - `Bullet Zoom: Extract bullet to new note`

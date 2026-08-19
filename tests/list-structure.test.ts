@@ -13,6 +13,7 @@ import {
 	planBulletExtract,
 	planBulletPrefixToggle,
 	planBulletRemovalRange,
+	findAncestorBullet,
 	planFocusStructureRepair,
 	planListPaste,
 	scanStrayRange,
@@ -1367,5 +1368,61 @@ describe('planListPaste', () => {
 		const state = createState('- Alpha');
 		const plan = planListPaste(state, 3, '- Topic\n  continued');
 		expect(plan?.insert).toBe('\n- Topic\n  continued');
+	});
+});
+
+describe('findAncestorBullet', () => {
+	const doc = '- Root\n\t- Middle\n\t\t- Deep\n\t\t\t- Deeper\n- Later';
+
+	function at(text: string, needle: string): number {
+		return text.indexOf(needle) + 1;
+	}
+
+	it('finds the immediate parent of a nested bullet', () => {
+		const state = createState(doc);
+		const parent = findAncestorBullet(state, at(doc, 'Deeper'));
+		expect(state.doc.lineAt(parent?.anchor ?? 0).text.trim()).toBe('- Deep');
+		expect(parent?.anchor).toBe(doc.indexOf('Deep\n'));
+	});
+
+	it('climbs to the outermost ancestor when asked', () => {
+		const state = createState(doc);
+		const top = findAncestorBullet(state, at(doc, 'Deeper'), { toTop: true });
+		expect(top?.indent).toBe(0);
+		expect(state.doc.lineAt(top?.anchor ?? 0).text).toBe('- Root');
+	});
+
+	it('returns nothing for a bullet that is already top level', () => {
+		const state = createState(doc);
+		expect(findAncestorBullet(state, at(doc, 'Root'))).toBeNull();
+		expect(findAncestorBullet(state, at(doc, 'Later'), { toTop: true })).toBeNull();
+	});
+
+	it('does not climb past a heading', () => {
+		const source = '- Root\n# Section\n\t- Child';
+		const state = createState(source);
+		expect(findAncestorBullet(state, at(source, 'Child'))).toBeNull();
+	});
+
+	it('stops at the line the caller allows', () => {
+		const state = createState(doc);
+		const middleLine = state.doc.line(2);
+		const stopped = findAncestorBullet(state, at(doc, 'Deeper'), {
+			toTop: true,
+			notBefore: middleLine.from,
+		});
+		expect(state.doc.lineAt(stopped?.anchor ?? 0).text.trim()).toBe('- Middle');
+	});
+
+	it('skips blank lines between levels', () => {
+		const source = '- Root\n\n\t- Child';
+		const state = createState(source);
+		const parent = findAncestorBullet(source ? createState(source) : state, at(source, 'Child'));
+		expect(parent?.indent).toBe(0);
+	});
+
+	it('returns nothing when the cursor is not on a bullet', () => {
+		const state = createState('Just a paragraph');
+		expect(findAncestorBullet(state, 3)).toBeNull();
 	});
 });

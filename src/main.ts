@@ -21,6 +21,7 @@ import type { Extension } from '@codemirror/state';
 import {
 	EXIT_FOCUS_COMMAND,
 	PARENT_FOCUS_COMMAND,
+	TOP_LEVEL_COMMAND,
 } from './command-definitions';
 import {
 	createFocusExtension,
@@ -33,6 +34,7 @@ import {
 	resolveCodeMirrorView,
 	runExitCommand,
 	runFocusCommand,
+	runTopLevelCommand,
 	runParentCommand,
 } from './focus-extension';
 import {
@@ -1152,8 +1154,17 @@ export default class BulletZoomPlugin extends Plugin {
 
 		this.addCommand({
 			...PARENT_FOCUS_COMMAND,
+			icon: 'corner-left-up',
 			editorCallback: (editor) => {
 				runParentCommand(getEditorView(editor), showNotice);
+			},
+		});
+
+		this.addCommand({
+			...TOP_LEVEL_COMMAND,
+			icon: 'arrow-up-to-line',
+			editorCallback: (editor) => {
+				runTopLevelCommand(getEditorView(editor), showNotice);
 			},
 		});
 	}
