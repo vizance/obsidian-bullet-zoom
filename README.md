@@ -55,6 +55,8 @@ Pressing Enter inside a list makes Obsidian start the next item, so a heading ty
 
 ### Bullet menu
 
+The menu is always available on phone and tablet. On desktop it is off by default — the marker only zooms — and **Enable on desktop** under **Bullet menu** brings it to the mouse, following the same marker-tap choice as touch does.
+
 Tap a bullet marker on phone or tablet and the commands fan out beside it — zoom is simply one of them. A tap is more precise than a hold, since the menu is anchored on the marker and never drifts with your thumb. Keep holding and slide to an item, then lift to run it; or lift first and tap one. The centre button, a tap outside, or Escape closes the menu without running anything.
 
 While the menu is open the editor is frozen: the caret is hidden and cannot be dragged, so the finger that opened the menu only drives the menu. Closing it restores the caret and the keyboard exactly as they were. Opening the menu never focuses the editor, so the keyboard stays down, and the layout uses the visible viewport — if the keyboard is already up, the fan still lands above it. Items spread out with a short entrance animation, which is skipped when your system asks for reduced motion.

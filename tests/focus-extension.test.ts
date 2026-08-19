@@ -1378,6 +1378,7 @@ describe('long press menu gesture (1.12.0)', () => {
 						isMobile: true,
 						radialMenu: {
 							enabled: true,
+							allowMouse: false,
 							openOnTap,
 							pressDuration: 450,
 							onLongPress,
@@ -2914,6 +2915,7 @@ describe('marker tap opens the menu (1.16.0)', () => {
 						isMobile: true,
 						radialMenu: {
 							enabled: true,
+							allowMouse: false,
 							openOnTap: true,
 							pressDuration: 450,
 							onLongPress,
@@ -2956,6 +2958,85 @@ describe('marker tap opens the menu (1.16.0)', () => {
 		// Anchored on the measured marker centre, not the release point.
 		expect(onLongPress.mock.calls[0]?.[2]).toBe(43);
 		expect(onLongPress.mock.calls[0]?.[3]).toBe(20);
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+});
+
+describe('desktop menu opt-in (1.27.0)', () => {
+	function createMarkerView(allowMouse: boolean, onLongPress: () => void) {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		const view = new EditorView({
+			parent,
+			state: EditorState.create({
+				doc: '- Parent\n  - Child',
+				extensions: [
+					markdown(),
+					focusFilePath.of('Ideas.md'),
+					focusNoteTitle.of('Ideas'),
+					focusLivePreview.of(true),
+					createFocusExtension({
+						isPhone: false,
+						isMobile: false,
+						radialMenu: {
+							enabled: true,
+							allowMouse,
+							openOnTap: true,
+							pressDuration: 450,
+							onLongPress,
+						},
+					}),
+				],
+			}),
+		});
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) return { left: 40, right: 46, top: 10, bottom: 30 };
+			if (position === 1) return { left: 46, right: 52, top: 10, bottom: 30 };
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+		return { parent, view };
+	}
+
+	function mousePress(type: string, x: number, y: number): Event {
+		const event = new MouseEvent(type, {
+			bubbles: true,
+			cancelable: true,
+			clientX: x,
+			clientY: y,
+		});
+		Object.defineProperties(event, {
+			pointerId: { value: 3 },
+			pointerType: { value: 'mouse' },
+			isPrimary: { value: true },
+		});
+		return event;
+	}
+
+	it('ignores a mouse click on the marker by default', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const { parent, view } = createMarkerView(false, onLongPress);
+		view.contentDOM.dispatchEvent(mousePress('pointerdown', 46, 20));
+		await vi.advanceTimersByTimeAsync(80);
+		view.contentDOM.dispatchEvent(mousePress('pointerup', 46, 20));
+		expect(onLongPress).not.toHaveBeenCalled();
+		vi.useRealTimers();
+		view.destroy();
+		parent.remove();
+	});
+
+	it('opens the menu from a mouse click once desktop is enabled', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const { parent, view } = createMarkerView(true, onLongPress);
+		view.contentDOM.dispatchEvent(mousePress('pointerdown', 46, 20));
+		await vi.advanceTimersByTimeAsync(80);
+		view.contentDOM.dispatchEvent(mousePress('pointerup', 46, 20));
+		expect(onLongPress).toHaveBeenCalledTimes(1);
+		expect(getFocusSession(view.state)).toBeNull();
 		vi.useRealTimers();
 		view.destroy();
 		parent.remove();

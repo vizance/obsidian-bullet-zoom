@@ -621,6 +621,18 @@ class BulletZoomSettingTab extends PluginSettingTab {
 			return;
 		}
 		this.row(container)
+			.setName('Enable on desktop')
+			.setDesc(
+				'Off by default: on desktop the marker only zooms. Turn it on to click the marker for the menu, the same way as on mobile.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.desktopMenuEnabled)
+					.onChange((value) => {
+						void this.plugin.updateSettings({ desktopMenuEnabled: value });
+					}),
+			);
+		this.row(container)
 			.setName('Open the menu from the outline')
 			.setDesc(
 				'Tap a row number in the bullet outline to open the menu for that bullet. Tapping its text still zooms.',
@@ -952,7 +964,10 @@ export default class BulletZoomPlugin extends Plugin {
 				},
 				autoFixStrayLines: this.settings.autoFixStrayLines,
 				radialMenu: {
-					enabled: Platform.isMobile && this.settings.radialMenuEnabled,
+					enabled:
+						(Platform.isMobile || this.settings.desktopMenuEnabled) &&
+						this.settings.radialMenuEnabled,
+					allowMouse: !Platform.isMobile && this.settings.desktopMenuEnabled,
 					openOnTap: this.settings.markerTapAction === 'menu',
 					pressDuration: this.settings.radialPressDuration,
 					onLongPress: (view, markerFrom, clientX, clientY, pointerId) => {

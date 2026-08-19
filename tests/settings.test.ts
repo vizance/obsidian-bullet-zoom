@@ -46,6 +46,7 @@ describe('settings normalization', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -82,6 +83,7 @@ describe('settings normalization', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -121,6 +123,7 @@ describe('scale variable application', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -179,6 +182,7 @@ describe('plugin settings lifecycle', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -213,6 +217,7 @@ describe('plugin settings lifecycle', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -268,6 +273,7 @@ describe('slider reset buttons', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -323,6 +329,7 @@ describe('marker detection toggles', () => {
 			radialPressDuration: 450,
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [
 				{ commandId: 'bullet-zoom:copy-bullet', enabled: true, icon: '' },
 				{ commandId: 'bullet-zoom:delete-bullet', enabled: true, icon: '' },
@@ -463,6 +470,7 @@ describe('radial slot settings', () => {
 		const migrated = normalizeSettings({
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: ['copy', '', 'delete'],
 		}).radialSlots;
 		expect(migrated[0]).toEqual({ commandId: 'copy', enabled: true, icon: '' });
@@ -487,6 +495,7 @@ describe('radial slot settings', () => {
 		const kept = normalizeSettings({
 			markerTapAction: 'menu',
 			outlineMenuEnabled: true,
+			desktopMenuEnabled: false,
 			radialSlots: [{ commandId: 'delete', enabled: false, icon: '' }],
 		}).radialSlots;
 		expect(kept[0]).toEqual({ commandId: 'delete', enabled: false, icon: '' });
