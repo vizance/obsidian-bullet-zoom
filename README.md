@@ -57,7 +57,7 @@ The fan opens toward whichever side of the screen has more room — to the right
 
 Each of the eight slots holds an Obsidian command id, an optional icon id, and an on/off switch, so the menu can run the plugin's own bullet commands or anything from another plugin, and you can hide a slot without losing its command. Out of the box the first five slots are copy, delete, insert prefix, zoom, and extract to note.
 
-Leave a slot's icon empty and it uses the command's own icon, falling back to a neutral dot for commands that have none. To override it, tap the icon preview beside the slot number: a picker opens with a search box and a grid of real icons, and a **Use the command icon** button clears the choice. You can still type an icon id straight into the field if you know it.
+A slot with no icon of its own uses the command's icon, falling back to a neutral dot for commands that have none. To choose one, tap the icon button beside the slot number: a picker opens with a search box and a grid of real icons, and a **Use the command icon** button clears the choice. There is no icon id to type.
 
 The menu sizes itself for the device: phones keep the compact ring, tablets get larger buttons and icons, and the fan widens when it holds many items so a full set of eight never overlaps.
 
@@ -71,7 +71,7 @@ Pasting a branch back is handled too. When you paste list content with the curso
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
 
-Settings live under **Bullet menu**: an enable toggle, what a marker tap does, the press duration, and a compact list of the eight slots — each row shows its number, a preview of the icon it will draw, the command picker, the icon field, and an on/off switch. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
+Settings live under **Bullet menu**. One choice decides what a marker tap does: open the menu, zoom, or zoom with the menu on a long press. The rest of the section follows that choice — the press duration appears only for the long-press option, and the slot list only when the menu can open at all. Each slot row shows its number, the icon button, the command picker, and an on/off switch. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
 
 ### Folding is separate from zooming
 
@@ -134,7 +134,7 @@ Settings are grouped into six described sections:
 - **Focus page** — scale the title shown after zooming, toggle indent guides, and fix broken bullets automatically.
 - **Outline** — scale the outline text; lower values fit more lines on screen.
 - **Bullet commands** — what copy puts on the clipboard, the text the prefix command inserts, and whether pasted lists are matched to their destination.
-- **Bullet menu** — enable the marker menu, choose what a tap does, set the press duration, and configure the eight slots.
+- **Bullet menu** — choose what a marker tap does, and configure the eight slots when the menu is in use.
 - **Extract to new note** — the extraction options listed above.
 
 Both size sliders range from 60% to 160% and have a reset button. Indent guides draw vertical lines that connect nested bullets on the focus page; they are on by default.
