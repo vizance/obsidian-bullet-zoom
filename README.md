@@ -77,7 +77,7 @@ Pasting a branch back is handled too. When you paste list content with the curso
 - **Delete bullet** — removes the bullet and everything nested under it, line break included.
 - **Insert prefix text** — inserts the configured text after the marker, or removes it when it is already there.
 
-Settings live under **Bullet menu**. One choice decides what a marker tap does: open the menu, zoom, or zoom with the menu on a long press. The rest of the section follows that choice — the press duration appears only for the long-press option, and the slot list only when the menu can open at all. Each slot row shows its number, the icon button, the command picker, and an on/off switch. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
+Settings live under **Bullet menu**. One choice decides what a marker tap does: open the menu, zoom, or zoom with the menu on a long press. The rest of the section follows that choice — the press duration appears only for the long-press option, and the slot list only when the menu can open at all. Each slot row shows its number, the icon button, the command button, and an on/off switch. Tapping the command button opens a searchable picker: type any part of a command's name or id, and matching commands are listed with their own icons, so you never scroll a list of hundreds. A short press still zooms, and moving your finger cancels the gesture so scrolling is unaffected.
 
 ### Folding is separate from zooming
 

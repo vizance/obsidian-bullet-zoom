@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { readCommandEntries } from '../src/command-catalog';
+import {
+	COMMAND_PICKER_LIMIT,
+	filterCommandEntries,
+	readCommandEntries,
+} from '../src/command-catalog';
 
 describe('readCommandEntries', () => {
 	it('reads the full registry rather than only what can run now', () => {
@@ -50,5 +54,47 @@ describe('readCommandEntries', () => {
 			}),
 		).toEqual([]);
 		expect(readCommandEntries({ commands: { 'x:one': null } })).toEqual([]);
+	});
+});
+
+describe('filterCommandEntries', () => {
+	const entries = [
+		{ id: 'bullet-zoom:copy-bullet', name: 'Bullet Zoom: Copy bullet', icon: '' },
+		{ id: 'bullet-zoom:cut-bullet', name: 'Bullet Zoom: Cut bullet', icon: '' },
+		{ id: 'editor:toggle-bold', name: 'Toggle bold', icon: '' },
+	];
+
+	it('matches every term against the name and the id', () => {
+		expect(filterCommandEntries(entries, 'cut bul').map((e) => e.id)).toEqual([
+			'bullet-zoom:cut-bullet',
+		]);
+		expect(filterCommandEntries(entries, 'toggle-bold').map((e) => e.id)).toEqual([
+			'editor:toggle-bold',
+		]);
+	});
+
+	it('puts name-prefix matches first', () => {
+		const filtered = filterCommandEntries(
+			[
+				{ id: 'a', name: 'Zoom out', icon: '' },
+				{ id: 'b', name: 'Bullet Zoom: Zoom in', icon: '' },
+			],
+			'zoom',
+		);
+		expect(filtered.map((entry) => entry.id)).toEqual(['a', 'b']);
+	});
+
+	it('returns everything up to the limit for an empty query', () => {
+		const many = Array.from({ length: 200 }, (_, index) => ({
+			id: `x:${index}`,
+			name: `Command ${index}`,
+			icon: '',
+		}));
+		expect(filterCommandEntries(many, '  ')).toHaveLength(COMMAND_PICKER_LIMIT);
+		expect(filterCommandEntries(many, 'command', 5)).toHaveLength(5);
+	});
+
+	it('returns nothing when no command matches', () => {
+		expect(filterCommandEntries(entries, 'nonsense')).toEqual([]);
 	});
 });
