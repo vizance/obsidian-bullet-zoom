@@ -11,8 +11,7 @@ import {
 /** Shared with the outline sidebar so both drag gestures feel the same. */
 /** Matches the radial menu's press-cancel distance, so one gesture ends as the other begins. */
 export const DRAG_START_DISTANCE_PX = 12;
-export const DRAG_SCROLL_TOLERANCE_PX = 10;
-export const DRAG_TOUCH_HOLD_MS = 350;
+
 
 export const DRAGGING_CLASS = 'bullet-zoom-branch-dragging';
 export const INDICATOR_CLASS = 'bullet-zoom-branch-drop-indicator';
@@ -25,6 +24,7 @@ export const DRAG_ACTIVE_CLASS = 'bullet-zoom-branch-drag-active';
  */
 export const DROP_LEFT_PROPERTY = '--bullet-zoom-drop-left';
 export const DROP_TOP_PROPERTY = '--bullet-zoom-drop-top';
+export const DROP_HEIGHT_PROPERTY = '--bullet-zoom-drop-height';
 
 export type LineGeometry = Readonly<{
 	top: number;
@@ -60,6 +60,7 @@ export type DropPreview = Readonly<{
 	indent: string;
 	indicatorTop: number;
 	indicatorLeft: number;
+	indicatorHeight: number;
 }>;
 
 /**
@@ -97,7 +98,6 @@ export interface BranchDragEnvironment {
 	 * False when the radial menu needs the long press as its only entry point;
 	 * a touch hold must not steal it.
 	 */
-	allowTouchHold(): boolean;
 }
 
 /**
@@ -156,6 +156,7 @@ export function computeDropPreview(
 		indicatorLeft:
 			geometry.left +
 			countColumn(indent, target.state.tabSize) * columnWidth,
+		indicatorHeight: geometry.bottom - geometry.top,
 	});
 }
 
@@ -186,6 +187,10 @@ export function renderDropIndicator(
 		DROP_TOP_PROPERTY,
 		`${preview.indicatorTop - hostRect.top}px`,
 	);
+	indicator.style.setProperty(
+		DROP_HEIGHT_PROPERTY,
+		`${preview.indicatorHeight}px`,
+	);
 	return indicator;
 }
 
@@ -214,7 +219,6 @@ export function createBranchDragGesture(
 	let startX = 0;
 	let startY = 0;
 	let dragging = false;
-	let holdTimer: number | null = null;
 	let preview: DropPreview | null = null;
 	let indicator: HTMLElement | null = null;
 	let scrollLocks: { element: Element; top: number; left: number }[] = [];
@@ -272,10 +276,6 @@ export function createBranchDragGesture(
 	};
 
 	const reset = (): void => {
-		if (holdTimer !== null) {
-			window?.clearTimeout(holdTimer);
-			holdTimer = null;
-		}
 		if (dragging) {
 			dom.classList.remove(DRAGGING_CLASS);
 			dom.ownerDocument.body.classList.remove(DRAG_ACTIVE_CLASS);
@@ -299,7 +299,9 @@ export function createBranchDragGesture(
 
 	return {
 		pointerDown(event, sourceAnchorPosition) {
-			if (event.isPrimary === false) {
+			// Touch cannot carry this gesture: the browser owns the scroll and the
+			// on-screen keyboard owns the focus.
+			if (event.isPrimary === false || event.pointerType !== 'mouse') {
 				return;
 			}
 			const anchor = sourceAnchorPosition;
@@ -307,14 +309,6 @@ export function createBranchDragGesture(
 			sourceAnchor = anchor;
 			startX = event.clientX;
 			startY = event.clientY;
-			if (event.pointerType !== 'mouse' && environment.allowTouchHold()) {
-				// Touch has to hold still, otherwise every scroll drags a branch.
-				holdTimer =
-					window?.setTimeout(() => {
-						holdTimer = null;
-						beginDrag();
-					}, DRAG_TOUCH_HOLD_MS) ?? null;
-			}
 		},
 		pointerMove(event) {
 			if (pointerId !== event.pointerId || sourceAnchor === null) {
@@ -325,16 +319,8 @@ export function createBranchDragGesture(
 				event.clientY - startY,
 			);
 			if (!dragging) {
-				if (event.pointerType === 'mouse') {
-					if (distance >= DRAG_START_DISTANCE_PX) {
-						beginDrag();
-					}
-				} else if (
-					holdTimer !== null &&
-					distance >= DRAG_SCROLL_TOLERANCE_PX
-				) {
-					reset();
-					return;
+				if (distance >= DRAG_START_DISTANCE_PX) {
+					beginDrag();
 				}
 				if (!dragging) {
 					return;

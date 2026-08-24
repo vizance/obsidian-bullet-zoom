@@ -1107,10 +1107,13 @@ button.bullet-zoom-slot-command.is-empty {
 	left: var(--bullet-zoom-drop-left, 0);
 	top: var(--bullet-zoom-drop-top, 0);
 	right: var(--size-4-4, 16px);
-	height: 2px;
-	margin-top: -1px;
+	height: var(--bullet-zoom-drop-height, 1.5em);
+	/* Centred on the gap, so the block reads as the slot the branch takes. */
+	transform: translateY(-50%);
 	background: var(--interactive-accent);
-	border-radius: 1px;
+	opacity: 0.28;
+	border-left: 3px solid var(--interactive-accent);
+	border-radius: var(--radius-s, 4px);
 	pointer-events: none;
 	z-index: var(--layer-popover, 30);
 }

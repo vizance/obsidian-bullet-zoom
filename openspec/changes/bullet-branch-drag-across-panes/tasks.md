@@ -27,6 +27,8 @@
 
 - [x] 4.6 Keep the editor still while a branch is being dragged：起拖時記錄來源編輯器與它到文件根之間每一層祖先的捲動位置（外加 window 本身的捲動位移），每次 pointermove 全部還原，結束時釋放；不假設實際捲動的是哪一層容器，因為桌面與手機版面不同；並在拖曳期間以 `touch-action: none` 與 `overscroll-behavior: contain` 關閉觸控捲動。沿用側邊欄 `attachOutlineDragController` 既有的鎖定做法。驗證：`tests/branch-drag-controller.test.ts` 斷言拖曳中改變 scrollTop 會被還原、結束後不再還原；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 touch-action 規則。
 
+- [x] 4.7 Never start a branch drag from touch，並改用 Show a block placeholder that previews the resulting position and depth：拖曳只由滑鼠指標觸發，觸控與觸控筆一律不起拖，手機與平板整個功能停用；落點預覽從 2px 細線改成與行同高、置中於間隙、左緣對齊選定縮排、右緣到編輯器右邊界的半透明色塊，位置與高度以三個 CSS 自訂屬性帶入。驗證：`tests/branch-drag-controller.test.ts` 斷言觸控長按不起拖、滑鼠 16px 仍起拖、色塊高度等於行高且三個自訂屬性正確；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 的色塊規則讀取三個自訂屬性且沒有 inline style。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。

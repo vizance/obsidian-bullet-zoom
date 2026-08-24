@@ -92,13 +92,15 @@ Zooming into a collapsed bullet expands just enough to reveal the target, leavin
 
 ## Drag a branch in the editor
 
-Grab a bullet marker and drag the whole branch to a new place. Bulleted and numbered lists behave the same way — a marker is draggable whenever Bullet Zoom already recognizes it, so numbered items follow the **Zoom numbered items** setting.
+Grab a bullet marker with the mouse and drag the whole branch to a new place. Bulleted and numbered lists behave the same way — a marker is draggable whenever Bullet Zoom already recognizes it, so numbered items follow the **Zoom numbered items** setting.
 
-With a mouse, press a marker and move about 12 pixels to start dragging. On touch, hold the marker for about a third of a second. The hold is only used for dragging when a plain tap already opens the bullet menu, which is the default; if you set the marker tap to zoom instead, the hold keeps opening the menu and touch dragging stays off, so the menu never loses its only way in. A press that does not turn into a drag keeps doing what it always did.
+Press a marker and move about 12 pixels to start dragging. A press that does not turn into a drag keeps doing what it always did.
+
+This is a desktop gesture. On a phone or tablet a marker keeps its usual tap and hold behaviour, because a touch screen has to give the scroll and the on-screen keyboard priority, which leaves no room to carry a branch accurately.
 
 ### The drop position and its depth
 
-Move up and down to choose the gap between two rows, and left and right to choose how deep the branch lands. A line shows the exact result before you let go: it sits in the gap you are aiming at, and its left edge marks the indent the branch will take. Drag right to make the branch a child of the row above, drag left to pull it back out.
+Move up and down to choose the gap between two rows, and left and right to choose how deep the branch lands. A block shows the exact result before you let go: it stands in the gap you are aiming at, is as tall as a line, and its left edge marks the indent the branch will take. Drag right to make the branch a child of the row above, drag left to pull it back out.
 
 Not every depth is offered. The deepest option is one level under the row above the gap; the shallowest is the indent of the row below it, because going shallower would swallow that row into the branch you are moving. The indent characters of the target note are reused, so a note indented with tabs stays on tabs.
 

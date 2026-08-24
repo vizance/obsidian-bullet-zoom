@@ -9,10 +9,10 @@ import {
 	renderDropIndicator,
 	DROP_LEFT_PROPERTY,
 	DROP_TOP_PROPERTY,
+	DROP_HEIGHT_PROPERTY,
 	INDICATOR_CLASS,
 	DRAGGING_CLASS,
 	DRAG_ACTIVE_CLASS,
-	DRAG_TOUCH_HOLD_MS,
 	type BranchDragEnvironment,
 	type DragTarget,
 } from '../src/branch-drag-controller';
@@ -52,7 +52,6 @@ function createHarness(
 		sourceAnchorAt: () => 0,
 		sourceState: () => state,
 		resolveTarget: () => null,
-		allowTouchHold: () => true,
 		applyPlan: (plan, target) => {
 			applied.push({ plan, target });
 		},
@@ -130,26 +129,6 @@ describe('attachBranchDragController', () => {
 		});
 		harness.marker.dispatchEvent(click);
 		expect(click.defaultPrevented).toBe(true);
-		expect(harness.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
-	});
-
-	it('starts dragging after a touch hold', () => {
-		harness.marker.dispatchEvent(
-			pointer('pointerdown', { pointerType: 'touch' }),
-		);
-		expect(harness.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
-		vi.advanceTimersByTime(DRAG_TOUCH_HOLD_MS);
-		expect(harness.dom.classList.contains(DRAGGING_CLASS)).toBe(true);
-	});
-
-	it('cancels the touch hold when the finger scrolls first', () => {
-		harness.marker.dispatchEvent(
-			pointer('pointerdown', { pointerType: 'touch' }),
-		);
-		harness.dom.dispatchEvent(
-			pointer('pointermove', { y: 20, pointerType: 'touch' }),
-		);
-		vi.advanceTimersByTime(DRAG_TOUCH_HOLD_MS);
 		expect(harness.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
 	});
 
@@ -282,7 +261,10 @@ describe('renderDropIndicator', () => {
 		expect(indicator?.style.getPropertyValue(DROP_TOP_PROPERTY)).toBe(
 			'60px',
 		);
-		expect(indicator?.style.length).toBe(2);
+		expect(
+			indicator?.style.getPropertyValue(DROP_HEIGHT_PROPERTY),
+		).toBe('20px');
+		expect(indicator?.style.length).toBe(3);
 		target.indicatorHost.remove();
 	});
 
@@ -376,32 +358,6 @@ describe('applying a drop', () => {
 		local.dom.dispatchEvent(pointer('pointermove', { x: 120, y: 55 }));
 		local.dom.dispatchEvent(pointer('pointerup', { x: 120, y: 55 }));
 		expect(local.applied).toHaveLength(0);
-		local.detach();
-		local.dom.remove();
-		vi.useRealTimers();
-	});
-});
-
-describe('leaving the radial menu its entry point', () => {
-	it('does not start a touch drag when the long press owns the menu', () => {
-		vi.useFakeTimers();
-		const local = createHarness({ allowTouchHold: () => false });
-		local.marker.dispatchEvent(
-			pointer('pointerdown', { pointerType: 'touch' }),
-		);
-		vi.advanceTimersByTime(DRAG_TOUCH_HOLD_MS * 2);
-		expect(local.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
-		local.detach();
-		local.dom.remove();
-		vi.useRealTimers();
-	});
-
-	it('still starts a mouse drag when the long press owns the menu', () => {
-		vi.useFakeTimers();
-		const local = createHarness({ allowTouchHold: () => false });
-		local.marker.dispatchEvent(pointer('pointerdown'));
-		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
-		expect(local.dom.classList.contains(DRAGGING_CLASS)).toBe(true);
 		local.detach();
 		local.dom.remove();
 		vi.useRealTimers();
@@ -556,5 +512,37 @@ describe('holding outer containers still as well', () => {
 		local.detach();
 		outer.remove();
 		vi.useRealTimers();
+	});
+});
+
+describe('touch never starts a drag', () => {
+	it('ignores a touch hold on a marker', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(
+			pointer('pointerdown', { pointerType: 'touch' }),
+		);
+		vi.advanceTimersByTime(5000);
+		local.dom.dispatchEvent(
+			pointer('pointermove', { x: 40, pointerType: 'touch' }),
+		);
+		expect(local.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(false);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('ignores a pen, which cannot hover a marker precisely either', () => {
+		const local = createHarness();
+		local.marker.dispatchEvent(
+			pointer('pointerdown', { pointerType: 'pen' }),
+		);
+		local.dom.dispatchEvent(
+			pointer('pointermove', { x: 40, pointerType: 'pen' }),
+		);
+		expect(local.dom.classList.contains(DRAGGING_CLASS)).toBe(false);
+		local.detach();
+		local.dom.remove();
 	});
 });

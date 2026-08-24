@@ -1,8 +1,8 @@
 ## ADDED Requirements
 
-### Requirement: Start a branch drag from a supported list marker
+### Requirement: Start a branch drag from a supported list marker with a mouse
 
-The plugin SHALL treat the rendered marker of every supported list item in a Markdown editor as a drag handle for that item's whole branch, where the branch is the item together with all of its nested items. A pointer press on the marker SHALL start a drag only after the pointer travels at least 12 pixels for a mouse pointer, or after the pointer is held for at least 350 milliseconds without traveling more than 10 pixels for a non-mouse pointer. The mouse distance SHALL equal the distance at which a marker press stops being a radial-menu press, so starting a drag and cancelling the menu press happen at the same moment.
+The plugin SHALL treat the rendered marker of every supported list item in a Markdown editor as a drag handle for that item's whole branch, where the branch is the item together with all of its nested items. A drag SHALL start only from a mouse pointer, and only after that pointer travels at least 12 pixels while held on the marker. The distance SHALL equal the distance at which a marker press stops being a radial-menu press, so starting a drag and cancelling the menu press happen at the same moment.
 
 A press that is released before the drag starts SHALL keep the existing marker behavior, whether that is Zoom or opening the radial menu. A press that starts a drag SHALL suppress the click that follows the release, SHALL NOT Zoom, and SHALL NOT open the radial menu.
 
@@ -18,39 +18,26 @@ An item SHALL be draggable exactly when the plugin already recognizes it as a su
 - **WHEN** the user presses a marker with a mouse and moves 16 pixels
 - **THEN** the branch enters the dragging state and the release neither zooms nor opens the radial menu
 
-#### Scenario: Touch hold starts a drag
-
-- **WHEN** the user touches a marker and holds it for 350 milliseconds without moving more than 10 pixels
-- **THEN** the branch enters the dragging state
-
-#### Scenario: Touch scroll cancels before the drag starts
-
-- **WHEN** the user touches a marker and moves 20 pixels before 350 milliseconds elapse
-- **THEN** no drag starts and the editor scrolls normally
-
 #### Scenario: Numbered detection disabled blocks the drag
 
 - **WHEN** numbered-item detection is disabled and the user presses the marker of a numbered item
 - **THEN** no drag starts
 
-### Requirement: Leave the radial menu its only entry point when it needs one
+### Requirement: Never start a branch drag from touch
 
-The radial menu opens either on a plain marker tap or on a marker long press, never on both. When the menu opens on a tap, the long press is unused and a touch hold SHALL start a branch drag. When the menu opens on a long press, that long press SHALL keep opening the menu and a touch hold SHALL NOT start a branch drag, so the menu never loses its only entry point. A mouse drag SHALL be available in both cases, because it starts on distance rather than on time.
+The plugin SHALL NOT start a branch drag from a touch or pen pointer, and SHALL NOT start one at all on a mobile or tablet device. Touch gestures on a marker SHALL keep the behavior they had before branch dragging existed, so a tap and a long press still belong entirely to Zoom and to the radial menu.
 
-#### Scenario: Tap opens the menu, so the hold is free for dragging
+A touch screen cannot carry this gesture well: the drag competes with the scroll the browser has already claimed, and the editor keeps its focus for the on-screen keyboard, which leaves no room to move a branch precisely.
 
-- **WHEN** the marker tap action opens the radial menu and the user holds a marker for 350 milliseconds
-- **THEN** the branch enters the dragging state and the radial menu does not open
+#### Scenario: A touch hold does not drag
 
-#### Scenario: Long press opens the menu, so touch dragging stays off
+- **WHEN** the user holds a marker with a finger for any length of time
+- **THEN** no drag starts and the marker behaves as it did before
 
-- **WHEN** the marker tap action zooms, which leaves the long press as the only way to open the radial menu, and the user holds a marker for 350 milliseconds
-- **THEN** the radial menu opens and no drag starts
+#### Scenario: The radial menu keeps its long press
 
-#### Scenario: A mouse drag works even when the long press owns the menu
-
-- **WHEN** the marker tap action zooms and the user presses a marker with a mouse and moves 16 pixels
-- **THEN** the branch enters the dragging state and the radial menu does not open
+- **WHEN** the marker tap action zooms, which leaves the long press as the only way to open the radial menu, and the user holds a marker with a finger
+- **THEN** the radial menu opens
 
 ### Requirement: Resolve the drop gap from the pointer position
 
@@ -120,19 +107,26 @@ The plugin SHALL map every legal indent for the current gap to a horizontal scre
 - **WHEN** the pointer sits exactly midway between two legal indent coordinates
 - **THEN** the shallower indent is selected
 
-### Requirement: Show a drop indicator that previews the resulting position and depth
+### Requirement: Show a block placeholder that previews the resulting position and depth
 
-While a gap and an indent are selected, the plugin SHALL render a horizontal drop indicator inside the target editor, positioned at the selected gap, with its left edge at the coordinate of the selected indent. The plugin SHALL position the indicator through CSS custom properties defined in the plugin stylesheet, and SHALL NOT assign inline style declarations other than those custom properties. The plugin SHALL remove the indicator when the drag ends, when the drag is canceled, and whenever no gap is resolved.
+While a gap and an indent are selected, the plugin SHALL render a filled block inside the target editor that stands where the branch would land: vertically centred on the selected gap, as tall as a line of that editor, with its left edge at the coordinate of the selected indent and its right edge at the editor's right margin. The block SHALL be a placeholder rather than a hairline, so that the drop position is readable without looking for a thin rule, and it SHALL be translucent enough to leave the text underneath legible.
 
-#### Scenario: Indicator follows the selected indent
+The plugin SHALL position and size the block through CSS custom properties defined in the plugin stylesheet, and SHALL NOT assign inline style declarations other than those custom properties. The plugin SHALL remove the block when the drag ends, when the drag is canceled, and whenever no gap is resolved.
+
+#### Scenario: The placeholder follows the selected indent
 
 - **WHEN** the selected indent changes while the gap stays the same
-- **THEN** the indicator stays at the same gap and its left edge moves to the new indent's coordinate
+- **THEN** the block stays at the same gap and its left edge moves to the new indent's coordinate
 
-#### Scenario: Pointer cancel removes the indicator
+#### Scenario: The placeholder is as tall as a line
+
+- **WHEN** a drop is previewed in an editor whose lines are 20 pixels tall
+- **THEN** the block is 20 pixels tall
+
+#### Scenario: Pointer cancel removes the placeholder
 
 - **WHEN** the drag receives a pointer cancel event
-- **THEN** the indicator is removed and the document is unchanged
+- **THEN** the block is removed and the document is unchanged
 
 ### Requirement: Hide the text caret while a branch is being dragged
 

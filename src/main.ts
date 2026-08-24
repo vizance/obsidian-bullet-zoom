@@ -958,7 +958,13 @@ export default class BulletZoomPlugin extends Plugin {
 	 */
 	private createBranchDragEnvironment(
 		view: EditorView,
-	): BranchDragEnvironment {
+	): BranchDragEnvironment | null {
+		// Dragging a branch is a mouse gesture. On a phone or tablet the browser
+		// owns the scroll and the keyboard owns the focus, so the marker keeps the
+		// touch behaviour it had before.
+		if (Platform.isMobile) {
+			return null;
+		}
 		const resolveTarget = (x: number, y: number): DragTarget | null => {
 			const ownerDocument = view.dom.ownerDocument;
 			const element = ownerDocument.elementFromPoint(x, y);
@@ -1020,13 +1026,6 @@ export default class BulletZoomPlugin extends Plugin {
 			},
 			sourceState: () => view.state,
 			resolveTarget,
-			// When a tap already opens the radial menu the long press is free;
-			// otherwise it is the menu's only way in and must stay untouched.
-			allowTouchHold: () =>
-				!(
-					(Platform.isMobile || this.settings.desktopMenuEnabled) &&
-					this.settings.radialMenuEnabled
-				) || this.settings.markerTapAction === 'menu',
 			applyPlan: (plan, target) => {
 				this.applyBranchDrop(view, plan, target);
 			},

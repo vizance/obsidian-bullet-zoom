@@ -3048,7 +3048,6 @@ describe('branch drag and the radial menu share the marker press', () => {
 	function createDragView(
 		options: Readonly<{
 			openOnTap: boolean;
-			allowTouchHold: boolean;
 			onLongPress: () => void;
 		}>,
 	): EditorView {
@@ -3070,7 +3069,6 @@ describe('branch drag and the radial menu share the marker press', () => {
 							(created as EditorView).state,
 						resolveTarget: () => null,
 						applyPlan: () => undefined,
-						allowTouchHold: () => options.allowTouchHold,
 					})),
 					createFocusExtension({
 						isPhone: true,
@@ -3123,36 +3121,10 @@ describe('branch drag and the radial menu share the marker press', () => {
 		vi.useRealTimers();
 	});
 
-	it('lets a touch hold drag when a tap already opens the menu', async () => {
+	it('leaves a touch hold entirely to the radial menu', async () => {
 		vi.useFakeTimers();
 		const onLongPress = vi.fn();
-		const view = createDragView({
-			openOnTap: true,
-			allowTouchHold: true,
-			onLongPress,
-		});
-
-		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'touch'));
-		await vi.advanceTimersByTimeAsync(400);
-		expect(view.dom.classList.contains('bullet-zoom-branch-dragging')).toBe(
-			true,
-		);
-
-		view.dom.dispatchEvent(markerPress('pointerup', 46, 'touch'));
-		expect(onLongPress).not.toHaveBeenCalled();
-		expect(getFocusSession(view.state)).toBeNull();
-
-		view.destroy();
-	});
-
-	it('keeps the long press for the menu when the menu has no other way in', async () => {
-		vi.useFakeTimers();
-		const onLongPress = vi.fn();
-		const view = createDragView({
-			openOnTap: false,
-			allowTouchHold: false,
-			onLongPress,
-		});
+		const view = createDragView({ openOnTap: false, onLongPress });
 
 		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'touch'));
 		await vi.advanceTimersByTimeAsync(500);
@@ -3164,14 +3136,10 @@ describe('branch drag and the radial menu share the marker press', () => {
 		view.destroy();
 	});
 
-	it('starts a mouse drag even when the long press owns the menu', () => {
+	it('still drags with a mouse while the long press owns the menu', () => {
 		vi.useFakeTimers();
 		const onLongPress = vi.fn();
-		const view = createDragView({
-			openOnTap: false,
-			allowTouchHold: false,
-			onLongPress,
-		});
+		const view = createDragView({ openOnTap: false, onLongPress });
 
 		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'mouse'));
 		view.dom.dispatchEvent(markerPress('pointermove', 70, 'mouse'));
