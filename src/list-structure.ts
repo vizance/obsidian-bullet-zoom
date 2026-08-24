@@ -1532,7 +1532,7 @@ export type ListPastePlan = Readonly<{
 	insert: string;
 }>;
 
-type ListMarkerStyle = Readonly<{
+export type ListMarkerStyle = Readonly<{
 	ordered: boolean;
 	bullet: string;
 	delimiter: string;
@@ -1540,7 +1540,7 @@ type ListMarkerStyle = Readonly<{
 
 const LIST_LINE_PATTERN = /^([\t ]*)([-+*]|\d+[.)])([\t ]+)(.*)$/;
 
-function readListMarkerStyle(text: string): ListMarkerStyle | null {
+export function readListMarkerStyle(text: string): ListMarkerStyle | null {
 	const match = LIST_LINE_PATTERN.exec(text);
 	const marker = match?.[2];
 	if (marker === undefined) {
@@ -1555,41 +1555,27 @@ function readListMarkerStyle(text: string): ListMarkerStyle | null {
 }
 
 /**
- * Rewrites a copied branch so it belongs to the list it lands in: every line is
+ * Rewrites a branch so it belongs to the list it lands in: every line is
  * shifted to the target's indentation while keeping its depth relative to the
  * branch root, and every marker adopts the target's style, so a numbered branch
- * pasted into a bulleted list stops being numbered.
+ * that lands in a bulleted list stops being numbered. Pasting and dragging both
+ * go through here, so the two never drift into separate numbering rules.
  */
-export function planListPaste(
-	state: EditorState,
-	anchor: number,
-	text: string,
-): ListPastePlan | null {
-	const trimmed = text.replace(/\r\n/g, '\n').replace(/\n+$/, '');
-	if (trimmed.length === 0) {
-		return null;
-	}
-	const sourceLines = trimmed.split('\n');
-	const firstSource = sourceLines[0] ?? '';
-	if (readListMarkerStyle(firstSource) === null) {
-		return null;
-	}
-	const targetLine = state.doc.lineAt(anchor);
-	const targetStyle = readListMarkerStyle(targetLine.text);
-	if (targetStyle === null) {
-		return null;
-	}
-	const targetIndent = /^[\t ]*/.exec(targetLine.text)?.[0] ?? '';
-	const baseIndent = /^[\t ]*/.exec(firstSource)?.[0] ?? '';
+export function rewriteBranchToTarget(
+	branchText: string,
+	sourceBaseIndent: string,
+	targetIndent: string,
+	targetStyle: ListMarkerStyle,
+): string {
 	const counters = new Map<string, number>();
 	const rewritten: string[] = [];
-	for (const line of sourceLines) {
+	for (const line of branchText.split('\n')) {
 		if (line.trim().length === 0) {
 			rewritten.push('');
 			continue;
 		}
-		const relative = line.startsWith(baseIndent)
-			? line.slice(baseIndent.length)
+		const relative = line.startsWith(sourceBaseIndent)
+			? line.slice(sourceBaseIndent.length)
 			: line.trimStart();
 		const match = LIST_LINE_PATTERN.exec(relative);
 		if (match === null) {
@@ -1611,7 +1597,35 @@ export function planListPaste(
 		}
 		rewritten.push(`${targetIndent}${indent}${marker}${spacing}${content}`);
 	}
-	const insert = rewritten.join('\n');
+	return rewritten.join('\n');
+}
+
+export function planListPaste(
+	state: EditorState,
+	anchor: number,
+	text: string,
+): ListPastePlan | null {
+	const trimmed = text.replace(/\r\n/g, '\n').replace(/\n+$/, '');
+	if (trimmed.length === 0) {
+		return null;
+	}
+	const firstSource = trimmed.split('\n')[0] ?? '';
+	if (readListMarkerStyle(firstSource) === null) {
+		return null;
+	}
+	const targetLine = state.doc.lineAt(anchor);
+	const targetStyle = readListMarkerStyle(targetLine.text);
+	if (targetStyle === null) {
+		return null;
+	}
+	const targetIndent = /^[\t ]*/.exec(targetLine.text)?.[0] ?? '';
+	const baseIndent = /^[\t ]*/.exec(firstSource)?.[0] ?? '';
+	const insert = rewriteBranchToTarget(
+		trimmed,
+		baseIndent,
+		targetIndent,
+		targetStyle,
+	);
 	const targetContent = LIST_LINE_PATTERN.exec(targetLine.text)?.[4] ?? '';
 	if (targetContent.trim().length === 0) {
 		// Pasting into the empty bullet you just made should fill it, not leave

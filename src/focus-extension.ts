@@ -38,6 +38,11 @@ import {
 	type BranchRange,
 	type MarkerDetection,
 } from './list-structure';
+import {
+	createBranchDragGesture,
+	type BranchDragEnvironment,
+	type BranchDragGesture,
+} from './branch-drag-controller';
 import { appendHomeIcon } from './home-icon';
 
 export const LIVE_PREVIEW_REQUIRED_NOTICE =
@@ -554,6 +559,21 @@ export const radialMenuConfig = Facet.define<RadialMenuConfig, RadialMenuConfig>
 
 export const PRESS_CANCEL_PX = 12;
 
+export type BranchDragEnvironmentFactory = (
+	view: EditorView,
+) => BranchDragEnvironment | null;
+
+/**
+ * Supplied by the plugin entry point. Without it the marker keeps its previous
+ * press behaviour exactly, which is what the pointer tests rely on.
+ */
+export const branchDragEnvironmentFactory = Facet.define<
+	BranchDragEnvironmentFactory,
+	BranchDragEnvironmentFactory | null
+>({
+	combine: (values) => values.at(0) ?? null,
+});
+
 export const MARKER_TAP_TOLERANCE_PX = 6;
 
 export type LineTapZone = 'fold' | 'marker' | 'content';
@@ -666,8 +686,16 @@ class MarkerPointerPlugin implements PluginValue {
 	private pressTimer: number | null = null;
 	private pressWindow: Window | null = null;
 	private pressOpensMenu = false;
+	private readonly dragGesture: BranchDragGesture | null;
+	private pendingZoomMarkerFrom: number | null = null;
 
 	constructor(private readonly view: EditorView) {
+		const factory = view.state.facet(branchDragEnvironmentFactory);
+		const environment = factory?.(view) ?? null;
+		this.dragGesture =
+			environment === null
+				? null
+				: createBranchDragGesture(view.dom, environment);
 		this.pointerHandler = (event) => this.handlePointerDown(event);
 		this.moveHandler = (event) => this.handlePointerMove(event);
 		this.upHandler = (event) => this.handlePointerUp(event);
@@ -682,6 +710,7 @@ class MarkerPointerPlugin implements PluginValue {
 
 	destroy(): void {
 		this.clearPress();
+		this.dragGesture?.dispose();
 		this.view.dom.removeEventListener('pointerdown', this.pointerHandler, true);
 		this.view.dom.removeEventListener('pointermove', this.moveHandler, true);
 		this.view.dom.removeEventListener('pointerup', this.upHandler, true);
@@ -740,6 +769,12 @@ class MarkerPointerPlugin implements PluginValue {
 	}
 
 	private handlePointerMove(event: PointerEvent): void {
+		this.dragGesture?.pointerMove(event);
+		if (this.dragGesture?.isDragging() === true) {
+			this.clearPress();
+			this.pendingZoomMarkerFrom = null;
+			return;
+		}
 		if (this.pressPointerId !== event.pointerId) {
 			return;
 		}
@@ -753,6 +788,20 @@ class MarkerPointerPlugin implements PluginValue {
 	}
 
 	private handlePointerUp(event: PointerEvent): void {
+		if (this.dragGesture?.pointerUp(event) === true) {
+			this.clearPress();
+			this.pendingZoomMarkerFrom = null;
+			this.handledGesture = true;
+			return;
+		}
+		const pendingZoom = this.pendingZoomMarkerFrom;
+		this.pendingZoomMarkerFrom = null;
+		if (pendingZoom !== null) {
+			if (activateBulletMarker(this.view, pendingZoom)) {
+				this.view.focus();
+			}
+			return;
+		}
 		if (this.pressPointerId !== event.pointerId) {
 			return;
 		}
@@ -793,6 +842,8 @@ class MarkerPointerPlugin implements PluginValue {
 	}
 
 	private handlePointerCancel(event: PointerEvent): void {
+		this.dragGesture?.pointerCancel(event);
+		this.pendingZoomMarkerFrom = null;
 		if (this.pressPointerId === event.pointerId) {
 			this.clearPress();
 		}
@@ -810,6 +861,17 @@ class MarkerPointerPlugin implements PluginValue {
 			const config = this.view.state.facet(radialMenuConfig);
 			if (config.enabled && (config.allowMouse || event.pointerType !== 'mouse')) {
 				this.beginMarkerPress(event, tap.markerFrom, config);
+				this.dragGesture?.pointerDown(event, tap.markerFrom);
+				return;
+			}
+			if (this.dragGesture !== null) {
+				// A press that might become a drag cannot zoom yet, so the zoom
+				// waits for a release that did not drag.
+				this.dragGesture.pointerDown(event, tap.markerFrom);
+				this.pendingZoomMarkerFrom = tap.markerFrom;
+				this.handledGesture = true;
+				event.preventDefault();
+				event.stopPropagation();
 				return;
 			}
 		}

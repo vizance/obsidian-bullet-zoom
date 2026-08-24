@@ -13,11 +13,12 @@ import {
 	type Extension,
 } from '@codemirror/state';
 import { Decoration, EditorView, showPanel, WidgetType } from '@codemirror/view';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	appendDirectChild,
 	ADD_CHILD_UNAVAILABLE_NOTICE,
+	branchDragEnvironmentFactory,
 	createFocusExtension,
 	clearFocusEffect,
 	EDITOR_VIEW_UNAVAILABLE_NOTICE,
@@ -3040,5 +3041,145 @@ describe('desktop menu opt-in (1.27.0)', () => {
 		vi.useRealTimers();
 		view.destroy();
 		parent.remove();
+	});
+});
+
+describe('branch drag and the radial menu share the marker press', () => {
+	function createDragView(
+		options: Readonly<{
+			openOnTap: boolean;
+			allowTouchHold: boolean;
+			onLongPress: () => void;
+		}>,
+	): EditorView {
+		const parent = document.createElement('div');
+		document.body.append(parent);
+		let created: EditorView | null = null;
+		const view: EditorView = new EditorView({
+			parent,
+			state: EditorState.create({
+				doc: '- Parent\n  - Child',
+				extensions: [
+					markdown(),
+					focusFilePath.of('Ideas.md'),
+					focusNoteTitle.of('Ideas'),
+					focusLivePreview.of(true),
+					branchDragEnvironmentFactory.of(() => ({
+						sourceAnchorAt: () => 0,
+						sourceState: () =>
+							(created as EditorView).state,
+						resolveTarget: () => null,
+						applyPlan: () => undefined,
+						allowTouchHold: () => options.allowTouchHold,
+					})),
+					createFocusExtension({
+						isPhone: true,
+						isMobile: true,
+						radialMenu: {
+							enabled: true,
+							allowMouse: true,
+							openOnTap: options.openOnTap,
+							pressDuration: 450,
+							onLongPress: options.onLongPress,
+						},
+					}),
+				],
+			}),
+		});
+		created = view;
+		vi.spyOn(view, 'posAtCoords').mockReturnValue(0);
+		vi.spyOn(view, 'coordsAtPos').mockImplementation((position: number) => {
+			if (position === 0) {
+				return { left: 40, right: 46, top: 10, bottom: 30 };
+			}
+			if (position === 1) {
+				return { left: 46, right: 52, top: 10, bottom: 30 };
+			}
+			return { left: 60, right: 66, top: 10, bottom: 30 };
+		});
+		return view;
+	}
+
+	function markerPress(
+		type: string,
+		x: number,
+		pointerType: string,
+	): MouseEvent {
+		const event = new MouseEvent(type, {
+			bubbles: true,
+			cancelable: true,
+			clientX: x,
+			clientY: 20,
+		});
+		Object.defineProperties(event, {
+			pointerId: { value: 9 },
+			pointerType: { value: pointerType },
+			isPrimary: { value: true },
+		});
+		return event;
+	}
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('lets a touch hold drag when a tap already opens the menu', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const view = createDragView({
+			openOnTap: true,
+			allowTouchHold: true,
+			onLongPress,
+		});
+
+		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'touch'));
+		await vi.advanceTimersByTimeAsync(400);
+		expect(view.dom.classList.contains('bullet-zoom-branch-dragging')).toBe(
+			true,
+		);
+
+		view.dom.dispatchEvent(markerPress('pointerup', 46, 'touch'));
+		expect(onLongPress).not.toHaveBeenCalled();
+		expect(getFocusSession(view.state)).toBeNull();
+
+		view.destroy();
+	});
+
+	it('keeps the long press for the menu when the menu has no other way in', async () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const view = createDragView({
+			openOnTap: false,
+			allowTouchHold: false,
+			onLongPress,
+		});
+
+		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'touch'));
+		await vi.advanceTimersByTimeAsync(500);
+		expect(view.dom.classList.contains('bullet-zoom-branch-dragging')).toBe(
+			false,
+		);
+		expect(onLongPress).toHaveBeenCalledTimes(1);
+
+		view.destroy();
+	});
+
+	it('starts a mouse drag even when the long press owns the menu', () => {
+		vi.useFakeTimers();
+		const onLongPress = vi.fn();
+		const view = createDragView({
+			openOnTap: false,
+			allowTouchHold: false,
+			onLongPress,
+		});
+
+		view.contentDOM.dispatchEvent(markerPress('pointerdown', 46, 'mouse'));
+		view.dom.dispatchEvent(markerPress('pointermove', 70, 'mouse'));
+		expect(view.dom.classList.contains('bullet-zoom-branch-dragging')).toBe(
+			true,
+		);
+		expect(onLongPress).not.toHaveBeenCalled();
+
+		view.destroy();
 	});
 });

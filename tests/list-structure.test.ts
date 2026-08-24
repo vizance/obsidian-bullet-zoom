@@ -16,6 +16,8 @@ import {
 	findAncestorBullet,
 	planFocusStructureRepair,
 	planListPaste,
+	readListMarkerStyle,
+	rewriteBranchToTarget,
 	sanitizeExtractFileName,
 	scanStrayRange,
 	suggestExtractFileName,
@@ -1369,6 +1371,57 @@ describe('planListPaste', () => {
 		const state = createState('- Alpha');
 		const plan = planListPaste(state, 3, '- Topic\n  continued');
 		expect(plan?.insert).toBe('\n- Topic\n  continued');
+	});
+});
+
+describe('rewriteBranchToTarget', () => {
+	const orderedStyle = readListMarkerStyle('1. Target');
+	const bulletStyle = readListMarkerStyle('- Target');
+
+	it('renumbers each indent level when the target list is ordered', () => {
+		expect(orderedStyle).not.toBeNull();
+		expect(
+			rewriteBranchToTarget(
+				'- Alpha\n\t- Beta\n\t- Gamma',
+				'',
+				'',
+				orderedStyle!,
+			),
+		).toBe('1. Alpha\n\t1. Beta\n\t2. Gamma');
+	});
+
+	it('restarts a deeper level once its parent advances', () => {
+		expect(
+			rewriteBranchToTarget(
+				'- Alpha\n\t- Beta\n- Delta\n\t- Epsilon',
+				'',
+				'',
+				orderedStyle!,
+			),
+		).toBe('1. Alpha\n\t1. Beta\n2. Delta\n\t1. Epsilon');
+	});
+
+	it('gives every line the target bullet when the target list is unordered', () => {
+		expect(bulletStyle).not.toBeNull();
+		expect(
+			rewriteBranchToTarget(
+				'1. Topic\n\t1. Child\n\t2. Second child',
+				'',
+				'',
+				bulletStyle!,
+			),
+		).toBe('- Topic\n\t- Child\n\t- Second child');
+	});
+
+	it('rebases the branch onto the target indent while keeping relative depth', () => {
+		expect(
+			rewriteBranchToTarget(
+				'\t\t- Root\n\t\t\t- Child',
+				'\t\t',
+				'',
+				bulletStyle!,
+			),
+		).toBe('- Root\n\t- Child');
 	});
 });
 

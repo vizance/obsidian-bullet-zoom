@@ -90,6 +90,25 @@ Obsidian's native fold arrow only collapses and expands a thread — it never zo
 
 Zooming into a collapsed bullet expands just enough to reveal the target, leaving deeper collapsed sections as they were.
 
+## Drag a branch in the editor
+
+Grab a bullet marker and drag the whole branch to a new place. Bulleted and numbered lists behave the same way — a marker is draggable whenever Bullet Zoom already recognizes it, so numbered items follow the **Zoom numbered items** setting.
+
+With a mouse, press a marker and move about 12 pixels to start dragging. On touch, hold the marker for about a third of a second. The hold is only used for dragging when a plain tap already opens the bullet menu, which is the default; if you set the marker tap to zoom instead, the hold keeps opening the menu and touch dragging stays off, so the menu never loses its only way in. A press that does not turn into a drag keeps doing what it always did.
+
+### The drop position and its depth
+
+Move up and down to choose the gap between two rows, and left and right to choose how deep the branch lands. A line shows the exact result before you let go: it sits in the gap you are aiming at, and its left edge marks the indent the branch will take. Drag right to make the branch a child of the row above, drag left to pull it back out.
+
+Not every depth is offered. The deepest option is one level under the row above the gap; the shallowest is the indent of the row below it, because going shallower would swallow that row into the branch you are moving. The indent characters of the target note are reused, so a note indented with tabs stays on tabs.
+
+### Across panes and notes
+
+A drop works in any Markdown editor in the same window, including a split pane showing a different note. The branch is removed from the note it came from and inserted where you dropped it, and it adopts the target list's markers — a numbered branch dropped into a bulleted list becomes bulleted, and a bulleted branch dropped into a numbered list is renumbered.
+
+Moving inside one note is a single undo. Moving between two notes is one undo in each, because Obsidian keeps a separate undo history per file. Popout windows are not supported as drop targets.
+
+
 ## Bullet outline
 
 Run **Open bullet outline** or click the ribbon icon to browse the current note's bullet structure in the right sidebar.

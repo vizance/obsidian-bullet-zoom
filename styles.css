@@ -1101,3 +1101,25 @@ button.bullet-zoom-slot-command.is-empty {
 	animation: none;
 	transition: transform 90ms ease, background-color 90ms ease;
 }
+
+.bullet-zoom-branch-drop-indicator {
+	position: absolute;
+	left: var(--bullet-zoom-drop-left, 0);
+	top: var(--bullet-zoom-drop-top, 0);
+	right: var(--size-4-4, 16px);
+	height: 2px;
+	margin-top: -1px;
+	background: var(--interactive-accent);
+	border-radius: 1px;
+	pointer-events: none;
+	z-index: var(--layer-popover, 30);
+}
+
+.bullet-zoom-branch-dragging {
+	cursor: grabbing;
+	user-select: none;
+}
+
+.bullet-zoom-branch-dragging .bullet-zoom-marker {
+	opacity: 0.5;
+}

@@ -24,6 +24,7 @@ import {
 	TOP_LEVEL_COMMAND,
 } from './command-definitions';
 import {
+	branchDragEnvironmentFactory,
 	createFocusExtension,
 	enterFocusAt,
 	exitFocus,
@@ -38,7 +39,17 @@ import {
 	runParentCommand,
 } from './focus-extension';
 import {
+	applyCrossDocumentDrop,
+	sameDocumentDropTransaction,
+	type BranchDropPlan,
+} from './branch-drop-plan';
+import type {
+	BranchDragEnvironment,
+	DragTarget,
+} from './branch-drag-controller';
+import {
 	collectBulletCopyText,
+	computeBranchRange,
 	findSupportedBullet,
 	planBulletClear,
 	planBulletExtract,
@@ -941,11 +952,134 @@ export default class BulletZoomPlugin extends Plugin {
 	private readonly editorExtensions: Extension[] = [];
 	settings: BulletZoomSettings = DEFAULT_SETTINGS;
 
+	/**
+	 * Everything the drag gesture needs from Obsidian, resolved for one editor.
+	 * Kept here so the gesture itself stays free of Obsidian imports.
+	 */
+	private createBranchDragEnvironment(
+		view: EditorView,
+	): BranchDragEnvironment {
+		const resolveTarget = (x: number, y: number): DragTarget | null => {
+			const ownerDocument = view.dom.ownerDocument;
+			const element = ownerDocument.elementFromPoint(x, y);
+			if (!(element instanceof Element)) {
+				return null;
+			}
+			const editorElement = element.closest<HTMLElement>('.cm-editor');
+			if (editorElement === null) {
+				return null;
+			}
+			const targetView =
+				EditorView.findFromDOM(editorElement) ??
+				this.findViewByElement(editorElement);
+			if (targetView === null) {
+				return null;
+			}
+			const session = getFocusSession(targetView.state);
+			const focusRange =
+				session === null
+					? null
+					: computeBranchRange(targetView.state, session.anchor);
+			return {
+				key: targetView,
+				state: targetView.state,
+				writable: !targetView.state.readOnly,
+					sameDocumentAsSource:
+					targetView.state.facet(focusFilePath) ===
+					view.state.facet(focusFilePath),
+				// A popout window is a different document, so a drop there cannot
+				// be trusted.
+				sameWindowAsSource:
+					targetView.dom.ownerDocument === ownerDocument,
+				focusRange,
+				indicatorHost: targetView.dom,
+				posAtCoords: (pointerX, pointerY) =>
+					targetView.posAtCoords({ x: pointerX, y: pointerY }),
+				lineGeometry: (position) => {
+					const line = targetView.state.doc.lineAt(position);
+					const coords = targetView.coordsAtPos(line.from);
+					return coords === null
+						? null
+						: {
+								top: coords.top,
+								bottom: coords.bottom,
+								left: coords.left,
+							};
+				},
+				columnWidthPx: () => targetView.defaultCharacterWidth,
+			};
+		};
+
+		return {
+			sourceAnchorAt: (marker) => {
+				try {
+					return view.posAtDOM(marker);
+				} catch {
+					return null;
+				}
+			},
+			sourceState: () => view.state,
+			resolveTarget,
+			// When a tap already opens the radial menu the long press is free;
+			// otherwise it is the menu's only way in and must stay untouched.
+			allowTouchHold: () =>
+				!(
+					(Platform.isMobile || this.settings.desktopMenuEnabled) &&
+					this.settings.radialMenuEnabled
+				) || this.settings.markerTapAction === 'menu',
+			applyPlan: (plan, target) => {
+				this.applyBranchDrop(view, plan, target);
+			},
+		};
+	}
+
+	private findViewByElement(element: HTMLElement): EditorView | null {
+		let found: EditorView | null = null;
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			if (found !== null || !(leaf.view instanceof MarkdownView)) {
+				return;
+			}
+			const candidate = resolveCodeMirrorView(leaf.view.editor);
+			if (candidate !== null && candidate.dom.contains(element)) {
+				found = candidate;
+			}
+		});
+		return found;
+	}
+
+	private applyBranchDrop(
+		sourceView: EditorView,
+		plan: BranchDropPlan,
+		target: DragTarget,
+	): void {
+		if (plan.kind === 'same-document') {
+			sourceView.dispatch(
+				sameDocumentDropTransaction(sourceView.state, plan),
+			);
+			sourceView.focus();
+			return;
+		}
+		const targetView = target.key as EditorView;
+		const outcome = applyCrossDocumentDrop(plan, {
+			insert: (transaction) => targetView.dispatch(transaction),
+			remove: (changes) => sourceView.dispatch({ changes }),
+			notify: (message) => {
+				new Notice(message);
+			},
+		});
+		if (outcome !== 'insert-failed') {
+			targetView.focus();
+		}
+	}
+
 	private buildEditorExtensions(
 		outlineCoordinator: BulletOutlineSidebarCoordinator,
 	): Extension[] {
 		return [
 			createHeadingUnwrapExtension(() => this.settings.unwrapListHeadings),
+			branchDragEnvironmentFactory.of((view) =>
+				this.createBranchDragEnvironment(view),
+			),
 			focusFilePath.compute([editorInfoField], (state) =>
 				state.field(editorInfoField, false)?.file?.path ?? null,
 			),
