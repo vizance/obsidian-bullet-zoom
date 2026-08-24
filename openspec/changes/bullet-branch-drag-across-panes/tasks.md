@@ -31,6 +31,8 @@
 
 - [x] 4.8 Show a block placeholder the size of the branch being moved：色塊高度改為「被拖曳分支的行數 × 目標編輯器行高」，上緣對齊間隙而非置中，讓使用者看到分支落地後實際佔掉的空間與階層；分支行數在起拖時由 `computeBranchRange` 取得。驗證：`tests/branch-drag-controller.test.ts` 以 spec 的高度對照表斷言 1 行、3 行、4 行分支的色塊高度。
 
+- [x] 4.9 Mark the branch being carried and the exact drop point：改採 Obsidian Outliner 的視覺分工——落點是 4px 實心 accent 橫條（不是半透明色塊），被拖曳的分支每一行本身染上 accent 底色並降低不透明度。分支行的染色由 `src/main.ts` 依 `computeBranchRange` 取得行號後對 `.cm-line` 加上類別，結束時移除。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時呼叫 setSourceHighlighted(true)、結束與取消時呼叫 (false)、指示條只設定兩個自訂屬性；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 的指示條為實心 accent 且有分支染色規則。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。

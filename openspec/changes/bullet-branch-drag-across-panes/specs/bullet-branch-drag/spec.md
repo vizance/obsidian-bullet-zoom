@@ -107,36 +107,28 @@ The plugin SHALL map every legal indent for the current gap to a horizontal scre
 - **WHEN** the pointer sits exactly midway between two legal indent coordinates
 - **THEN** the shallower indent is selected
 
-### Requirement: Show a block placeholder the size of the branch being moved
+### Requirement: Mark the branch being carried and the exact drop point
 
-While a gap and an indent are selected, the plugin SHALL render a filled block inside the target editor that stands for the space the branch is about to occupy: its top edge at the selected gap, its left edge at the coordinate of the selected indent, its right edge at the editor's right margin, and its height equal to the number of lines in the dragged branch multiplied by the line height of the target editor. A branch of one line SHALL therefore show a one-line block, and a branch of four lines a four-line block.
+While a drag is active the plugin SHALL tint every line of the branch being dragged and render it at reduced opacity, so the user can see which rows are being carried, including the nested ones that follow the row under the pointer.
 
-The block SHALL be translucent enough to leave the text underneath legible, and SHALL be filled rather than outlined, so that both the landing position and the landing depth are readable at a glance without hunting for a thin rule.
+While a gap and an indent are selected, the plugin SHALL render a solid bar in the target editor at the selected gap, with its left edge at the coordinate of the selected indent and its right edge at the editor's right margin. The bar SHALL be thick enough to read without hunting for it, and SHALL use the theme's accent colour at full strength rather than a translucent wash, so that the position and the depth are both obvious at a glance.
 
-The plugin SHALL position and size the block through CSS custom properties defined in the plugin stylesheet, and SHALL NOT assign inline style declarations other than those custom properties. The plugin SHALL remove the block when the drag ends, when the drag is canceled, and whenever no gap is resolved.
+The plugin SHALL position the bar through CSS custom properties defined in the plugin stylesheet, and SHALL NOT assign inline style declarations other than those custom properties. The plugin SHALL remove the bar and the tint when the drag ends, when the drag is canceled, and whenever no gap is resolved.
 
-#### Scenario: The placeholder follows the selected indent
+#### Scenario: The carried rows are visible
+
+- **WHEN** a drag starts on a row that has nested rows under it
+- **THEN** that row and every nested row under it are tinted for the length of the drag
+
+#### Scenario: The bar follows the selected indent
 
 - **WHEN** the selected indent changes while the gap stays the same
-- **THEN** the block stays at the same gap and its left edge moves to the new indent's coordinate
+- **THEN** the bar stays at the same gap and its left edge moves to the new indent's coordinate
 
-#### Scenario: The placeholder is as tall as the branch being dragged
+#### Scenario: The tint is removed when the drag ends
 
-- **WHEN** a branch of three lines is dragged in an editor whose lines are 20 pixels tall
-- **THEN** the block is 60 pixels tall
-
-##### Example: block height by branch size
-
-| Lines in the dragged branch | Target line height | Block height |
-| --------------------------- | ------------------ | ------------ |
-| 1                           | 20px               | 20px         |
-| 3                           | 20px               | 60px         |
-| 4                           | 24px               | 96px         |
-
-#### Scenario: Pointer cancel removes the placeholder
-
-- **WHEN** the drag receives a pointer cancel event
-- **THEN** the block is removed and the document is unchanged
+- **WHEN** the drag ends in a drop or a cancel
+- **THEN** no row is left tinted and the bar is removed
 
 ### Requirement: Hide the text caret while a branch is being dragged
 

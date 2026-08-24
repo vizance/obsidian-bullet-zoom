@@ -2,7 +2,6 @@ import { countColumn, type EditorState } from '@codemirror/state';
 
 import {
 	candidateIndents,
-	countBranchLines,
 	planBranchDrop,
 	resolveDropGap,
 	type BranchDropPlan,
@@ -18,6 +17,7 @@ export const DRAGGING_CLASS = 'bullet-zoom-branch-dragging';
 export const INDICATOR_CLASS = 'bullet-zoom-branch-drop-indicator';
 /** Put on the window body so every pane hides its caret, not just the source. */
 export const DRAG_ACTIVE_CLASS = 'bullet-zoom-branch-drag-active';
+export const DRAG_SOURCE_CLASS = 'bullet-zoom-branch-drag-source';
 /**
  * The indicator has to move with the pointer, and Obsidian plugins should not
  * write plain inline styles. Custom properties keep the real declarations in
@@ -25,7 +25,6 @@ export const DRAG_ACTIVE_CLASS = 'bullet-zoom-branch-drag-active';
  */
 export const DROP_LEFT_PROPERTY = '--bullet-zoom-drop-left';
 export const DROP_TOP_PROPERTY = '--bullet-zoom-drop-top';
-export const DROP_HEIGHT_PROPERTY = '--bullet-zoom-drop-height';
 
 export type LineGeometry = Readonly<{
 	top: number;
@@ -61,7 +60,6 @@ export type DropPreview = Readonly<{
 	indent: string;
 	indicatorTop: number;
 	indicatorLeft: number;
-	indicatorHeight: number;
 }>;
 
 /**
@@ -95,10 +93,8 @@ export interface BranchDragEnvironment {
 	/** The editor under the given screen coordinates, if any. */
 	resolveTarget(x: number, y: number): DragTarget | null;
 	applyPlan(plan: BranchDropPlan, target: DragTarget): void;
-	/**
-	 * False when the radial menu needs the long press as its only entry point;
-	 * a touch hold must not steal it.
-	 */
+	/** Tints the rows being carried, so the user sees what travels with them. */
+	setSourceHighlighted(highlighted: boolean, anchor: number): void;
 }
 
 /**
@@ -111,7 +107,6 @@ export function computeDropPreview(
 	pointerX: number,
 	pointerY: number,
 	previous: DropPreview | null,
-	branchLines = 1,
 ): DropPreview | null {
 	if (!target.writable || !target.sameWindowAsSource) {
 		return null;
@@ -158,9 +153,6 @@ export function computeDropPreview(
 		indicatorLeft:
 			geometry.left +
 			countColumn(indent, target.state.tabSize) * columnWidth,
-		// The block stands for the space the branch will occupy, so its height is
-		// the branch itself rather than a single insertion line.
-		indicatorHeight: (geometry.bottom - geometry.top) * branchLines,
 	});
 }
 
@@ -190,10 +182,6 @@ export function renderDropIndicator(
 	indicator.style.setProperty(
 		DROP_TOP_PROPERTY,
 		`${preview.indicatorTop - hostRect.top}px`,
-	);
-	indicator.style.setProperty(
-		DROP_HEIGHT_PROPERTY,
-		`${preview.indicatorHeight}px`,
 	);
 	return indicator;
 }
@@ -228,7 +216,6 @@ export function createBranchDragGesture(
 	let scrollLocks: { element: Element; top: number; left: number }[] = [];
 	let lockedWindowX = 0;
 	let lockedWindowY = 0;
-	let branchLines = 1;
 
 	/**
 	 * Which element actually scrolls differs between the desktop and mobile
@@ -284,6 +271,7 @@ export function createBranchDragGesture(
 		if (dragging) {
 			dom.classList.remove(DRAGGING_CLASS);
 			dom.ownerDocument.body.classList.remove(DRAG_ACTIVE_CLASS);
+			environment.setSourceHighlighted(false, sourceAnchor ?? 0);
 		}
 		scrollLocks = [];
 		preview = null;
@@ -295,11 +283,10 @@ export function createBranchDragGesture(
 
 	const beginDrag = (): void => {
 		dragging = true;
-		branchLines =
-			sourceAnchor === null
-				? 1
-				: countBranchLines(environment.sourceState(), sourceAnchor);
 		collectScrollLocks();
+		if (sourceAnchor !== null) {
+			environment.setSourceHighlighted(true, sourceAnchor);
+		}
 		dom.classList.add(DRAGGING_CLASS);
 		// Styling only. Blurring the editor would dismiss the on-screen keyboard,
 		// and the viewport change reflows the note under the finger mid-drag.
@@ -353,8 +340,7 @@ export function createBranchDragGesture(
 							target,
 							event.clientX,
 							event.clientY,
-							preview,
-							branchLines,
+								preview,
 						);
 			indicator = renderDropIndicator(indicator, preview);
 		},

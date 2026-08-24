@@ -1107,12 +1107,11 @@ button.bullet-zoom-slot-command.is-empty {
 	left: var(--bullet-zoom-drop-left, 0);
 	top: var(--bullet-zoom-drop-top, 0);
 	right: var(--size-4-4, 16px);
-	height: var(--bullet-zoom-drop-height, 1.5em);
-	/* The block starts at the gap and runs down for as many lines as the branch
-	   has, so it shows the space the branch will occupy rather than a seam. */
-	background: var(--interactive-accent);
-	opacity: 0.3;
-	border-radius: var(--radius-s, 4px);
+	/* Thick and solid: a hairline is easy to lose, and the left edge sitting on
+	   the chosen indent is what tells you which level the branch will land at. */
+	height: 4px;
+	margin-top: -2px;
+	background: var(--color-accent, var(--interactive-accent));
 	pointer-events: none;
 	z-index: var(--layer-popover, 30);
 }
@@ -1123,6 +1122,11 @@ button.bullet-zoom-slot-command.is-empty {
 }
 
 .bullet-zoom-branch-dragging .bullet-zoom-marker {
+	opacity: 0.5;
+}
+
+.bullet-zoom-branch-drag-source {
+	background-color: hsla(var(--interactive-accent-hsl), 0.2);
 	opacity: 0.5;
 }
 

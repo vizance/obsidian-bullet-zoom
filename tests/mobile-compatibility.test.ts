@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.29.1');
+		expect(manifest.version).toBe('1.29.2');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.29.1');
-		expect(packageLock.version).toBe('1.29.1');
-		expect(packageLock.packages?.['']?.version).toBe('1.29.1');
+		expect(packageManifest.version).toBe('1.29.2');
+		expect(packageLock.version).toBe('1.29.2');
+		expect(packageLock.packages?.['']?.version).toBe('1.29.2');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -843,11 +843,21 @@ describe('menu scrim contract (1.17.0)', () => {
 	});
 });
 
-describe('branch drag styling contract (1.28.0)', () => {
+describe('branch drag styling contract (1.29.2)', () => {
 	it('styles the dragging state and the drop indicator', () => {
 		const stylesheet = readProjectFile('styles.css');
 		expect(stylesheet).toContain('.bullet-zoom-branch-dragging');
 		expect(stylesheet).toContain('.bullet-zoom-branch-drop-indicator');
+	});
+
+	it('tints the rows being carried', () => {
+		const stylesheet = readProjectFile('styles.css');
+		const block = stylesheet.slice(
+			stylesheet.indexOf('.bullet-zoom-branch-drag-source'),
+		);
+		const declarations = block.slice(0, block.indexOf('}'));
+		expect(declarations).toContain('--interactive-accent-hsl');
+		expect(declarations).toContain('opacity');
 	});
 
 	it('hides the caret and text selection while a drag is active', () => {
@@ -881,19 +891,18 @@ describe('branch drag styling contract (1.28.0)', () => {
 		const declarations = block.slice(0, block.indexOf('}'));
 		expect(declarations).toContain('var(--bullet-zoom-drop-left');
 		expect(declarations).toContain('var(--bullet-zoom-drop-top');
-		expect(declarations).toContain('var(--bullet-zoom-drop-height');
-		expect(declarations).toContain('background: var(--interactive-accent)');
+		// Solid and thick, the way an outliner drop marker reads.
+		expect(declarations).toContain('height: 4px');
+		expect(declarations).not.toContain('opacity');
 	});
 
 	it('sets no inline styles other than the two drop custom properties', () => {
 		const source = readProjectFile('src/branch-drag-controller.ts');
 		expect(source.match(/\.style\.[A-Za-z]+\s*=/g)).toBeNull();
 		const setCalls = source.match(/style\.setProperty\(\s*([A-Z_]+)/g) ?? [];
-		expect(setCalls).toHaveLength(3);
+		expect(setCalls).toHaveLength(2);
 		expect(source).toContain("DROP_LEFT_PROPERTY = '--bullet-zoom-drop-left'");
 		expect(source).toContain("DROP_TOP_PROPERTY = '--bullet-zoom-drop-top'");
-		expect(source).toContain(
-			"DROP_HEIGHT_PROPERTY = '--bullet-zoom-drop-height'",
-		);
+
 	});
 });

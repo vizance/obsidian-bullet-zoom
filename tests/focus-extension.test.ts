@@ -3069,6 +3069,7 @@ describe('branch drag and the radial menu share the marker press', () => {
 							(created as EditorView).state,
 						resolveTarget: () => null,
 						applyPlan: () => undefined,
+						setSourceHighlighted: () => undefined,
 					})),
 					createFocusExtension({
 						isPhone: true,

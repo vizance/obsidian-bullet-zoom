@@ -43,9 +43,10 @@ import {
 	sameDocumentDropTransaction,
 	type BranchDropPlan,
 } from './branch-drop-plan';
-import type {
-	BranchDragEnvironment,
-	DragTarget,
+import {
+	DRAG_SOURCE_CLASS,
+	type BranchDragEnvironment,
+	type DragTarget,
 } from './branch-drag-controller';
 import {
 	collectBulletCopyText,
@@ -1025,6 +1026,31 @@ export default class BulletZoomPlugin extends Plugin {
 				}
 			},
 			sourceState: () => view.state,
+			setSourceHighlighted: (highlighted, anchor) => {
+				if (!highlighted) {
+					view.dom
+						.querySelectorAll(`.${DRAG_SOURCE_CLASS}`)
+						.forEach((line) => {
+							line.classList.remove(DRAG_SOURCE_CLASS);
+						});
+					return;
+				}
+				const branch = computeBranchRange(view.state, anchor);
+				if (branch === null) {
+					return;
+				}
+				const first = view.state.doc.lineAt(branch.from).number;
+				const last = view.state.doc.lineAt(branch.to).number;
+				for (let number = first; number <= last; number += 1) {
+					const position = view.state.doc.line(number).from;
+					const node = view.domAtPos(position).node;
+					const element =
+						node.nodeType === Node.ELEMENT_NODE
+							? (node as Element)
+							: node.parentElement;
+					element?.closest('.cm-line')?.classList.add(DRAG_SOURCE_CLASS);
+				}
+			},
 			resolveTarget,
 			applyPlan: (plan, target) => {
 				this.applyBranchDrop(view, plan, target);

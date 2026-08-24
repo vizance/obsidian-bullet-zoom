@@ -100,7 +100,7 @@ This is a desktop gesture. On a phone or tablet a marker keeps its usual tap and
 
 ### The drop position and its depth
 
-Move up and down to choose the gap between two rows, and left and right to choose how deep the branch lands. A block shows the exact result before you let go: it starts at the gap you are aiming at, is as tall as the branch you are carrying, and its left edge marks the indent the branch will take. What you see is the space the branch is about to occupy. Drag right to make the branch a child of the row above, drag left to pull it back out.
+Move up and down to choose the gap between two rows, and left and right to choose how deep the branch lands. The rows you are carrying are tinted, including the nested ones, so you can see what travels with you. A solid bar shows where they will land: it sits in the gap you are aiming at, and its left edge marks the indent the branch will take. Drag right to make the branch a child of the row above, drag left to pull it back out.
 
 Not every depth is offered. The deepest option is one level under the row above the gap; the shallowest is the indent of the row below it, because going shallower would swallow that row into the branch you are moving. The indent characters of the target note are reused, so a note indented with tabs stays on tabs.
 

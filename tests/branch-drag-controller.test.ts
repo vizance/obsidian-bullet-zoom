@@ -9,7 +9,6 @@ import {
 	renderDropIndicator,
 	DROP_LEFT_PROPERTY,
 	DROP_TOP_PROPERTY,
-	DROP_HEIGHT_PROPERTY,
 	INDICATOR_CLASS,
 	DRAGGING_CLASS,
 	DRAG_ACTIVE_CLASS,
@@ -26,6 +25,7 @@ type Harness = Readonly<{
 	dom: HTMLElement;
 	scroller: HTMLElement;
 	marker: HTMLElement;
+	highlightCalls: boolean[];
 	applied: { plan: BranchDropPlan; target: DragTarget }[];
 	detach: () => void;
 	environment: BranchDragEnvironment;
@@ -48,6 +48,7 @@ function createHarness(
 
 	const state = createState('- A\n- B\n- C');
 	const applied: { plan: BranchDropPlan; target: DragTarget }[] = [];
+	const highlightCalls: boolean[] = [];
 	const environment: BranchDragEnvironment = {
 		sourceAnchorAt: () => 0,
 		sourceState: () => state,
@@ -55,10 +56,21 @@ function createHarness(
 		applyPlan: (plan, target) => {
 			applied.push({ plan, target });
 		},
+		setSourceHighlighted: (highlighted) => {
+			highlightCalls.push(highlighted);
+		},
 		...overrides,
 	};
 	const detach = attachBranchDragController(dom, environment);
-	return { dom, scroller, marker, applied, detach, environment };
+	return {
+		dom,
+		scroller,
+		marker,
+		highlightCalls,
+		applied,
+		detach,
+		environment,
+	};
 }
 
 function pointer(
@@ -261,10 +273,7 @@ describe('renderDropIndicator', () => {
 		expect(indicator?.style.getPropertyValue(DROP_TOP_PROPERTY)).toBe(
 			'60px',
 		);
-		expect(
-			indicator?.style.getPropertyValue(DROP_HEIGHT_PROPERTY),
-		).toBe('20px');
-		expect(indicator?.style.length).toBe(3);
+		expect(indicator?.style.length).toBe(2);
 		target.indicatorHost.remove();
 	});
 
@@ -547,34 +556,45 @@ describe('touch never starts a drag', () => {
 	});
 });
 
-describe('the placeholder is the size of the branch', () => {
-	function heightFor(branchLines: number, lineHeight: number): string {
-		const state = createState('- A\n- B\n- C');
-		const host = document.createElement('div');
-		const target: DragTarget = {
-			key: 'sized',
-			state,
-			writable: true,
-			sameDocumentAsSource: true,
-			sameWindowAsSource: true,
-			focusRange: null,
-			indicatorHost: host,
-			posAtCoords: () => state.doc.line(2).from,
-			lineGeometry: () => ({ top: 0, bottom: lineHeight, left: 0 }),
-			columnWidthPx: () => 10,
-		};
-		const preview = computeDropPreview(target, 0, 0, null, branchLines);
-		return `${preview?.indicatorHeight}px`;
-	}
+describe('marking the branch being carried', () => {
+	it('tints the source rows for the length of the drag', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		expect(local.highlightCalls).toEqual([]);
 
-	it.each([
-		[1, 20, '20px'],
-		[3, 20, '60px'],
-		[4, 24, '96px'],
-	])(
-		'a branch of %i lines in a %ipx editor is %s tall',
-		(branchLines, lineHeight, expected) => {
-			expect(heightFor(branchLines, lineHeight)).toBe(expected);
-		},
-	);
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		expect(local.highlightCalls).toEqual([true]);
+
+		local.dom.dispatchEvent(pointer('pointerup', { x: 16 }));
+		expect(local.highlightCalls).toEqual([true, false]);
+
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('clears the tint when the drag is cancelled', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		local.dom.dispatchEvent(pointer('pointercancel', { x: 16 }));
+		expect(local.highlightCalls).toEqual([true, false]);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('never tints a press that does not become a drag', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 3 }));
+		local.dom.dispatchEvent(pointer('pointerup', { x: 3 }));
+		expect(local.highlightCalls).toEqual([]);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
 });
