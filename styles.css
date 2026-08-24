@@ -1123,3 +1123,10 @@ button.bullet-zoom-slot-command.is-empty {
 .bullet-zoom-branch-dragging .bullet-zoom-marker {
 	opacity: 0.5;
 }
+
+/* 1.28.1: a dragging finger must not appear to drag the caret with it */
+.bullet-zoom-branch-drag-active .cm-content {
+	caret-color: transparent;
+	user-select: none;
+	-webkit-user-select: none;
+}

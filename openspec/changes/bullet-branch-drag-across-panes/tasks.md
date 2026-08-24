@@ -23,6 +23,8 @@
 
 - [x] 4.4 Leave the radial menu its only entry point when it needs one：拖曳手勢與既有的 `MarkerPointerPlugin` 共用同一組 marker 指標事件，而不是另外掛一組監聽；滑鼠起拖門檻與 `PRESS_CANCEL_PX` 對齊為 12px；觸控長按只有在輪盤選單由點擊開啟時才起拖，選單靠長按開啟時觸控拖曳停用。驗證：`tests/focus-extension.test.ts` 斷言點擊開選單時長按進入拖曳且選單未開、長按開選單時長按仍開選單且未進入拖曳、滑鼠移動 16px 兩種設定下都進入拖曳。
 
+- [x] 4.5 Hide the text caret while a branch is being dragged：拖曳期間視窗內所有編輯器的游標隱藏且不可選取文字，來源編輯器的 contentDOM 失焦，結束（放開或取消）時還原；沿用輪盤選單既有的 `caret-color: transparent` 做法，透過 `body` 層的類別套用，讓另一個 pane 的游標也一起隱藏。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時呼叫 setCaretSuspended(true)、取消與放開時呼叫 (false)；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 caret 規則。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。

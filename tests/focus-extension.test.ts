@@ -3071,6 +3071,7 @@ describe('branch drag and the radial menu share the marker press', () => {
 						resolveTarget: () => null,
 						applyPlan: () => undefined,
 						allowTouchHold: () => options.allowTouchHold,
+						setCaretSuspended: () => undefined,
 					})),
 					createFocusExtension({
 						isPhone: true,

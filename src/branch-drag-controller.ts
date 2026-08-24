@@ -16,6 +16,8 @@ export const DRAG_TOUCH_HOLD_MS = 350;
 
 export const DRAGGING_CLASS = 'bullet-zoom-branch-dragging';
 export const INDICATOR_CLASS = 'bullet-zoom-branch-drop-indicator';
+/** Put on the window body so every pane hides its caret, not just the source. */
+export const DRAG_ACTIVE_CLASS = 'bullet-zoom-branch-drag-active';
 /**
  * The indicator has to move with the pointer, and Obsidian plugins should not
  * write plain inline styles. Custom properties keep the real declarations in
@@ -96,6 +98,11 @@ export interface BranchDragEnvironment {
 	 * a touch hold must not steal it.
 	 */
 	allowTouchHold(): boolean;
+	/**
+	 * Hides the caret and drops editor focus for the length of the drag, so the
+	 * pointer driving the branch does not appear to drag the caret with it.
+	 */
+	setCaretSuspended(suspended: boolean): void;
 }
 
 /**
@@ -223,6 +230,7 @@ export function createBranchDragGesture(
 		}
 		if (dragging) {
 			dom.classList.remove(DRAGGING_CLASS);
+			environment.setCaretSuspended(false);
 		}
 		preview = null;
 		indicator = renderDropIndicator(indicator, null);
@@ -234,6 +242,7 @@ export function createBranchDragGesture(
 	const beginDrag = (): void => {
 		dragging = true;
 		dom.classList.add(DRAGGING_CLASS);
+		environment.setCaretSuspended(true);
 	};
 
 	return {

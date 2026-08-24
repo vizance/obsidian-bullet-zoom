@@ -24,6 +24,7 @@ function createState(document: string): EditorState {
 type Harness = Readonly<{
 	dom: HTMLElement;
 	marker: HTMLElement;
+	caretCalls: boolean[];
 	applied: { plan: BranchDropPlan; target: DragTarget }[];
 	detach: () => void;
 	environment: BranchDragEnvironment;
@@ -43,18 +44,22 @@ function createHarness(
 
 	const state = createState('- A\n- B\n- C');
 	const applied: { plan: BranchDropPlan; target: DragTarget }[] = [];
+	const caretCalls: boolean[] = [];
 	const environment: BranchDragEnvironment = {
 		sourceAnchorAt: () => 0,
 		sourceState: () => state,
 		resolveTarget: () => null,
 		allowTouchHold: () => true,
+		setCaretSuspended: (suspended) => {
+			caretCalls.push(suspended);
+		},
 		applyPlan: (plan, target) => {
 			applied.push({ plan, target });
 		},
 		...overrides,
 	};
 	const detach = attachBranchDragController(dom, environment);
-	return { dom, marker, applied, detach, environment };
+	return { dom, marker, caretCalls, applied, detach, environment };
 }
 
 function pointer(
@@ -407,5 +412,48 @@ describe('a popout window is never a drop target', () => {
 	it('gives no preview for an editor in another window document', () => {
 		const target = createTarget('- A\n- B', { sameWindowAsSource: false });
 		expect(computeDropPreview(target, 100, 10, null)).toBeNull();
+	});
+});
+
+describe('hiding the caret while dragging', () => {
+	it('suspends the caret when the drag starts and restores it on cancel', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		expect(local.caretCalls).toEqual([]);
+
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		expect(local.caretCalls).toEqual([true]);
+
+		local.dom.dispatchEvent(pointer('pointercancel', { x: 16 }));
+		expect(local.caretCalls).toEqual([true, false]);
+
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('restores the caret when the drag ends in a release', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		local.dom.dispatchEvent(pointer('pointerup', { x: 16 }));
+		expect(local.caretCalls).toEqual([true, false]);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('never touches the caret when the press does not become a drag', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 3 }));
+		local.dom.dispatchEvent(pointer('pointerup', { x: 3 }));
+		expect(local.caretCalls).toEqual([]);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
 	});
 });

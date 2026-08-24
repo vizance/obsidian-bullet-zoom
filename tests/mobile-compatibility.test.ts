@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.28.0');
+		expect(manifest.version).toBe('1.28.1');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.28.0');
-		expect(packageLock.version).toBe('1.28.0');
-		expect(packageLock.packages?.['']?.version).toBe('1.28.0');
+		expect(packageManifest.version).toBe('1.28.1');
+		expect(packageLock.version).toBe('1.28.1');
+		expect(packageLock.packages?.['']?.version).toBe('1.28.1');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -848,6 +848,16 @@ describe('branch drag styling contract (1.28.0)', () => {
 		const stylesheet = readProjectFile('styles.css');
 		expect(stylesheet).toContain('.bullet-zoom-branch-dragging');
 		expect(stylesheet).toContain('.bullet-zoom-branch-drop-indicator');
+	});
+
+	it('hides the caret and text selection while a drag is active', () => {
+		const stylesheet = readProjectFile('styles.css');
+		const block = stylesheet.slice(
+			stylesheet.indexOf('.bullet-zoom-branch-drag-active .cm-content'),
+		);
+		const declarations = block.slice(0, block.indexOf('}'));
+		expect(declarations).toContain('caret-color: transparent');
+		expect(declarations).toContain('user-select: none');
 	});
 
 	it('positions the indicator through custom properties, not fixed pixels', () => {
