@@ -11,6 +11,7 @@ import {
 	indentTextOf,
 	applyCrossDocumentDrop,
 	CROSS_DOCUMENT_REMOVAL_FAILED_NOTICE,
+	countBranchLines,
 	crossDocumentInsertTransaction,
 	planBranchDrop,
 	sameDocumentDropTransaction,
@@ -399,5 +400,19 @@ describe('applyCrossDocumentDrop', () => {
 		});
 		expect(outcome).toBe('removal-failed');
 		expect(messages).toEqual([CROSS_DOCUMENT_REMOVAL_FAILED_NOTICE]);
+	});
+});
+
+describe('countBranchLines', () => {
+	it('counts the item together with everything nested under it', () => {
+		const state = createState('- A\n\t- A1\n\t\t- A1a\n- B');
+		expect(countBranchLines(state, anchorOf(state, 1))).toBe(3);
+		expect(countBranchLines(state, anchorOf(state, 2))).toBe(2);
+		expect(countBranchLines(state, anchorOf(state, 4))).toBe(1);
+	});
+
+	it('never reports fewer than one line', () => {
+		const state = createState('Plain text');
+		expect(countBranchLines(state, 0)).toBe(1);
 	});
 });

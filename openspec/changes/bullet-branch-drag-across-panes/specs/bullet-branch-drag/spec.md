@@ -107,9 +107,11 @@ The plugin SHALL map every legal indent for the current gap to a horizontal scre
 - **WHEN** the pointer sits exactly midway between two legal indent coordinates
 - **THEN** the shallower indent is selected
 
-### Requirement: Show a block placeholder that previews the resulting position and depth
+### Requirement: Show a block placeholder the size of the branch being moved
 
-While a gap and an indent are selected, the plugin SHALL render a filled block inside the target editor that stands where the branch would land: vertically centred on the selected gap, as tall as a line of that editor, with its left edge at the coordinate of the selected indent and its right edge at the editor's right margin. The block SHALL be a placeholder rather than a hairline, so that the drop position is readable without looking for a thin rule, and it SHALL be translucent enough to leave the text underneath legible.
+While a gap and an indent are selected, the plugin SHALL render a filled block inside the target editor that stands for the space the branch is about to occupy: its top edge at the selected gap, its left edge at the coordinate of the selected indent, its right edge at the editor's right margin, and its height equal to the number of lines in the dragged branch multiplied by the line height of the target editor. A branch of one line SHALL therefore show a one-line block, and a branch of four lines a four-line block.
+
+The block SHALL be translucent enough to leave the text underneath legible, and SHALL be filled rather than outlined, so that both the landing position and the landing depth are readable at a glance without hunting for a thin rule.
 
 The plugin SHALL position and size the block through CSS custom properties defined in the plugin stylesheet, and SHALL NOT assign inline style declarations other than those custom properties. The plugin SHALL remove the block when the drag ends, when the drag is canceled, and whenever no gap is resolved.
 
@@ -118,10 +120,18 @@ The plugin SHALL position and size the block through CSS custom properties defin
 - **WHEN** the selected indent changes while the gap stays the same
 - **THEN** the block stays at the same gap and its left edge moves to the new indent's coordinate
 
-#### Scenario: The placeholder is as tall as a line
+#### Scenario: The placeholder is as tall as the branch being dragged
 
-- **WHEN** a drop is previewed in an editor whose lines are 20 pixels tall
-- **THEN** the block is 20 pixels tall
+- **WHEN** a branch of three lines is dragged in an editor whose lines are 20 pixels tall
+- **THEN** the block is 60 pixels tall
+
+##### Example: block height by branch size
+
+| Lines in the dragged branch | Target line height | Block height |
+| --------------------------- | ------------------ | ------------ |
+| 1                           | 20px               | 20px         |
+| 3                           | 20px               | 60px         |
+| 4                           | 24px               | 96px         |
 
 #### Scenario: Pointer cancel removes the placeholder
 

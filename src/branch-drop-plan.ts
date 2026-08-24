@@ -153,6 +153,17 @@ export function detectIndentUnitText(state: EditorState): string {
  * would pull the item below into the dropped branch, changing a part of the
  * document the user never touched.
  */
+/** How many lines the branch rooted at `anchor` occupies, minimum one. */
+export function countBranchLines(state: EditorState, anchor: number): number {
+	const branch = computeBranchRange(state, anchor);
+	if (branch === null) {
+		return 1;
+	}
+	const first = state.doc.lineAt(branch.from).number;
+	const last = state.doc.lineAt(branch.to).number;
+	return Math.max(1, last - first + 1);
+}
+
 export function candidateIndents(
 	state: EditorState,
 	gap: DropGap,

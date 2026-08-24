@@ -2,6 +2,7 @@ import { countColumn, type EditorState } from '@codemirror/state';
 
 import {
 	candidateIndents,
+	countBranchLines,
 	planBranchDrop,
 	resolveDropGap,
 	type BranchDropPlan,
@@ -110,6 +111,7 @@ export function computeDropPreview(
 	pointerX: number,
 	pointerY: number,
 	previous: DropPreview | null,
+	branchLines = 1,
 ): DropPreview | null {
 	if (!target.writable || !target.sameWindowAsSource) {
 		return null;
@@ -156,7 +158,9 @@ export function computeDropPreview(
 		indicatorLeft:
 			geometry.left +
 			countColumn(indent, target.state.tabSize) * columnWidth,
-		indicatorHeight: geometry.bottom - geometry.top,
+		// The block stands for the space the branch will occupy, so its height is
+		// the branch itself rather than a single insertion line.
+		indicatorHeight: (geometry.bottom - geometry.top) * branchLines,
 	});
 }
 
@@ -224,6 +228,7 @@ export function createBranchDragGesture(
 	let scrollLocks: { element: Element; top: number; left: number }[] = [];
 	let lockedWindowX = 0;
 	let lockedWindowY = 0;
+	let branchLines = 1;
 
 	/**
 	 * Which element actually scrolls differs between the desktop and mobile
@@ -290,6 +295,10 @@ export function createBranchDragGesture(
 
 	const beginDrag = (): void => {
 		dragging = true;
+		branchLines =
+			sourceAnchor === null
+				? 1
+				: countBranchLines(environment.sourceState(), sourceAnchor);
 		collectScrollLocks();
 		dom.classList.add(DRAGGING_CLASS);
 		// Styling only. Blurring the editor would dismiss the on-screen keyboard,
@@ -345,6 +354,7 @@ export function createBranchDragGesture(
 							event.clientX,
 							event.clientY,
 							preview,
+							branchLines,
 						);
 			indicator = renderDropIndicator(indicator, preview);
 		},

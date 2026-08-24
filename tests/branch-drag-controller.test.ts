@@ -546,3 +546,35 @@ describe('touch never starts a drag', () => {
 		local.dom.remove();
 	});
 });
+
+describe('the placeholder is the size of the branch', () => {
+	function heightFor(branchLines: number, lineHeight: number): string {
+		const state = createState('- A\n- B\n- C');
+		const host = document.createElement('div');
+		const target: DragTarget = {
+			key: 'sized',
+			state,
+			writable: true,
+			sameDocumentAsSource: true,
+			sameWindowAsSource: true,
+			focusRange: null,
+			indicatorHost: host,
+			posAtCoords: () => state.doc.line(2).from,
+			lineGeometry: () => ({ top: 0, bottom: lineHeight, left: 0 }),
+			columnWidthPx: () => 10,
+		};
+		const preview = computeDropPreview(target, 0, 0, null, branchLines);
+		return `${preview?.indicatorHeight}px`;
+	}
+
+	it.each([
+		[1, 20, '20px'],
+		[3, 20, '60px'],
+		[4, 24, '96px'],
+	])(
+		'a branch of %i lines in a %ipx editor is %s tall',
+		(branchLines, lineHeight, expected) => {
+			expect(heightFor(branchLines, lineHeight)).toBe(expected);
+		},
+	);
+});

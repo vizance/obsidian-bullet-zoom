@@ -1108,11 +1108,10 @@ button.bullet-zoom-slot-command.is-empty {
 	top: var(--bullet-zoom-drop-top, 0);
 	right: var(--size-4-4, 16px);
 	height: var(--bullet-zoom-drop-height, 1.5em);
-	/* Centred on the gap, so the block reads as the slot the branch takes. */
-	transform: translateY(-50%);
+	/* The block starts at the gap and runs down for as many lines as the branch
+	   has, so it shows the space the branch will occupy rather than a seam. */
 	background: var(--interactive-accent);
-	opacity: 0.28;
-	border-left: 3px solid var(--interactive-accent);
+	opacity: 0.3;
 	border-radius: var(--radius-s, 4px);
 	pointer-events: none;
 	z-index: var(--layer-popover, 30);

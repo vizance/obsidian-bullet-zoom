@@ -29,6 +29,8 @@
 
 - [x] 4.7 Never start a branch drag from touch，並改用 Show a block placeholder that previews the resulting position and depth：拖曳只由滑鼠指標觸發，觸控與觸控筆一律不起拖，手機與平板整個功能停用；落點預覽從 2px 細線改成與行同高、置中於間隙、左緣對齊選定縮排、右緣到編輯器右邊界的半透明色塊，位置與高度以三個 CSS 自訂屬性帶入。驗證：`tests/branch-drag-controller.test.ts` 斷言觸控長按不起拖、滑鼠 16px 仍起拖、色塊高度等於行高且三個自訂屬性正確；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 的色塊規則讀取三個自訂屬性且沒有 inline style。
 
+- [x] 4.8 Show a block placeholder the size of the branch being moved：色塊高度改為「被拖曳分支的行數 × 目標編輯器行高」，上緣對齊間隙而非置中，讓使用者看到分支落地後實際佔掉的空間與階層；分支行數在起拖時由 `computeBranchRange` 取得。驗證：`tests/branch-drag-controller.test.ts` 以 spec 的高度對照表斷言 1 行、3 行、4 行分支的色塊高度。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。
