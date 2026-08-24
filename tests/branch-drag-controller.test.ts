@@ -514,3 +514,31 @@ describe('holding the editor still while dragging', () => {
 		vi.useRealTimers();
 	});
 });
+
+describe('holding outer containers still as well', () => {
+	it('puts back the scroll position of an ancestor of the editor', () => {
+		vi.useFakeTimers();
+		const outer = document.createElement('div');
+		document.body.append(outer);
+		const local = createHarness();
+		outer.append(local.dom);
+		outer.scrollTop = 200;
+
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+
+		// The mobile layout scrolls a container above the editor.
+		outer.scrollTop = 640;
+		local.dom.dispatchEvent(pointer('pointermove', { x: 20, y: 200 }));
+		expect(outer.scrollTop).toBe(200);
+
+		local.dom.dispatchEvent(pointer('pointerup', { x: 20, y: 200 }));
+		outer.scrollTop = 640;
+		local.dom.dispatchEvent(pointer('pointermove', { x: 24, y: 300 }));
+		expect(outer.scrollTop).toBe(640);
+
+		local.detach();
+		outer.remove();
+		vi.useRealTimers();
+	});
+});

@@ -1131,7 +1131,11 @@ button.bullet-zoom-slot-command.is-empty {
 	-webkit-user-select: none;
 }
 
-.bullet-zoom-branch-drag-active .cm-scroller {
+.bullet-zoom-branch-drag-active .cm-scroller,
+.bullet-zoom-branch-drag-active .markdown-source-view,
+.bullet-zoom-branch-drag-active .view-content,
+.bullet-zoom-branch-drag-active .workspace-leaf-content,
+body.bullet-zoom-branch-drag-active {
 	touch-action: none;
 	overscroll-behavior: contain;
 }

@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.28.2');
+		expect(manifest.version).toBe('1.28.3');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.28.2');
-		expect(packageLock.version).toBe('1.28.2');
-		expect(packageLock.packages?.['']?.version).toBe('1.28.2');
+		expect(packageManifest.version).toBe('1.28.3');
+		expect(packageLock.version).toBe('1.28.3');
+		expect(packageLock.packages?.['']?.version).toBe('1.28.3');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -865,9 +865,12 @@ describe('branch drag styling contract (1.28.0)', () => {
 		const block = stylesheet.slice(
 			stylesheet.indexOf('.bullet-zoom-branch-drag-active .cm-scroller'),
 		);
-		const declarations = block.slice(0, block.indexOf('}'));
-		expect(declarations).toContain('touch-action: none');
-		expect(declarations).toContain('overscroll-behavior: contain');
+		const rule = block.slice(0, block.indexOf('}'));
+		expect(rule).toContain('touch-action: none');
+		expect(rule).toContain('overscroll-behavior: contain');
+		// The mobile layout scrolls a container above the editor.
+		expect(rule).toContain('.bullet-zoom-branch-drag-active .view-content');
+		expect(rule).toContain('body.bullet-zoom-branch-drag-active');
 	});
 
 	it('positions the indicator through custom properties, not fixed pixels', () => {

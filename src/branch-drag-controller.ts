@@ -222,18 +222,58 @@ export function createBranchDragGesture(
 	let holdTimer: number | null = null;
 	let preview: DropPreview | null = null;
 	let indicator: HTMLElement | null = null;
-	let scroller: HTMLElement | null = null;
-	let lockedScrollTop = 0;
-	let lockedScrollLeft = 0;
+	let scrollLocks: { element: Element; top: number; left: number }[] = [];
+	let lockedWindowX = 0;
+	let lockedWindowY = 0;
+
+	/**
+	 * Which element actually scrolls differs between the desktop and mobile
+	 * layouts, so every ancestor is held rather than one guessed container.
+	 * Writing scrollTop on an element that cannot scroll does nothing.
+	 */
+	const collectScrollLocks = (): void => {
+		const locks: { element: Element; top: number; left: number }[] = [];
+		const scroller = dom.querySelector<HTMLElement>('.cm-scroller');
+		if (scroller !== null) {
+			locks.push({
+				element: scroller,
+				top: scroller.scrollTop,
+				left: scroller.scrollLeft,
+			});
+		}
+		let node: Element | null = dom;
+		while (node !== null) {
+			locks.push({
+				element: node,
+				top: node.scrollTop,
+				left: node.scrollLeft,
+			});
+			node = node.parentElement;
+		}
+		scrollLocks = locks;
+		lockedWindowX = window?.scrollX ?? 0;
+		lockedWindowY = window?.scrollY ?? 0;
+	};
 
 	const holdScroll = (): void => {
-		if (scroller === null) {
-			return;
-		}
 		// iOS keeps scrolling a gesture it has already claimed, whatever the
-		// pointer handler returns, so the position is put back by hand.
-		scroller.scrollTop = lockedScrollTop;
-		scroller.scrollLeft = lockedScrollLeft;
+		// pointer handler returns, so every position is put back by hand.
+		for (const lock of scrollLocks) {
+			if (lock.element.scrollTop !== lock.top) {
+				lock.element.scrollTop = lock.top;
+			}
+			if (lock.element.scrollLeft !== lock.left) {
+				lock.element.scrollLeft = lock.left;
+			}
+		}
+		if (
+			scrollLocks.length > 0 &&
+			window !== null &&
+			window !== undefined &&
+			(window.scrollX !== lockedWindowX || window.scrollY !== lockedWindowY)
+		) {
+			window.scrollTo(lockedWindowX, lockedWindowY);
+		}
 	};
 
 	const reset = (): void => {
@@ -245,7 +285,7 @@ export function createBranchDragGesture(
 			dom.classList.remove(DRAGGING_CLASS);
 			environment.setCaretSuspended(false);
 		}
-		scroller = null;
+		scrollLocks = [];
 		preview = null;
 		indicator = renderDropIndicator(indicator, null);
 		dragging = false;
@@ -255,9 +295,7 @@ export function createBranchDragGesture(
 
 	const beginDrag = (): void => {
 		dragging = true;
-		scroller = dom.querySelector<HTMLElement>('.cm-scroller');
-		lockedScrollTop = scroller?.scrollTop ?? 0;
-		lockedScrollLeft = scroller?.scrollLeft ?? 0;
+		collectScrollLocks();
 		dom.classList.add(DRAGGING_CLASS);
 		environment.setCaretSuspended(true);
 	};
