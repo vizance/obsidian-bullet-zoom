@@ -23,7 +23,7 @@
 
 - [x] 4.4 Leave the radial menu its only entry point when it needs one：拖曳手勢與既有的 `MarkerPointerPlugin` 共用同一組 marker 指標事件，而不是另外掛一組監聽；滑鼠起拖門檻與 `PRESS_CANCEL_PX` 對齊為 12px；觸控長按只有在輪盤選單由點擊開啟時才起拖，選單靠長按開啟時觸控拖曳停用。驗證：`tests/focus-extension.test.ts` 斷言點擊開選單時長按進入拖曳且選單未開、長按開選單時長按仍開選單且未進入拖曳、滑鼠移動 16px 兩種設定下都進入拖曳。
 
-- [x] 4.5 Hide the text caret while a branch is being dragged：拖曳期間視窗內所有編輯器的游標隱藏且不可選取文字，來源編輯器的 contentDOM 失焦，結束（放開或取消）時還原；沿用輪盤選單既有的 `caret-color: transparent` 做法，透過 `body` 層的類別套用，讓另一個 pane 的游標也一起隱藏。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時呼叫 setCaretSuspended(true)、取消與放開時呼叫 (false)；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 caret 規則。
+- [x] 4.5 Hide the text caret while a branch is being dragged：拖曳期間視窗內所有編輯器的游標隱藏且不可選取文字，但**不得讓編輯器失焦**（手機上失焦會收鍵盤、觸發版面重排，看起來像筆記自己跳走）；只用 `caret-color: transparent` 加 `user-select: none`，透過 `body` 層的類別套用，讓視窗內每個 pane 的游標一起隱藏。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時 body 取得該類別、取消與放開時移除、且全程沒有任何失焦操作；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 caret 規則。
 
 - [x] 4.6 Keep the editor still while a branch is being dragged：起拖時記錄來源編輯器與它到文件根之間每一層祖先的捲動位置（外加 window 本身的捲動位移），每次 pointermove 全部還原，結束時釋放；不假設實際捲動的是哪一層容器，因為桌面與手機版面不同；並在拖曳期間以 `touch-action: none` 與 `overscroll-behavior: contain` 關閉觸控捲動。沿用側邊欄 `attachOutlineDragController` 既有的鎖定做法。驗證：`tests/branch-drag-controller.test.ts` 斷言拖曳中改變 scrollTop 會被還原、結束後不再還原；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 touch-action 規則。
 

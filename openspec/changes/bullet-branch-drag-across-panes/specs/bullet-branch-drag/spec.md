@@ -136,22 +136,26 @@ While a gap and an indent are selected, the plugin SHALL render a horizontal dro
 
 ### Requirement: Hide the text caret while a branch is being dragged
 
-While a drag is active the plugin SHALL suppress the text caret in every Markdown editor of the window, and SHALL prevent text selection in those editors, so that the finger or mouse driving the drag never appears to be dragging the caret underneath it. The plugin SHALL remove focus from the source editor's content when the drag starts, and SHALL restore the caret and the previous focus when the drag ends, whether it ended in a drop or a cancel. A successful drop SHALL leave focus in the editor that received the branch.
+While a drag is active the plugin SHALL suppress the text caret in every Markdown editor of the window through styling, and SHALL prevent text selection in those editors, so that the pointer driving the drag never appears to be dragging the caret underneath it.
+
+The plugin SHALL NOT remove focus from the editor while dragging. On a phone, dropping focus dismisses the on-screen keyboard, and the resulting change in viewport height reflows the note under the finger, which looks like the note jumping away mid-drag. Hiding the caret SHALL therefore be done with styling alone.
+
+The caret SHALL return when the drag ends, whether it ended in a drop or a cancel. A successful drop SHALL leave the cursor on the first line of the moved branch in the editor that received it.
 
 #### Scenario: The caret disappears for the length of the drag
 
 - **WHEN** a drag starts
-- **THEN** the caret is suppressed and the source editor's content loses focus
+- **THEN** the caret is suppressed in the editors of the window
+
+#### Scenario: The on-screen keyboard stays up
+
+- **WHEN** a drag starts in an editor that holds focus with the on-screen keyboard open
+- **THEN** the editor keeps its focus, the keyboard stays open, and the note does not reflow
 
 #### Scenario: Cancelling restores the caret
 
 - **WHEN** an active drag is cancelled
-- **THEN** the caret is restored and focus returns to the editor that had it
-
-#### Scenario: A drop leaves focus in the receiving editor
-
-- **WHEN** a drag ends in a successful drop on another pane
-- **THEN** the caret is restored and the receiving editor holds the focus
+- **THEN** the caret is restored
 
 ### Requirement: Keep the editor still while a branch is being dragged
 

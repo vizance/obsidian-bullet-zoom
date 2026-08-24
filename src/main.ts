@@ -43,10 +43,9 @@ import {
 	sameDocumentDropTransaction,
 	type BranchDropPlan,
 } from './branch-drop-plan';
-import {
-	DRAG_ACTIVE_CLASS,
-	type BranchDragEnvironment,
-	type DragTarget,
+import type {
+	BranchDragEnvironment,
+	DragTarget,
 } from './branch-drag-controller';
 import {
 	collectBulletCopyText,
@@ -1011,23 +1010,7 @@ export default class BulletZoomPlugin extends Plugin {
 			};
 		};
 
-		let hadFocusBeforeDrag = false;
 		return {
-			setCaretSuspended: (suspended) => {
-				const body = view.dom.ownerDocument.body;
-				if (suspended) {
-					hadFocusBeforeDrag = view.hasFocus;
-					body.classList.add(DRAG_ACTIVE_CLASS);
-					// Blurring is what stops the finger from dragging the caret
-					// underneath it, exactly as the bullet menu already does.
-					view.contentDOM.blur();
-					return;
-				}
-				body.classList.remove(DRAG_ACTIVE_CLASS);
-				if (hadFocusBeforeDrag) {
-					view.focus();
-				}
-			},
 			sourceAnchorAt: (marker) => {
 				try {
 					return view.posAtDOM(marker);

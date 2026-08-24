@@ -98,11 +98,6 @@ export interface BranchDragEnvironment {
 	 * a touch hold must not steal it.
 	 */
 	allowTouchHold(): boolean;
-	/**
-	 * Hides the caret and drops editor focus for the length of the drag, so the
-	 * pointer driving the branch does not appear to drag the caret with it.
-	 */
-	setCaretSuspended(suspended: boolean): void;
 }
 
 /**
@@ -283,7 +278,7 @@ export function createBranchDragGesture(
 		}
 		if (dragging) {
 			dom.classList.remove(DRAGGING_CLASS);
-			environment.setCaretSuspended(false);
+			dom.ownerDocument.body.classList.remove(DRAG_ACTIVE_CLASS);
 		}
 		scrollLocks = [];
 		preview = null;
@@ -297,7 +292,9 @@ export function createBranchDragGesture(
 		dragging = true;
 		collectScrollLocks();
 		dom.classList.add(DRAGGING_CLASS);
-		environment.setCaretSuspended(true);
+		// Styling only. Blurring the editor would dismiss the on-screen keyboard,
+		// and the viewport change reflows the note under the finger mid-drag.
+		dom.ownerDocument.body.classList.add(DRAG_ACTIVE_CLASS);
 	};
 
 	return {

@@ -11,6 +11,7 @@ import {
 	DROP_TOP_PROPERTY,
 	INDICATOR_CLASS,
 	DRAGGING_CLASS,
+	DRAG_ACTIVE_CLASS,
 	DRAG_TOUCH_HOLD_MS,
 	type BranchDragEnvironment,
 	type DragTarget,
@@ -25,7 +26,6 @@ type Harness = Readonly<{
 	dom: HTMLElement;
 	scroller: HTMLElement;
 	marker: HTMLElement;
-	caretCalls: boolean[];
 	applied: { plan: BranchDropPlan; target: DragTarget }[];
 	detach: () => void;
 	environment: BranchDragEnvironment;
@@ -48,22 +48,18 @@ function createHarness(
 
 	const state = createState('- A\n- B\n- C');
 	const applied: { plan: BranchDropPlan; target: DragTarget }[] = [];
-	const caretCalls: boolean[] = [];
 	const environment: BranchDragEnvironment = {
 		sourceAnchorAt: () => 0,
 		sourceState: () => state,
 		resolveTarget: () => null,
 		allowTouchHold: () => true,
-		setCaretSuspended: (suspended) => {
-			caretCalls.push(suspended);
-		},
 		applyPlan: (plan, target) => {
 			applied.push({ plan, target });
 		},
 		...overrides,
 	};
 	const detach = attachBranchDragController(dom, environment);
-	return { dom, scroller, marker, caretCalls, applied, detach, environment };
+	return { dom, scroller, marker, applied, detach, environment };
 }
 
 function pointer(
@@ -420,42 +416,62 @@ describe('a popout window is never a drop target', () => {
 });
 
 describe('hiding the caret while dragging', () => {
-	it('suspends the caret when the drag starts and restores it on cancel', () => {
+	it('marks the document body while the drag runs and clears it on cancel', () => {
 		vi.useFakeTimers();
 		const local = createHarness();
 		local.marker.dispatchEvent(pointer('pointerdown'));
-		expect(local.caretCalls).toEqual([]);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(false);
 
 		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
-		expect(local.caretCalls).toEqual([true]);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(true);
 
 		local.dom.dispatchEvent(pointer('pointercancel', { x: 16 }));
-		expect(local.caretCalls).toEqual([true, false]);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(false);
 
 		local.detach();
 		local.dom.remove();
 		vi.useRealTimers();
 	});
 
-	it('restores the caret when the drag ends in a release', () => {
+	it('clears the mark when the drag ends in a release', () => {
 		vi.useFakeTimers();
 		const local = createHarness();
 		local.marker.dispatchEvent(pointer('pointerdown'));
 		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
 		local.dom.dispatchEvent(pointer('pointerup', { x: 16 }));
-		expect(local.caretCalls).toEqual([true, false]);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(false);
 		local.detach();
 		local.dom.remove();
 		vi.useRealTimers();
 	});
 
-	it('never touches the caret when the press does not become a drag', () => {
+	it('never marks the body for a press that does not become a drag', () => {
 		vi.useFakeTimers();
 		const local = createHarness();
 		local.marker.dispatchEvent(pointer('pointerdown'));
 		local.dom.dispatchEvent(pointer('pointermove', { x: 3 }));
 		local.dom.dispatchEvent(pointer('pointerup', { x: 3 }));
-		expect(local.caretCalls).toEqual([]);
+		expect(document.body.classList.contains(DRAG_ACTIVE_CLASS)).toBe(false);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('keeps the editor focused, because blurring dismisses the keyboard', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		const input = document.createElement('textarea');
+		local.dom.append(input);
+		input.focus();
+		expect(document.activeElement).toBe(input);
+
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		expect(document.activeElement).toBe(input);
+
+		local.dom.dispatchEvent(pointer('pointerup', { x: 16 }));
+		expect(document.activeElement).toBe(input);
+
 		local.detach();
 		local.dom.remove();
 		vi.useRealTimers();
