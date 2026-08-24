@@ -222,6 +222,19 @@ export function createBranchDragGesture(
 	let holdTimer: number | null = null;
 	let preview: DropPreview | null = null;
 	let indicator: HTMLElement | null = null;
+	let scroller: HTMLElement | null = null;
+	let lockedScrollTop = 0;
+	let lockedScrollLeft = 0;
+
+	const holdScroll = (): void => {
+		if (scroller === null) {
+			return;
+		}
+		// iOS keeps scrolling a gesture it has already claimed, whatever the
+		// pointer handler returns, so the position is put back by hand.
+		scroller.scrollTop = lockedScrollTop;
+		scroller.scrollLeft = lockedScrollLeft;
+	};
 
 	const reset = (): void => {
 		if (holdTimer !== null) {
@@ -232,6 +245,7 @@ export function createBranchDragGesture(
 			dom.classList.remove(DRAGGING_CLASS);
 			environment.setCaretSuspended(false);
 		}
+		scroller = null;
 		preview = null;
 		indicator = renderDropIndicator(indicator, null);
 		dragging = false;
@@ -241,6 +255,9 @@ export function createBranchDragGesture(
 
 	const beginDrag = (): void => {
 		dragging = true;
+		scroller = dom.querySelector<HTMLElement>('.cm-scroller');
+		lockedScrollTop = scroller?.scrollTop ?? 0;
+		lockedScrollLeft = scroller?.scrollLeft ?? 0;
 		dom.classList.add(DRAGGING_CLASS);
 		environment.setCaretSuspended(true);
 	};
@@ -294,6 +311,7 @@ export function createBranchDragGesture(
 				}
 			}
 			event.preventDefault();
+			holdScroll();
 			const target = environment.resolveTarget(
 				event.clientX,
 				event.clientY,

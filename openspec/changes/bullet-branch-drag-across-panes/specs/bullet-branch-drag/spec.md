@@ -153,6 +153,20 @@ While a drag is active the plugin SHALL suppress the text caret in every Markdow
 - **WHEN** a drag ends in a successful drop on another pane
 - **THEN** the caret is restored and the receiving editor holds the focus
 
+### Requirement: Keep the editor still while a branch is being dragged
+
+While a drag is active the plugin SHALL hold the source editor's scroll position at the value it had when the drag started, restoring it on every pointer move, so that a finger moving across a phone screen moves the drop indicator instead of scrolling the note away. The plugin SHALL also suppress touch scrolling and overscroll in the editors of the window for the length of the drag. The scroll position SHALL be released when the drag ends, whether it ended in a drop or a cancel.
+
+#### Scenario: The note does not scroll under a dragging finger
+
+- **WHEN** a drag is active and the pointer moves far enough vertically to scroll the editor
+- **THEN** the editor's scroll position stays where it was when the drag started
+
+#### Scenario: Scrolling works again after the drag
+
+- **WHEN** the drag ends
+- **THEN** the editor scrolls normally again
+
 ### Requirement: Reject illegal drops without changing any document
 
 The plugin SHALL NOT apply a drop, and SHALL leave every document unchanged, when any of the following holds:

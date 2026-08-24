@@ -1130,3 +1130,8 @@ button.bullet-zoom-slot-command.is-empty {
 	user-select: none;
 	-webkit-user-select: none;
 }
+
+.bullet-zoom-branch-drag-active .cm-scroller {
+	touch-action: none;
+	overscroll-behavior: contain;
+}

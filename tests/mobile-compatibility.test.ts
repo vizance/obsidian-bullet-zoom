@@ -42,7 +42,7 @@ describe('mobile-compatible plugin bundle contract', () => {
 
 		expect(manifest.id).toBe('bullet-zoom');
 		expect(manifest.isDesktopOnly).toBe(false);
-		expect(manifest.version).toBe('1.28.1');
+		expect(manifest.version).toBe('1.28.2');
 	});
 
 	it('keeps patch-version metadata aligned', () => {
@@ -58,9 +58,9 @@ describe('mobile-compatible plugin bundle contract', () => {
 			unknown
 		>;
 
-		expect(packageManifest.version).toBe('1.28.1');
-		expect(packageLock.version).toBe('1.28.1');
-		expect(packageLock.packages?.['']?.version).toBe('1.28.1');
+		expect(packageManifest.version).toBe('1.28.2');
+		expect(packageLock.version).toBe('1.28.2');
+		expect(packageLock.packages?.['']?.version).toBe('1.28.2');
 		expect(versions['0.1.1']).toBe('1.11.7');
 		expect(versions['0.1.2']).toBe('1.11.7');
 		expect(versions['0.1.3']).toBe('1.11.7');
@@ -858,6 +858,16 @@ describe('branch drag styling contract (1.28.0)', () => {
 		const declarations = block.slice(0, block.indexOf('}'));
 		expect(declarations).toContain('caret-color: transparent');
 		expect(declarations).toContain('user-select: none');
+	});
+
+	it('turns off touch scrolling while a drag is active', () => {
+		const stylesheet = readProjectFile('styles.css');
+		const block = stylesheet.slice(
+			stylesheet.indexOf('.bullet-zoom-branch-drag-active .cm-scroller'),
+		);
+		const declarations = block.slice(0, block.indexOf('}'));
+		expect(declarations).toContain('touch-action: none');
+		expect(declarations).toContain('overscroll-behavior: contain');
 	});
 
 	it('positions the indicator through custom properties, not fixed pixels', () => {

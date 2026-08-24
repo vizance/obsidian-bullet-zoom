@@ -23,6 +23,7 @@ function createState(document: string): EditorState {
 
 type Harness = Readonly<{
 	dom: HTMLElement;
+	scroller: HTMLElement;
 	marker: HTMLElement;
 	caretCalls: boolean[];
 	applied: { plan: BranchDropPlan; target: DragTarget }[];
@@ -34,6 +35,9 @@ function createHarness(
 	overrides: Partial<BranchDragEnvironment> = {},
 ): Harness {
 	const dom = document.createElement('div');
+	const scroller = document.createElement('div');
+	scroller.className = 'cm-scroller';
+	dom.append(scroller);
 	const line = document.createElement('div');
 	line.className = 'cm-line';
 	const marker = document.createElement('span');
@@ -59,7 +63,7 @@ function createHarness(
 		...overrides,
 	};
 	const detach = attachBranchDragController(dom, environment);
-	return { dom, marker, caretCalls, applied, detach, environment };
+	return { dom, scroller, marker, caretCalls, applied, detach, environment };
 }
 
 function pointer(
@@ -452,6 +456,59 @@ describe('hiding the caret while dragging', () => {
 		local.dom.dispatchEvent(pointer('pointermove', { x: 3 }));
 		local.dom.dispatchEvent(pointer('pointerup', { x: 3 }));
 		expect(local.caretCalls).toEqual([]);
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+});
+
+describe('holding the editor still while dragging', () => {
+	it('puts the scroll position back on every move of an active drag', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.scroller.scrollTop = 120;
+		local.scroller.scrollLeft = 30;
+
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+
+		// iOS scrolls the gesture it already claimed; the next move undoes it.
+		local.scroller.scrollTop = 400;
+		local.scroller.scrollLeft = 90;
+		local.dom.dispatchEvent(pointer('pointermove', { x: 20, y: 200 }));
+		expect(local.scroller.scrollTop).toBe(120);
+		expect(local.scroller.scrollLeft).toBe(30);
+
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('lets the editor scroll again once the drag ends', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.scroller.scrollTop = 120;
+
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.dom.dispatchEvent(pointer('pointermove', { x: 16 }));
+		local.dom.dispatchEvent(pointer('pointerup', { x: 16 }));
+
+		local.scroller.scrollTop = 400;
+		local.dom.dispatchEvent(pointer('pointermove', { x: 20, y: 200 }));
+		expect(local.scroller.scrollTop).toBe(400);
+
+		local.detach();
+		local.dom.remove();
+		vi.useRealTimers();
+	});
+
+	it('never locks the scroll for a press that does not become a drag', () => {
+		vi.useFakeTimers();
+		const local = createHarness();
+		local.marker.dispatchEvent(pointer('pointerdown'));
+		local.scroller.scrollTop = 250;
+		local.dom.dispatchEvent(pointer('pointermove', { x: 3 }));
+		expect(local.scroller.scrollTop).toBe(250);
 		local.detach();
 		local.dom.remove();
 		vi.useRealTimers();

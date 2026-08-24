@@ -25,6 +25,8 @@
 
 - [x] 4.5 Hide the text caret while a branch is being dragged：拖曳期間視窗內所有編輯器的游標隱藏且不可選取文字，來源編輯器的 contentDOM 失焦，結束（放開或取消）時還原；沿用輪盤選單既有的 `caret-color: transparent` 做法，透過 `body` 層的類別套用，讓另一個 pane 的游標也一起隱藏。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時呼叫 setCaretSuspended(true)、取消與放開時呼叫 (false)；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 caret 規則。
 
+- [x] 4.6 Keep the editor still while a branch is being dragged：起拖時記錄來源編輯器 `.cm-scroller` 的捲動位置，每次 pointermove 都還原，結束時釋放；並在拖曳期間以 `touch-action: none` 與 `overscroll-behavior: contain` 關閉觸控捲動。沿用側邊欄 `attachOutlineDragController` 既有的鎖定做法。驗證：`tests/branch-drag-controller.test.ts` 斷言拖曳中改變 scrollTop 會被還原、結束後不再還原；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 有對應的 touch-action 規則。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。
