@@ -6,6 +6,7 @@ import {
 	attachBranchDragController,
 	chooseIndent,
 	computeDropPreview,
+	resolveIndentStops,
 	renderDropIndicator,
 	DROP_LEFT_PROPERTY,
 	DROP_TOP_PROPERTY,
@@ -198,22 +199,57 @@ function createTarget(
 				left: 100,
 			};
 		},
+		// Each level is drawn 40px further right, the way a theme lays out
+		// nesting, which is not the same as the character count.
+		xForPosition: (position) => {
+			const line = state.doc.lineAt(position);
+			const indent = /^[\t ]*/.exec(line.text)?.[0] ?? '';
+			return 100 + indent.length * 40;
+		},
 		columnWidthPx: () => 10,
 		...overrides,
 	};
 }
 
-describe('chooseIndent', () => {
-	const state = createState('- A\n\t- A1\n- B');
-
-	it('picks the deeper indent once the pointer passes the midpoint', () => {
-		// '' sits at x = 100, '\t' at x = 100 + 4 columns * 10px = 140.
-		expect(chooseIndent(['', '\t'], state, 100, 10, 121)).toBe('\t');
-		expect(chooseIndent(['', '\t'], state, 100, 10, 119)).toBe('');
+describe('resolveIndentStops and chooseIndent', () => {
+	it('puts each level where a row at that level is really drawn', () => {
+		const target = createTarget('- A\n\t- A1\n\t\t- A1a\n- B');
+		const stops = resolveIndentStops(target, ['', '\t', '\t\t'], 100);
+		expect(stops).toEqual([
+			{ indent: '', x: 100 },
+			{ indent: '\t', x: 140 },
+			{ indent: '\t\t', x: 180 },
+		]);
 	});
 
-	it('prefers the shallower indent at an equal distance', () => {
-		expect(chooseIndent(['', '\t'], state, 100, 10, 120)).toBe('');
+	it('puts a level deeper than the document one measured step further', () => {
+		const target = createTarget('- A\n\t- A1\n\t\t- A1a\n- B');
+		const stops = resolveIndentStops(
+			target,
+			['', '\t', '\t\t', '\t\t\t'],
+			100,
+		);
+		expect(stops.at(-1)).toEqual({ indent: '\t\t\t', x: 220 });
+	});
+
+	it('falls back to the character width when only one level exists', () => {
+		const target = createTarget('- A\n- B');
+		const stops = resolveIndentStops(target, ['', '\t'], 100);
+		// One measured level, so the step is the editor's character width.
+		expect(stops).toEqual([
+			{ indent: '', x: 100 },
+			{ indent: '\t', x: 110 },
+		]);
+	});
+
+	it('picks the level drawn nearest the pointer, ties going shallower', () => {
+		const stops = [
+			{ indent: '', x: 100 },
+			{ indent: '\t', x: 140 },
+		];
+		expect(chooseIndent(stops, 121)).toBe('\t');
+		expect(chooseIndent(stops, 119)).toBe('');
+		expect(chooseIndent(stops, 120)).toBe('');
 	});
 });
 
@@ -241,9 +277,14 @@ describe('computeDropPreview', () => {
 	it('reuses the candidates of the previous preview inside the same gap', () => {
 		const target = createTarget('- A\n\t- A1\n\t\t- A1a\n- B');
 		const first = computeDropPreview(target, 400, 55, null);
-		const doctored = { ...first!, candidates: Object.freeze(['\t\t']) };
+		const doctored = {
+			...first!,
+			candidates: Object.freeze(['\t\t']),
+			stops: Object.freeze([{ indent: '\t\t', x: 180 }]),
+		};
 		const second = computeDropPreview(target, 400, 55, doctored);
 		expect(second?.candidates).toBe(doctored.candidates);
+		expect(second?.stops).toBe(doctored.stops);
 		expect(second?.indent).toBe('\t\t');
 	});
 

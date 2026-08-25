@@ -164,6 +164,20 @@ export function countBranchLines(state: EditorState, anchor: number): number {
 	return Math.max(1, last - first + 1);
 }
 
+/** The first supported item drawn at exactly this indent, if the document has one. */
+export function findBulletWithIndent(
+	state: EditorState,
+	indent: string,
+): SupportedBullet | null {
+	for (let line = 1; line <= state.doc.lines; line += 1) {
+		const bullet = bulletOnLine(state, line);
+		if (bullet !== null && indentTextOf(state, bullet) === indent) {
+			return bullet;
+		}
+	}
+	return null;
+}
+
 export function candidateIndents(
 	state: EditorState,
 	gap: DropGap,

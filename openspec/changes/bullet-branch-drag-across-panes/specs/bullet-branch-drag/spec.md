@@ -93,9 +93,25 @@ Indents SHALL be carried as the literal indent text of the target document, so t
 - **WHEN** the gap is above the first supported item in the document
 - **THEN** the legal indent set contains exactly the first item's indent
 
+### Requirement: Place each legal indent at the coordinate its level is actually drawn at
+
+The plugin SHALL resolve the horizontal coordinate of a legal indent by measuring where an existing item at that same indent is drawn in the target editor, rather than by multiplying a character width by a column count. Live Preview draws list nesting with styling, so the drawn offset of a level does not follow from the number of indent characters, and a computed offset would put the drop marker at a depth the reader cannot match to any row.
+
+When no existing item in the target document carries the indent in question, which happens for the option that nests the branch one level deeper than anything present, the plugin SHALL derive its coordinate by adding one measured level step to the deepest indent it could measure. The step SHALL be the distance between two measured levels when two are available, and SHALL fall back to the editor's character width otherwise.
+
+#### Scenario: A level takes the offset of the rows already at that level
+
+- **WHEN** a legal indent matches the indent of an existing item in the target editor
+- **THEN** the drop marker's left edge sits at that item's drawn horizontal position
+
+#### Scenario: A new deepest level is one step past the deepest measured one
+
+- **WHEN** the only remaining legal indent is deeper than every item in the target editor
+- **THEN** its coordinate is the deepest measured coordinate plus one measured level step
+
 ### Requirement: Choose the indent nearest to the pointer's horizontal position
 
-The plugin SHALL map every legal indent for the current gap to a horizontal screen coordinate in the target editor, computed from the target line's left edge plus the indent's character count multiplied by the measured width of one indent unit in that editor. The plugin SHALL select the legal indent whose coordinate is nearest the pointer's horizontal position, and SHALL select the shallower indent when two coordinates are equally near. Horizontal pointer movement inside one gap SHALL change the selected indent without re-resolving the gap.
+The plugin SHALL select the legal indent whose resolved coordinate is nearest the pointer's horizontal position, and SHALL select the shallower indent when two coordinates are equally near. Horizontal pointer movement inside one gap SHALL change the selected indent without re-resolving the gap.
 
 #### Scenario: Moving right selects a deeper indent
 

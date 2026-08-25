@@ -1013,6 +1013,13 @@ export default class BulletZoomPlugin extends Plugin {
 								left: coords.left,
 							};
 				},
+				xForPosition: (position) => {
+					try {
+						return targetView.coordsAtPos(position)?.left ?? null;
+					} catch {
+						return null;
+					}
+				},
 				columnWidthPx: () => targetView.defaultCharacterWidth,
 			};
 		};

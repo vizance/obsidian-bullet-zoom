@@ -33,6 +33,8 @@
 
 - [x] 4.9 Mark the branch being carried and the exact drop point：改採 Obsidian Outliner 的視覺分工——落點是 4px 實心 accent 橫條（不是半透明色塊），被拖曳的分支每一行本身染上 accent 底色並降低不透明度。分支行的染色由 `src/main.ts` 依 `computeBranchRange` 取得行號後對 `.cm-line` 加上類別，結束時移除。驗證：`tests/branch-drag-controller.test.ts` 斷言起拖時呼叫 setSourceHighlighted(true)、結束與取消時呼叫 (false)、指示條只設定兩個自訂屬性；`tests/mobile-compatibility.test.ts` 斷言 `styles.css` 的指示條為實心 accent 且有分支染色規則。
 
+- [x] 4.10 Place each legal indent at the coordinate its level is actually drawn at：每個合法縮排的 x 座標改由「目標文件中同縮排的既有項目實際畫在哪」量測取得，而不是字元寬度乘欄數；找不到同縮排的既有項目時（只發生在比現有內容更深一層的選項），以量測到的最深座標加一個層級步距推算，步距取兩個已量測層級的差，都取不到才退回字元寬度。驗證：`tests/branch-drag-controller.test.ts` 以假座標斷言同縮排取既有項目的位置、更深一層取最深座標加步距、只有單一層級時退回字元寬度。
+
 ## 5. 驗證與交付
 
 - [x] 5.1 樣式契約有回歸保護：在 `tests/mobile-compatibility.test.ts` 加入斷言，確認 `styles.css` 含拖曳中狀態類別、指示線類別與兩個自訂屬性的宣告。驗證：執行 vitest 該檔案通過。

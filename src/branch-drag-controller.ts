@@ -2,6 +2,7 @@ import { countColumn, type EditorState } from '@codemirror/state';
 
 import {
 	candidateIndents,
+	findBulletWithIndent,
 	planBranchDrop,
 	resolveDropGap,
 	type BranchDropPlan,
@@ -49,37 +50,95 @@ export interface DragTarget {
 	readonly indicatorHost: HTMLElement;
 	posAtCoords(x: number, y: number): number | null;
 	lineGeometry(position: number): LineGeometry | null;
+	/** Where the given document position is actually drawn, horizontally. */
+	xForPosition(position: number): number | null;
 	/** Width of a single indent column, measured in the target editor. */
 	columnWidthPx(): number;
 }
+
+export type IndentStop = Readonly<{ indent: string; x: number }>;
 
 export type DropPreview = Readonly<{
 	target: DragTarget;
 	gap: DropGap;
 	candidates: readonly string[];
+	stops: readonly IndentStop[];
 	indent: string;
 	indicatorTop: number;
 	indicatorLeft: number;
 }>;
 
 /**
- * The legal indent whose column lands closest to the pointer. Ties go to the
- * shallower indent, so drifting right is what deepens a drop, never noise.
+ * Where each legal indent is really drawn. Live Preview lays out nesting with
+ * styling, so a level's offset does not follow from its character count; the
+ * only trustworthy source is an existing row at that level.
+ */
+export function resolveIndentStops(
+	target: DragTarget,
+	candidates: readonly string[],
+	fallbackLeft: number,
+): readonly IndentStop[] {
+	const measured = new Map<string, number>();
+	for (const indent of candidates) {
+		const sample = findBulletWithIndent(target.state, indent);
+		if (sample === null) {
+			continue;
+		}
+		const x = target.xForPosition(sample.markerFrom);
+		if (x !== null) {
+			measured.set(indent, x);
+		}
+	}
+	const known = candidates.filter((indent) => measured.has(indent));
+	const deepestKnown = known.at(-1);
+	const step =
+		known.length >= 2
+			? (measured.get(known.at(-1) as string) as number) -
+				(measured.get(known.at(-2) as string) as number)
+			: target.columnWidthPx();
+	const stops: IndentStop[] = [];
+	for (const indent of candidates) {
+		const exact = measured.get(indent);
+		if (exact !== undefined) {
+			stops.push(Object.freeze({ indent, x: exact }));
+			continue;
+		}
+		if (deepestKnown === undefined) {
+			const columns = countColumn(indent, target.state.tabSize);
+			stops.push(
+				Object.freeze({
+					indent,
+					x: fallbackLeft + columns * target.columnWidthPx(),
+				}),
+			);
+			continue;
+		}
+		// Only the option that nests one level deeper than anything present
+		// reaches here, so one step past the deepest measured level is right.
+		stops.push(
+			Object.freeze({
+				indent,
+				x: (measured.get(deepestKnown) as number) + Math.max(step, 1),
+			}),
+		);
+	}
+	return Object.freeze(stops);
+}
+
+/**
+ * The legal indent drawn closest to the pointer. Ties go to the shallower
+ * indent, so drifting right is what deepens a drop, never noise.
  */
 export function chooseIndent(
-	candidates: readonly string[],
-	state: EditorState,
-	lineLeft: number,
-	columnWidth: number,
+	stops: readonly IndentStop[],
 	pointerX: number,
 ): string | null {
 	let best: string | null = null;
 	let bestDistance = Number.POSITIVE_INFINITY;
-	for (const indent of candidates) {
-		const columns = countColumn(indent, state.tabSize);
-		const distance = Math.abs(pointerX - (lineLeft + columns * columnWidth));
+	for (const stop of stops) {
+		const distance = Math.abs(pointerX - stop.x);
 		if (distance < bestDistance) {
-			best = indent;
+			best = stop.indent;
 			bestDistance = distance;
 		}
 	}
@@ -133,14 +192,10 @@ export function computeDropPreview(
 	const candidates = reusable
 		? previous.candidates
 		: candidateIndents(target.state, gap);
-	const columnWidth = target.columnWidthPx();
-	const indent = chooseIndent(
-		candidates,
-		target.state,
-		geometry.left,
-		columnWidth,
-		pointerX,
-	);
+	const stops = reusable
+		? previous.stops
+		: resolveIndentStops(target, candidates, geometry.left);
+	const indent = chooseIndent(stops, pointerX);
 	if (indent === null) {
 		return null;
 	}
@@ -148,11 +203,11 @@ export function computeDropPreview(
 		target,
 		gap,
 		candidates,
+		stops,
 		indent,
 		indicatorTop: half === 'upper' ? geometry.top : geometry.bottom,
 		indicatorLeft:
-			geometry.left +
-			countColumn(indent, target.state.tabSize) * columnWidth,
+			stops.find((stop) => stop.indent === indent)?.x ?? geometry.left,
 	});
 }
 
